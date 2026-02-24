@@ -260,8 +260,8 @@ jobs:
           cd test-project
           node ../dist/index.js config list
           node ../dist/index.js config get defaultAssignee --plain || echo "No default assignee"
-          node ../dist/index.js config set testKey testValue
-          node ../dist/index.js config get testKey --plain
+          node ../dist/index.js config set defaultPriority high
+          node ../dist/index.js config get defaultPriority --plain
           echo "✅ Config passed"
 
       - name: Test cross-references resolution

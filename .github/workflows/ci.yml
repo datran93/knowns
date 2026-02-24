@@ -280,6 +280,20 @@ jobs:
           node ../dist/index.js doc "guides/architecture" --plain
           echo "✅ Cross-references passed"
 
+      - name: Test semantic search
+        shell: bash
+        run: |
+          echo "=== Testing semantic search ==="
+          cd test-project
+          # Check model command
+          node ../dist/index.js model
+          node ../dist/index.js model list
+          # Check search status (semantic disabled by default)
+          node ../dist/index.js search --status-check
+          # Test keyword search (always works)
+          node ../dist/index.js search "test" --keyword --plain
+          echo "✅ Semantic search passed"
+
       - name: Final verification
         shell: bash
         run: |
@@ -292,6 +306,6 @@ jobs:
           node ../dist/index.js doc list --plain
           echo ""
           echo "--- Search all ---"
-          node ../dist/index.js search "test" --plain
+          node ../dist/index.js search "test" --keyword --plain
           echo ""
           echo "✅✅✅ All E2E tests passed on ${{ matrix.os }}! ✅✅✅"

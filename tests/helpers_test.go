@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -41,7 +42,11 @@ func getBinaryPath(t *testing.T) string {
 	// Resolve relative to this source file's directory.
 	// When go test runs, the working dir is the package dir (tests/),
 	// so ../bin/knowns should work, but let's make it absolute.
-	rel := filepath.Join("..", "bin", "knowns")
+	binaryName := "knowns"
+	if runtime.GOOS == "windows" {
+		binaryName += ".exe"
+	}
+	rel := filepath.Join("..", "bin", binaryName)
 	abs, err := filepath.Abs(rel)
 	if err != nil {
 		t.Fatalf("cannot resolve binary path: %v", err)

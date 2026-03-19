@@ -13,8 +13,12 @@ concurrency:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
-    name: Lint & Test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    name: Lint & Test (${{ matrix.os }})
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -29,7 +33,12 @@ jobs:
         run: cd ui && bun install --frozen-lockfile && bun run build
 
       - name: Build Go binary
-        run: make build
+        run: |
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            go build -ldflags "-s -w -X github.com/howznguyen/knowns/internal/util.Version=${GITHUB_SHA}" -o bin/knowns.exe ./cmd/knowns
+          else
+            make build
+          fi
 
       - name: Go vet
         run: go vet ./...
@@ -57,6 +66,9 @@ jobs:
       - name: Build Go binary (with embedded UI)
         run: make build
 
+      - name: Install Playwright browsers
+        run: cd ui && bunx playwright install --with-deps chromium
+
       - name: Verify binary
         run: |
           ./bin/knowns --version
@@ -64,5 +76,8 @@ jobs:
 
       - name: Run E2E tests
         run: |
-          cd tests && go test -v -timeout 300s -count=1 -run TestCLI ./...
-          cd tests && go test -v -timeout 300s -count=1 -run TestMCP ./...
+          (cd tests && go test -v -timeout 300s -count=1 -run TestCLI ./...)
+          (cd tests && go test -v -timeout 300s -count=1 -run TestMCP ./...)
+
+      - name: Run UI Playwright tests
+        run: cd ui && TEST_BINARY=../bin/knowns bun test:e2e

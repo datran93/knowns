@@ -74,7 +74,7 @@ export async function startServer(): Promise<TestServer> {
 		cwd: projectDir,
 		stdio: "ignore",
 	});
-	execSync(`${BINARY} init "E2E Test Project"`, {
+	execSync(`${BINARY} init "E2E Test Project" --no-wizard --no-open`, {
 		cwd: projectDir,
 		stdio: "ignore",
 	});

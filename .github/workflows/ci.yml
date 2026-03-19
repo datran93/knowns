@@ -32,13 +32,13 @@ jobs:
       - name: Build UI
         run: cd ui && bun install --frozen-lockfile && bun run build
 
-      - name: Build Go binary
-        run: |
-          if [ "$RUNNER_OS" = "Windows" ]; then
-            go build -ldflags "-s -w -X github.com/howznguyen/knowns/internal/util.Version=${GITHUB_SHA}" -o bin/knowns.exe ./cmd/knowns
-          else
-            make build
-          fi
+      - name: Build Go binary (Unix)
+        if: runner.os != 'Windows'
+        run: make build
+
+      - name: Build Go binary (Windows)
+        if: runner.os == 'Windows'
+        run: go build -ldflags "-s -w -X github.com/howznguyen/knowns/internal/util.Version=${env:GITHUB_SHA}" -o bin/knowns.exe ./cmd/knowns
 
       - name: Go vet
         run: go vet ./...

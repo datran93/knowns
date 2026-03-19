@@ -25,6 +25,8 @@ type CLIResult struct {
 	ExitCode int
 }
 
+var ensureBinaryOnce sync.Once
+
 // getBinaryPath returns the absolute path to the knowns binary.
 // Respects TEST_BINARY env var; defaults to ../bin/knowns relative to this source file.
 func getBinaryPath(t *testing.T) string {
@@ -45,9 +47,37 @@ func getBinaryPath(t *testing.T) string {
 		t.Fatalf("cannot resolve binary path: %v", err)
 	}
 	if _, err := os.Stat(abs); err != nil {
-		t.Fatalf("binary not found at %s: run 'make build' first", abs)
+		ensureTestBinary(t, abs)
 	}
 	return abs
+}
+
+func ensureTestBinary(t *testing.T, abs string) {
+	t.Helper()
+
+	var buildErr error
+	ensureBinaryOnce.Do(func() {
+		repoRoot := filepath.Dir(filepath.Dir(abs))
+		if err := os.MkdirAll(filepath.Dir(abs), 0755); err != nil {
+			buildErr = fmt.Errorf("create bin dir: %w", err)
+			return
+		}
+
+		cmd := exec.Command("go", "build", "-o", abs, "./cmd/knowns")
+		cmd.Dir = repoRoot
+		output, err := cmd.CombinedOutput()
+		if err != nil {
+			buildErr = fmt.Errorf("build test binary: %w\n%s", err, strings.TrimSpace(string(output)))
+			return
+		}
+	})
+
+	if buildErr != nil {
+		t.Fatalf("binary not available at %s: %v", abs, buildErr)
+	}
+	if _, err := os.Stat(abs); err != nil {
+		t.Fatalf("binary not found at %s after build: %v", abs, err)
+	}
 }
 
 // setupTestProject creates an isolated temp directory with git init + knowns init.

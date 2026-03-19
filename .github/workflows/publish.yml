@@ -256,7 +256,9 @@ jobs:
               echo "Missing binary for $pkg"
               exit 1
             fi
-            cp "$binary" "npm/$pkg/$(basename "$binary")"
+            dest="npm/$pkg/$(basename "$binary")"
+            cp "$binary" "$dest"
+            chmod +x "$dest" 2>/dev/null || true
           done
 
           node <<'EOF'

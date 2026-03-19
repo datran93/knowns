@@ -20,6 +20,19 @@ function resolveFromPackageDir(pkgDir, ext) {
   return null;
 }
 
+function ensureExecutable(binary) {
+  if (process.platform === "win32") {
+    return;
+  }
+
+  const mode = fs.statSync(binary).mode;
+  if ((mode & 0o111) !== 0) {
+    return;
+  }
+
+  fs.chmodSync(binary, mode | 0o755);
+}
+
 function getBinaryPath() {
   const platform = os.platform();
   const arch = os.arch();
@@ -94,6 +107,7 @@ const binary = getBinaryPath();
 const args = process.argv.slice(2);
 
 try {
+  ensureExecutable(binary);
   execFileSync(binary, args, {
     stdio: "inherit",
     env: process.env,

@@ -113,6 +113,7 @@ jobs:
             ext: ".exe"
             cgo_enabled: "1"
             zig_target: x86_64-windows-gnu
+            zig_arch: x86_64
           - runner: windows-11-arm
             goos: windows
             goarch: arm64
@@ -120,6 +121,7 @@ jobs:
             ext: ".exe"
             cgo_enabled: "1"
             zig_target: aarch64-windows-gnu
+            zig_arch: aarch64
     runs-on: ${{ matrix.runner }}
     defaults:
       run:
@@ -133,11 +135,21 @@ jobs:
         with:
           go-version: "1.26"
 
-      - name: Setup Zig for Windows cgo
+      - name: Install Zig for Windows cgo
         if: runner.os == 'Windows'
-        uses: goto-bus-stop/setup-zig@v2
-        with:
-          version: 0.14.0
+        shell: pwsh
+        env:
+          ZIG_ARCH: ${{ matrix.zig_arch }}
+          ZIG_VERSION: 0.14.0
+        run: |
+          $zigRoot = Join-Path $env:RUNNER_TEMP 'zig'
+          $zipPath = Join-Path $env:RUNNER_TEMP 'zig.zip'
+          $folder = "zig-windows-$env:ZIG_ARCH-$env:ZIG_VERSION"
+          $url = "https://ziglang.org/download/$env:ZIG_VERSION/$folder.zip"
+
+          Invoke-WebRequest -Uri $url -OutFile $zipPath
+          Expand-Archive -Path $zipPath -DestinationPath $zigRoot -Force
+          Add-Content -Path $env:GITHUB_PATH -Value (Join-Path $zigRoot $folder)
 
       - name: Configure Windows cgo compiler
         if: runner.os == 'Windows'
@@ -158,9 +170,10 @@ jobs:
           zig c++ -target %ZIG_TARGET% %*
           "@ | Set-Content -Path $cxxPath -Encoding ascii
 
+          Add-Content -Path $env:GITHUB_PATH -Value $env:RUNNER_TEMP
           Add-Content -Path $env:GITHUB_ENV -Value "ZIG_TARGET=$env:ZIG_TARGET"
-          Add-Content -Path $env:GITHUB_ENV -Value "CC=$ccPath"
-          Add-Content -Path $env:GITHUB_ENV -Value "CXX=$cxxPath"
+          Add-Content -Path $env:GITHUB_ENV -Value "CC=zig-cc"
+          Add-Content -Path $env:GITHUB_ENV -Value "CXX=zig-cxx"
 
       - name: Download UI artifact
         uses: actions/download-artifact@v4

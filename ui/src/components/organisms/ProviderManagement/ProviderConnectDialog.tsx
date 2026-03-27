@@ -1,8 +1,8 @@
 import { ArrowLeft, Check, Copy, ExternalLink, Loader2, Plus, Search, Trash2, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type { ProviderAuthAuthorization, ProviderAuthMethod } from "../../../api/client";
-import { useOpenCode } from "../../../contexts/OpenCodeContext";
+import { type CustomProviderParams, useOpenCode } from "../../../contexts/OpenCodeContext";
 import { cn } from "../../../lib/utils";
 import { Badge } from "../../ui/badge";
 import { Button } from "../../ui/button";
@@ -77,7 +77,7 @@ function getAutoInstructionText(authorization: ProviderAuthAuthorization) {
 }
 
 export function ProviderConnectDialog({ open, onClose }: ProviderConnectDialogProps) {
-	const { providerResponse, providerAuthMethods, connectWithApiKey, startOAuth, finishOAuth, disconnectProvider } = useOpenCode();
+	const { providerResponse, providerAuthMethods, connectWithApiKey, startOAuth, finishOAuth, disconnectProvider, addCustomProvider } = useOpenCode();
 	const [query, setQuery] = useState("");
 	const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
 	const [savingProviderId, setSavingProviderId] = useState<string | null>(null);
@@ -86,6 +86,7 @@ export function ProviderConnectDialog({ open, onClose }: ProviderConnectDialogPr
 	const [providerErrors, setProviderErrors] = useState<Record<string, string>>({});
 	const [activeProvider, setActiveProvider] = useState<ActiveProviderState | null>(null);
 	const [oauthState, setOauthState] = useState<OAuthState | null>(null);
+	const [showCustomForm, setShowCustomForm] = useState(false);
 
 	const connectedIds = useMemo(() => {
 		if (!providerResponse) return new Set<string>();
@@ -141,6 +142,7 @@ export function ProviderConnectDialog({ open, onClose }: ProviderConnectDialogPr
 		setProviderErrors({});
 		setActiveProvider(null);
 		setOauthState(null);
+		setShowCustomForm(false);
 	};
 
 	const handleClose = () => {
@@ -279,6 +281,20 @@ export function ProviderConnectDialog({ open, onClose }: ProviderConnectDialogPr
 						onContinue={() => void handleContinue()}
 						continueDisabled={continueDisabled}
 					/>
+				) : showCustomForm ? (
+					<CustomProviderStepView
+						existingProviderIds={new Set((providerResponse?.all ?? []).map((p) => p.id))}
+						onBack={() => setShowCustomForm(false)}
+						onClose={handleClose}
+						onSubmit={async (params) => {
+							await addCustomProvider(params);
+							toast.success(`${params.name} added`, {
+								description: "Custom provider is now available in your workspace.",
+								position: "bottom-right",
+							});
+							handleClose();
+						}}
+					/>
 				) : (
 					<ProviderListStepView
 						query={query}
@@ -291,6 +307,7 @@ export function ProviderConnectDialog({ open, onClose }: ProviderConnectDialogPr
 						providerErrors={providerErrors}
 						onConnect={handleOpenProvider}
 						onDisconnect={handleDisconnect}
+						onCustomProvider={() => setShowCustomForm(true)}
 					/>
 				)}
 			</DialogContent>
@@ -309,6 +326,7 @@ function ProviderListStepView({
 	providerErrors,
 	onConnect,
 	onDisconnect,
+	onCustomProvider,
 }: {
 	query: string;
 	onQueryChange: (value: string) => void;
@@ -320,6 +338,7 @@ function ProviderListStepView({
 	providerErrors: Record<string, string>;
 	onConnect: (provider: ProviderSummary) => void;
 	onDisconnect: (providerId: string) => Promise<void>;
+	onCustomProvider: () => void;
 }) {
 	const empty = popular.length === 0 && others.length === 0;
 
@@ -380,6 +399,22 @@ function ProviderListStepView({
 					)}
 
 					{empty && <p className="rounded-2xl border border-dashed border-border/60 px-4 py-12 text-center text-sm text-muted-foreground">No providers found.</p>}
+
+					<div className="mt-4 px-3">
+						<button
+							type="button"
+							onClick={onCustomProvider}
+							className="flex w-full items-center gap-3 rounded-xl border border-dashed border-border/60 px-3.5 py-3 text-left transition-colors hover:border-primary/40 hover:bg-muted/20"
+						>
+							<div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-dashed border-border/50 bg-muted/10">
+								<Plus className="h-4 w-4 text-muted-foreground" />
+							</div>
+							<div className="min-w-0 flex-1">
+								<p className="text-sm font-medium text-foreground">Add custom provider</p>
+								<p className="text-[13px] leading-5 text-muted-foreground">Any OpenAI-compatible endpoint</p>
+							</div>
+						</button>
+					</div>
 				</div>
 			</div>
 		</>
@@ -749,6 +784,295 @@ function OAuthStepView({
 							{error && <p className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">{error}</p>}
 						</div>
 					)}
+				</div>
+			</div>
+		</>
+	);
+}
+
+interface ModelEntry {
+	id: string;
+	name: string;
+}
+
+interface HeaderEntry {
+	key: string;
+	value: string;
+}
+
+const PROVIDER_ID_REGEX = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+function CustomProviderStepView({
+	existingProviderIds,
+	onBack,
+	onClose,
+	onSubmit,
+}: {
+	existingProviderIds: Set<string>;
+	onBack: () => void;
+	onClose: () => void;
+	onSubmit: (params: CustomProviderParams) => Promise<void>;
+}) {
+	const [providerId, setProviderId] = useState("");
+	const [displayName, setDisplayName] = useState("");
+	const [baseURL, setBaseURL] = useState("");
+	const [models, setModels] = useState<ModelEntry[]>([{ id: "", name: "" }]);
+	const [headers, setHeaders] = useState<HeaderEntry[]>([]);
+	const [showHeaders, setShowHeaders] = useState(false);
+	const [apiKey, setApiKey] = useState("");
+	const [saving, setSaving] = useState(false);
+	const [error, setError] = useState<string | null>(null);
+
+	const idError = useMemo(() => {
+		if (!providerId) return null;
+		if (!PROVIDER_ID_REGEX.test(providerId)) return "Lowercase letters, numbers, and hyphens only";
+		if (existingProviderIds.has(providerId)) return "Provider ID already exists";
+		return null;
+	}, [providerId, existingProviderIds]);
+
+	const urlError = useMemo(() => {
+		if (!baseURL) return null;
+		if (!/^https?:\/\/.+/.test(baseURL)) return "Must start with http:// or https://";
+		return null;
+	}, [baseURL]);
+
+	const hasValidModels = models.some((m) => m.id.trim() && m.name.trim());
+
+	const canSubmit =
+		providerId.trim() &&
+		!idError &&
+		displayName.trim() &&
+		baseURL.trim() &&
+		!urlError &&
+		hasValidModels &&
+		!saving;
+
+	const updateModel = useCallback((index: number, field: "id" | "name", value: string) => {
+		setModels((prev) => prev.map((m, i) => (i === index ? { ...m, [field]: value } : m)));
+	}, []);
+
+	const removeModel = useCallback((index: number) => {
+		setModels((prev) => (prev.length <= 1 ? prev : prev.filter((_, i) => i !== index)));
+	}, []);
+
+	const updateHeader = useCallback((index: number, field: "key" | "value", value: string) => {
+		setHeaders((prev) => prev.map((h, i) => (i === index ? { ...h, [field]: value } : h)));
+	}, []);
+
+	const removeHeader = useCallback((index: number) => {
+		setHeaders((prev) => {
+			const next = prev.filter((_, i) => i !== index);
+			if (next.length === 0) setShowHeaders(false);
+			return next;
+		});
+	}, []);
+
+	const handleSubmit = async () => {
+		setError(null);
+		setSaving(true);
+		try {
+			const validModels = models.filter((m) => m.id.trim() && m.name.trim());
+			const modelMap: Record<string, { name: string }> = {};
+			for (const m of validModels) {
+				modelMap[m.id.trim()] = { name: m.name.trim() };
+			}
+			const validHeaders = headers.filter((h) => h.key.trim() && h.value.trim());
+			const headerMap: Record<string, string> = {};
+			for (const h of validHeaders) {
+				headerMap[h.key.trim()] = h.value.trim();
+			}
+			await onSubmit({
+				id: providerId.trim(),
+				name: displayName.trim(),
+				baseURL: baseURL.trim(),
+				models: modelMap,
+				...(validHeaders.length > 0 ? { headers: headerMap } : {}),
+				...(apiKey.trim() ? { apiKey: apiKey.trim() } : {}),
+			});
+		} catch (err) {
+			setError(err instanceof Error ? err.message : "Failed to add custom provider");
+		} finally {
+			setSaving(false);
+		}
+	};
+
+	return (
+		<>
+			<StepHeader title="Add custom provider" onBack={onBack} onClose={onClose} />
+			<div className="min-h-0 overflow-y-auto px-4 py-4 sm:px-5">
+				<div className="mx-auto flex max-w-2xl flex-col gap-4">
+					<div className="flex items-center gap-4 border-b border-border/40 pb-5">
+						<div className="flex h-10 w-10 items-center justify-center rounded-xl border border-dashed border-border/50 bg-muted/30">
+							<Plus className="h-5 w-5 text-muted-foreground" />
+						</div>
+						<div>
+							<p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/80">Custom provider</p>
+							<h2 className="mt-1 text-xl font-semibold tracking-tight">Add any OpenAI-compatible provider</h2>
+						</div>
+					</div>
+
+					{/* Provider details */}
+					<div className="space-y-3 rounded-2xl border border-border/50 bg-muted/10 p-3 sm:p-4">
+						<p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/80">Provider details</p>
+
+						<div className="space-y-1">
+							<label className="text-xs font-medium text-muted-foreground">Provider ID</label>
+							<Input
+								value={providerId}
+								onChange={(e) => setProviderId(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
+								placeholder="e.g. ollama, my-api"
+								className="h-10 rounded-xl border-border/60 bg-background font-mono text-sm shadow-none"
+								autoFocus
+							/>
+							{idError && <p className="text-xs text-destructive">{idError}</p>}
+						</div>
+
+						<div className="space-y-1">
+							<label className="text-xs font-medium text-muted-foreground">Display name</label>
+							<Input
+								value={displayName}
+								onChange={(e) => setDisplayName(e.target.value)}
+								placeholder="e.g. My AI Provider"
+								className="h-10 rounded-xl border-border/60 bg-background text-sm shadow-none"
+							/>
+						</div>
+
+						<div className="space-y-1">
+							<label className="text-xs font-medium text-muted-foreground">Base URL</label>
+							<Input
+								value={baseURL}
+								onChange={(e) => setBaseURL(e.target.value)}
+								placeholder="e.g. https://api.example.com/v1"
+								className="h-10 rounded-xl border-border/60 bg-background font-mono text-sm shadow-none"
+							/>
+							{urlError && <p className="text-xs text-destructive">{urlError}</p>}
+						</div>
+					</div>
+
+					{/* Models */}
+					<div className="space-y-3 rounded-2xl border border-border/50 bg-muted/10 p-3 sm:p-4">
+						<p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/80">Models</p>
+
+						{models.map((model, index) => (
+							<div key={index} className="flex items-start gap-2">
+								<div className="flex flex-1 gap-2">
+									<div className="flex-1 space-y-1">
+										<label className="text-xs font-medium text-muted-foreground">Model ID</label>
+										<Input
+											value={model.id}
+											onChange={(e) => updateModel(index, "id", e.target.value)}
+											placeholder="e.g. gpt-4o"
+											className="h-9 rounded-xl border-border/60 bg-background font-mono text-sm shadow-none"
+										/>
+									</div>
+									<div className="flex-1 space-y-1">
+										<label className="text-xs font-medium text-muted-foreground">Model name</label>
+										<Input
+											value={model.name}
+											onChange={(e) => updateModel(index, "name", e.target.value)}
+											placeholder="e.g. GPT-4o"
+											className="h-9 rounded-xl border-border/60 bg-background text-sm shadow-none"
+										/>
+									</div>
+								</div>
+								{models.length > 1 && (
+									<Button variant="ghost" size="icon" className="mt-5 h-9 w-9 shrink-0 rounded-xl text-muted-foreground hover:text-destructive" onClick={() => removeModel(index)}>
+										<Trash2 className="h-3.5 w-3.5" />
+									</Button>
+								)}
+							</div>
+						))}
+
+						<Button
+							variant="ghost"
+							size="sm"
+							className="h-8 rounded-full px-3 text-xs text-muted-foreground"
+							onClick={() => setModels((prev) => [...prev, { id: "", name: "" }])}
+						>
+							<Plus className="mr-1 h-3 w-3" />
+							Add another model
+						</Button>
+					</div>
+
+					{/* Headers (optional, collapsible) */}
+					{showHeaders ? (
+						<div className="space-y-3 rounded-2xl border border-border/50 bg-muted/10 p-3 sm:p-4">
+							<p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/80">Custom headers</p>
+
+							{headers.map((header, index) => (
+								<div key={index} className="flex items-start gap-2">
+									<div className="flex flex-1 gap-2">
+										<div className="flex-1 space-y-1">
+											<label className="text-xs font-medium text-muted-foreground">Header name</label>
+											<Input
+												value={header.key}
+												onChange={(e) => updateHeader(index, "key", e.target.value)}
+												placeholder="e.g. X-Custom-Auth"
+												className="h-9 rounded-xl border-border/60 bg-background font-mono text-sm shadow-none"
+											/>
+										</div>
+										<div className="flex-1 space-y-1">
+											<label className="text-xs font-medium text-muted-foreground">Value</label>
+											<Input
+												value={header.value}
+												onChange={(e) => updateHeader(index, "value", e.target.value)}
+												placeholder="e.g. bearer xxx"
+												className="h-9 rounded-xl border-border/60 bg-background text-sm shadow-none"
+											/>
+										</div>
+									</div>
+									<Button variant="ghost" size="icon" className="mt-5 h-9 w-9 shrink-0 rounded-xl text-muted-foreground hover:text-destructive" onClick={() => removeHeader(index)}>
+										<Trash2 className="h-3.5 w-3.5" />
+									</Button>
+								</div>
+							))}
+
+							<Button
+								variant="ghost"
+								size="sm"
+								className="h-8 rounded-full px-3 text-xs text-muted-foreground"
+								onClick={() => setHeaders((prev) => [...prev, { key: "", value: "" }])}
+							>
+								<Plus className="mr-1 h-3 w-3" />
+								Add header
+							</Button>
+						</div>
+					) : (
+						<Button
+							variant="ghost"
+							size="sm"
+							className="h-8 w-fit rounded-full px-3 text-xs text-muted-foreground"
+							onClick={() => {
+								setShowHeaders(true);
+								setHeaders([{ key: "", value: "" }]);
+							}}
+						>
+							<Plus className="mr-1 h-3 w-3" />
+							Add custom headers
+						</Button>
+					)}
+
+					{/* API Key */}
+					<div className="space-y-3 rounded-2xl border border-border/50 bg-muted/10 p-3 sm:p-4">
+						<p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/80">API key <span className="normal-case tracking-normal text-muted-foreground/60">(optional)</span></p>
+						<Input
+							value={apiKey}
+							onChange={(e) => setApiKey(e.target.value)}
+							onKeyDown={(e) => e.key === "Enter" && canSubmit && void handleSubmit()}
+							placeholder="Paste API key..."
+							type="password"
+							className="h-10 rounded-xl border-border/60 bg-background font-mono text-sm shadow-none"
+						/>
+						<p className="text-xs text-muted-foreground">Leave empty for local providers like Ollama or LM Studio.</p>
+					</div>
+
+					{error && <p className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">{error}</p>}
+
+					<div className="flex justify-end">
+						<Button size="sm" className="min-w-28 rounded-full px-5" disabled={!canSubmit} onClick={() => void handleSubmit()}>
+							{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add provider"}
+						</Button>
+					</div>
 				</div>
 			</div>
 		</>

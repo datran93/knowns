@@ -3,6 +3,15 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { opencodeApi, type OpenCodeAuth, type OpenCodeProviderResponse, type OpenCodeStatus, type ProviderAuthAuthorization, type ProviderAuthMethod } from "../api/client";
 import { useConfig } from "./ConfigContext";
 
+export interface CustomProviderParams {
+	id: string;
+	name: string;
+	baseURL: string;
+	models: Record<string, { name: string }>;
+	headers?: Record<string, string>;
+	apiKey?: string;
+}
+
 interface OpenCodeContextType {
 	status: OpenCodeStatus | null;
 	statusLoading: boolean;
@@ -18,6 +27,7 @@ interface OpenCodeContextType {
 	startOAuth: (id: string, method: number) => Promise<ProviderAuthAuthorization>;
 	finishOAuth: (id: string, method: number, code?: string) => Promise<void>;
 	disconnectProvider: (id: string) => Promise<void>;
+	addCustomProvider: (params: CustomProviderParams) => Promise<void>;
 }
 
 const OpenCodeContext = createContext<OpenCodeContextType | undefined>(undefined);
@@ -134,6 +144,28 @@ export function OpenCodeProvider({ children }: { children: ReactNode }) {
 		[refreshAll],
 	);
 
+	const addCustomProvider = useCallback(
+		async (params: CustomProviderParams) => {
+			const providerConfig: Record<string, unknown> = {
+				npm: "@ai-sdk/openai-compatible",
+				name: params.name,
+				options: {
+					baseURL: params.baseURL,
+					...(params.headers && Object.keys(params.headers).length > 0 ? { headers: params.headers } : {}),
+				},
+				models: params.models,
+			};
+			await opencodeApi.patchConfig({ provider: { [params.id]: providerConfig } });
+			if (params.apiKey) {
+				await opencodeApi.setAuth(params.id, { type: "api", key: params.apiKey });
+			}
+			await opencodeApi.globalDispose();
+			await refreshAll({ silent: true });
+			await refreshProviderAuth();
+		},
+		[refreshAll, refreshProviderAuth],
+	);
+
 	useEffect(() => {
 		void refreshAll({ silent: true });
 		void refreshProviderAuth();
@@ -164,6 +196,7 @@ export function OpenCodeProvider({ children }: { children: ReactNode }) {
 			startOAuth,
 			finishOAuth,
 			disconnectProvider,
+			addCustomProvider,
 		}),
 		[
 			lastLoadedAt,
@@ -180,6 +213,7 @@ export function OpenCodeProvider({ children }: { children: ReactNode }) {
 			startOAuth,
 			finishOAuth,
 			disconnectProvider,
+			addCustomProvider,
 		],
 	);
 

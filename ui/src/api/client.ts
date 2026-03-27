@@ -1293,6 +1293,16 @@ export const opencodeApi = {
 		if (!res.ok) throw new Error("Failed to dispose OpenCode instance");
 	},
 
+	// Patch OpenCode config (e.g. register custom providers)
+	async patchConfig(config: Record<string, unknown>): Promise<void> {
+		const res = await fetch(`${OPENCODE_BASE}/config`, {
+			method: "PATCH",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify(config),
+		});
+		if (!res.ok) throw new Error("Failed to update OpenCode config");
+	},
+
 	// Stop a running session via OpenCode abort endpoint
 	async stopSession(id: string): Promise<void> {
 		const res = await fetch(`${OPENCODE_BASE}/session/${encodeURIComponent(id)}/abort`, {

@@ -9,6 +9,9 @@ import (
 )
 
 func TestCreateOpenCodeConfigQuietCreatesConfig(t *testing.T) {
+	execLookPath = func(string) (string, error) { return "/usr/local/bin/knowns", nil }
+	t.Cleanup(func() { execLookPath = defaultExecLookPath })
+
 	projectRoot := t.TempDir()
 
 	if err := createOpenCodeConfigQuiet(projectRoot); err != nil {
@@ -46,6 +49,9 @@ func TestCreateOpenCodeConfigQuietCreatesConfig(t *testing.T) {
 }
 
 func TestCreateMCPJsonFileQuietUsesNpxKnowns(t *testing.T) {
+	execLookPath = func(string) (string, error) { return "/usr/local/bin/knowns", nil }
+	t.Cleanup(func() { execLookPath = defaultExecLookPath })
+
 	projectRoot := t.TempDir()
 
 	if err := createMCPJsonFileQuiet(projectRoot, false); err != nil {

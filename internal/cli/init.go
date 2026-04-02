@@ -580,11 +580,17 @@ func findEmbeddingModel(id string) *embeddingModelInfo {
 	return nil
 }
 
+// execLookPath is used to locate binaries in PATH. Overridable in tests.
+var execLookPath = exec.LookPath
+
+// defaultExecLookPath is the original value of execLookPath for test cleanup.
+var defaultExecLookPath = exec.LookPath
+
 // mcpCommand returns the command and args for starting the Knowns MCP server.
 // If the "knowns" binary is found in PATH, it uses it directly for faster startup.
 // Otherwise it falls back to "npx -y knowns" which downloads on demand.
 func mcpCommand() (command string, args []string) {
-	if _, err := exec.LookPath("knowns"); err == nil {
+	if _, err := execLookPath("knowns"); err == nil {
 		return "knowns", []string{"mcp", "--stdio"}
 	}
 	return "npx", []string{"-y", "knowns", "mcp", "--stdio"}

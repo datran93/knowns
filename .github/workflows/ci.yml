@@ -14,8 +14,6 @@ concurrency:
 jobs:
   test:
     runs-on: ${{ matrix.os }}
-    env:
-      CGO_ENABLED: '1'
     strategy:
       fail-fast: false
       matrix:
@@ -30,46 +28,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-
-      - name: Install Zig for Windows cgo
-        if: runner.os == 'Windows'
-        shell: pwsh
-        env:
-          ZIG_ARCH: x86_64
-          ZIG_VERSION: 0.14.0
-        run: |
-          $zigRoot = Join-Path $env:RUNNER_TEMP 'zig'
-          $zipPath = Join-Path $env:RUNNER_TEMP 'zig.zip'
-          $folder = "zig-windows-$env:ZIG_ARCH-$env:ZIG_VERSION"
-          $url = "https://ziglang.org/download/$env:ZIG_VERSION/$folder.zip"
-
-          Invoke-WebRequest -Uri $url -OutFile $zipPath
-          Expand-Archive -Path $zipPath -DestinationPath $zigRoot -Force
-          Add-Content -Path $env:GITHUB_PATH -Value (Join-Path $zigRoot $folder)
-
-      - name: Configure Windows cgo compiler
-        if: runner.os == 'Windows'
-        shell: pwsh
-        env:
-          ZIG_TARGET: x86_64-windows-gnu
-        run: |
-          $ccPath = Join-Path $env:RUNNER_TEMP 'zig-cc.cmd'
-          $cxxPath = Join-Path $env:RUNNER_TEMP 'zig-cxx.cmd'
-
-          @"
-          @echo off
-          zig cc -target %ZIG_TARGET% %*
-          "@ | Set-Content -Path $ccPath -Encoding ascii
-
-          @"
-          @echo off
-          zig c++ -target %ZIG_TARGET% %*
-          "@ | Set-Content -Path $cxxPath -Encoding ascii
-
-          Add-Content -Path $env:GITHUB_PATH -Value $env:RUNNER_TEMP
-          Add-Content -Path $env:GITHUB_ENV -Value "ZIG_TARGET=$env:ZIG_TARGET"
-          Add-Content -Path $env:GITHUB_ENV -Value "CC=zig-cc"
-          Add-Content -Path $env:GITHUB_ENV -Value "CXX=zig-cxx"
 
       - name: Build UI
         run: cd ui && bun install --frozen-lockfile && bun run build

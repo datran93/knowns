@@ -142,17 +142,13 @@ jobs:
             goarch: amd64
             npm_pkg: knowns-win-x64
             ext: ".exe"
-            cgo_enabled: "1"
-            zig_target: x86_64-windows-gnu
-            zig_arch: x86_64
+            cgo_enabled: "0"
           - runner: windows-11-arm
             goos: windows
             goarch: arm64
             npm_pkg: knowns-win-arm64
             ext: ".exe"
-            cgo_enabled: "1"
-            zig_target: aarch64-windows-gnu
-            zig_arch: aarch64
+            cgo_enabled: "0"
     runs-on: ${{ matrix.runner }}
     defaults:
       run:
@@ -165,46 +161,6 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: "1.26"
-
-      - name: Install Zig for Windows cgo
-        if: runner.os == 'Windows'
-        shell: pwsh
-        env:
-          ZIG_ARCH: ${{ matrix.zig_arch }}
-          ZIG_VERSION: 0.14.0
-        run: |
-          $zigRoot = Join-Path $env:RUNNER_TEMP 'zig'
-          $zipPath = Join-Path $env:RUNNER_TEMP 'zig.zip'
-          $folder = "zig-windows-$env:ZIG_ARCH-$env:ZIG_VERSION"
-          $url = "https://ziglang.org/download/$env:ZIG_VERSION/$folder.zip"
-
-          Invoke-WebRequest -Uri $url -OutFile $zipPath
-          Expand-Archive -Path $zipPath -DestinationPath $zigRoot -Force
-          Add-Content -Path $env:GITHUB_PATH -Value (Join-Path $zigRoot $folder)
-
-      - name: Configure Windows cgo compiler
-        if: runner.os == 'Windows'
-        shell: pwsh
-        env:
-          ZIG_TARGET: ${{ matrix.zig_target }}
-        run: |
-          $ccPath = Join-Path $env:RUNNER_TEMP 'zig-cc.cmd'
-          $cxxPath = Join-Path $env:RUNNER_TEMP 'zig-cxx.cmd'
-
-          @"
-          @echo off
-          zig cc -target %ZIG_TARGET% %*
-          "@ | Set-Content -Path $ccPath -Encoding ascii
-
-          @"
-          @echo off
-          zig c++ -target %ZIG_TARGET% %*
-          "@ | Set-Content -Path $cxxPath -Encoding ascii
-
-          Add-Content -Path $env:GITHUB_PATH -Value $env:RUNNER_TEMP
-          Add-Content -Path $env:GITHUB_ENV -Value "ZIG_TARGET=$env:ZIG_TARGET"
-          Add-Content -Path $env:GITHUB_ENV -Value "CC=zig-cc"
-          Add-Content -Path $env:GITHUB_ENV -Value "CXX=zig-cxx"
 
       - name: Download UI artifact
         uses: actions/download-artifact@v4

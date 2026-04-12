@@ -34,9 +34,10 @@ type SearchResult struct {
 	// Memory-specific fields (populated when Type == "memory").
 	MemoryLayer string `json:"memoryLayer,omitempty"`
 	Category    string `json:"category,omitempty"`
+	MemoryStore string `json:"memoryStore,omitempty"`
 
 	// Code-specific fields (populated when Type == "code").
-	Name      string `json:"name,omitempty"`       // symbol name e.g. "getGraph"
+	Name      string `json:"name,omitempty"`      // symbol name e.g. "getGraph"
 	Signature string `json:"signature,omitempty"` // function signature e.g. "getGraph(includeCode bool)"
 }
 
@@ -79,6 +80,7 @@ type RetrievalCandidate struct {
 	Tags             []string     `json:"tags,omitempty"`
 	MemoryLayer      string       `json:"memoryLayer,omitempty"`
 	Category         string       `json:"category,omitempty"`
+	MemoryStore      string       `json:"memoryStore,omitempty"`
 	SourcePreference int          `json:"sourcePreference"`
 	UpdatedAt        *time.Time   `json:"updatedAt,omitempty"`
 	Metadata         SourceRecord `json:"metadata"`
@@ -121,6 +123,7 @@ type SourceRecord struct {
 	Priority    string     `json:"priority,omitempty"`
 	MemoryLayer string     `json:"memoryLayer,omitempty"`
 	Category    string     `json:"category,omitempty"`
+	MemoryStore string     `json:"memoryStore,omitempty"`
 	UpdatedAt   *time.Time `json:"updatedAt,omitempty"`
 	Imported    bool       `json:"imported,omitempty"`
 	Source      string     `json:"source,omitempty"`

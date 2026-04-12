@@ -14,7 +14,8 @@ Technical notes for contributors working on the current Go codebase.
 | Web server | Go HTTP server |
 | Web UI | React app embedded into the binary |
 | AI integration | MCP server + generated instruction files |
-| Search | Keyword + optional semantic search (tasks, docs, memories) |
+| Search | Keyword + optional semantic search (ONNX Runtime + embedding models) |
+| Code intelligence | AST-based indexing (Go, TypeScript, JavaScript, Python) |
 
 ---
 
@@ -23,16 +24,26 @@ Technical notes for contributors working on the current Go codebase.
 Main repo structure:
 
 ```text
-cmd/knowns/          CLI entrypoint
-internal/cli/        Cobra commands
-internal/models/     Domain models and config structs
-internal/storage/    Persistence for tasks, docs, versions, config, memories
-internal/server/     HTTP server, routes, browser backend
-internal/mcp/        MCP server implementation
-internal/search/     Search and semantic-search support
-internal/validate/   Validation engine for refs and integrity
-ui/                  React UI source and embedded assets
-tests/               End-to-end and integration coverage
+cmd/knowns/              CLI entrypoint
+internal/cli/            Cobra commands (including update, download_setup)
+internal/models/         Domain models and config structs
+internal/storage/        Persistence for tasks, docs, versions, config, memories
+internal/server/         HTTP server, routes, browser backend
+internal/mcp/            MCP server implementation
+  internal/mcp/handlers/ MCP tool handler implementations (code.go, search.go, etc.)
+internal/search/         Hybrid/semantic/keyword search engine
+  engine.go, chunker.go, index.go, vecstore.go, sqlite_vecstore.go, sync.go (runtime queue integration), types.go
+internal/validate/       Validation engine for refs and integrity
+internal/registry/       Global project registry (workspace discovery)
+internal/runtimequeue/   Shared background work queue for indexing, watch, reindex jobs
+  Routes by project, stores state under <project>/.knowns/runtime/queue.json
+internal/runtimememory/   Runtime memory hook injection for session context
+internal/runtimeinstall/ Runtime installation helpers (Claude Code, Codex, Kiro, OpenCode)
+internal/codegen/        Code generation and skill syncing
+internal/util/           Utilities (version, update notifier, install metadata)
+install/                 Platform install scripts (install.sh, install.ps1, uninstall.sh, uninstall.ps1)
+ui/                      React UI source and embedded assets
+tests/                   End-to-end and integration coverage
 ```
 
 ---
@@ -42,8 +53,10 @@ tests/               End-to-end and integration coverage
 ### Browser UI
 
 - `knowns browser` starts the local web server
-- default port is `3001` unless overridden by `settings.serverPort`
+- default port is `6420` unless overridden by `settings.serverPort` or `--port`; fallback tries 6420, 6421, 6422
 - the browser only auto-opens when `--open` is passed
+- auto-registers the project in the global registry on startup
+- auto-ingests code if semantic search is configured but no code chunks exist
 
 ### Sync
 
@@ -54,8 +67,20 @@ tests/               End-to-end and integration coverage
 ### Search
 
 - `knowns search <query>` performs search
-- `knowns search --reindex` rebuilds the index
+- `knowns retrieve <query>` retrieves ranked context with citations
+- `knowns search --reindex` rebuilds the index (routes through runtime queue if daemon is running)
 - `knowns search --status-check` shows semantic-search status
+- `knowns search --install-runtime` downloads ONNX Runtime
+- `knowns search --setup` enables semantic search after ONNX and model are ready
+- Semantic search requires ONNX Runtime (`~/.knowns/lib/`) and an embedding model (`~/.knowns/models/`)
+- Search index is stored in `.knowns/.search/` as a SQLite database
+
+### Self-Update
+
+- `knowns update` detects install method (Homebrew/npm/script) and runs the appropriate upgrade
+- For script-managed installs (`~/.knowns/bin/`), downloads and replaces the binary directly
+- After update, runs `knowns sync` to refresh MCP configs (`.mcp.json`, `.kiro/settings/mcp.json`, `opencode.json`)
+- `internal/util/update_notifier.go` provides background version checking
 
 ---
 
@@ -74,6 +99,8 @@ Important fields include:
 - `settings.autoSyncOnUpdate`
 - `settings.enableChatUI`
 - `settings.opencodeServer`, `settings.opencodeModels`
+
+Supported platform IDs: `claude-code`, `opencode`, `codex`, `kiro`, `gemini`, `copilot`, `agents`.
 
 ---
 

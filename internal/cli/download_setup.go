@@ -14,7 +14,9 @@ import (
 	"charm.land/bubbles/v2/spinner"
 	tea "charm.land/bubbletea/v2"
 
+	"github.com/howznguyen/knowns/internal/models"
 	"github.com/howznguyen/knowns/internal/search"
+	"github.com/howznguyen/knowns/internal/storage"
 )
 
 // ─── download step ───────────────────────────────────────────────────
@@ -502,4 +504,92 @@ func ensureONNXRuntime() error {
 	fmt.Println()
 	fmt.Println(StyleSuccess.Render("✓ ONNX Runtime installed"))
 	return nil
+}
+
+func ensureSemanticStoreReady(store *storage.Store, defaultModelID string) (bool, error) {
+	if store == nil {
+		return false, fmt.Errorf("store is required")
+	}
+	if err := ensureSemanticStoreInitialized(store); err != nil {
+		return false, err
+	}
+	changed, modelID, err := ensureSemanticConfig(store, defaultModelID)
+	if err != nil {
+		return false, err
+	}
+	if modelID == "" {
+		return changed, nil
+	}
+	if err := runSemanticSetup(modelID); err != nil {
+		return changed, err
+	}
+	return changed, nil
+}
+
+func ensureSemanticStoreInitialized(store *storage.Store) error {
+	if store == nil {
+		return fmt.Errorf("store is required")
+	}
+	if _, err := os.Stat(store.Root); err == nil {
+		return nil
+	}
+	return store.Init(filepath.Base(filepath.Dir(store.Root)))
+}
+
+func ensureSemanticConfig(store *storage.Store, defaultModelID string) (bool, string, error) {
+	if defaultModelID == "" {
+		defaultModelID = "multilingual-e5-small"
+	}
+	model := findSupportedModel(defaultModelID)
+	if model == nil {
+		return false, "", fmt.Errorf("unknown model %q", defaultModelID)
+	}
+	cfg, err := store.Config.Load()
+	if err != nil {
+		return false, "", err
+	}
+	changed := false
+	if cfg.Settings.SemanticSearch == nil {
+		cfg.Settings.SemanticSearch = &models.SemanticSearchSettings{}
+		changed = true
+	}
+	ss := cfg.Settings.SemanticSearch
+	if ss.Model == "" {
+		ss.Model = model.ID
+		ss.HuggingFaceID = model.HuggingFace
+		ss.Dimensions = model.Dimensions
+		ss.MaxTokens = model.MaxTokens
+		changed = true
+	}
+	if !ss.Enabled {
+		ss.Enabled = true
+		changed = true
+	}
+	if changed {
+		if err := store.Config.Save(cfg); err != nil {
+			return false, "", err
+		}
+	}
+	return changed, ss.Model, nil
+}
+
+func findSupportedModel(modelID string) *embeddingModel {
+	for i := range supportedModels {
+		if supportedModels[i].ID == modelID {
+			return &supportedModels[i]
+		}
+	}
+	return nil
+}
+
+func ensureProjectAndGlobalSemanticReady(projectStore *storage.Store, defaultModelID string) (bool, bool, error) {
+	projectChanged, err := ensureSemanticStoreReady(projectStore, defaultModelID)
+	if err != nil {
+		return false, false, err
+	}
+	globalChanged, err := ensureSemanticStoreReady(storage.NewGlobalSemanticStore(), defaultModelID)
+	if err != nil {
+		return projectChanged, false, err
+	}
+	return projectChanged, globalChanged, nil
 }

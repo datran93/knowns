@@ -60,6 +60,14 @@ mcp__knowns__list_templates({})
 
 If relevant memories appear, factor them into the plan (past patterns, decisions, conventions).
 
+If the plan needs assembled execution context rather than raw search hits, use retrieval after discovery:
+```json
+mcp__knowns__retrieve({ "query": "<keywords>" })
+```
+If MCP is unavailable, fall back to CLI: `knowns retrieve "<keywords>" --json`
+
+Use `search` for discovery. Use `retrieve` when you need ranked candidates plus a context pack with citations.
+
 ## Step 3: Draft Plan
 
 ```markdown

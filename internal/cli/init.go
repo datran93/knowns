@@ -12,6 +12,7 @@ import (
 
 	"github.com/howznguyen/knowns/internal/codegen"
 	"github.com/howznguyen/knowns/internal/models"
+	"github.com/howznguyen/knowns/internal/runtimeinstall"
 	"github.com/howznguyen/knowns/internal/server"
 	"github.com/howznguyen/knowns/internal/storage"
 	"github.com/spf13/cobra"
@@ -113,30 +114,63 @@ Creates a .knowns/ directory with the required structure and a default config.js
 }
 
 // allPlatformIDs is the full ordered list of supported platform identifiers.
-// "opencode" is handled separately via EnableChatUI — not shown in the multi-select.
-var allPlatformIDs = []string{"claude-code", "opencode", "gemini", "copilot", "kiro", "agents"}
+var allPlatformIDs = []string{"claude-code", "opencode", "codex", "kiro", "gemini", "copilot", "agents"}
 
 // wizardPlatformIDs is the subset shown in the wizard multi-select.
-// OpenCode is asked as a dedicated ChatUI question instead.
-var wizardPlatformIDs = []string{"claude-code", "gemini", "copilot", "kiro", "agents"}
+var wizardPlatformIDs = []string{"claude-code", "opencode", "codex", "kiro", "gemini", "copilot", "agents"}
 
 // platformLabel returns the human-readable label for a platform ID.
 func platformLabel(id string) string {
+	if label := platformLabelFromRuntime(id); label != "" {
+		return label
+	}
 	switch id {
-	case "claude-code":
-		return "Claude Code  (CLAUDE.md, .claude/skills/, .mcp.json)"
-	case "opencode":
-		return "OpenCode     (OPENCODE.md, opencode.json, .agent/skills/)"
 	case "gemini":
 		return "Google Gemini  (GEMINI.md)"
 	case "copilot":
 		return "GitHub Copilot  (.github/copilot-instructions.md)"
-	case "kiro":
-		return "Kiro IDE  (.kiro/steering/, .kiro/skills/)"
 	case "agents":
 		return "Generic Agents  (AGENTS.md, .agent/skills/)"
 	default:
 		return id
+	}
+}
+
+func platformLabelFromRuntime(id string) string {
+	switch id {
+	case "claude-code", "codex", "opencode", "kiro":
+		return compactRuntimePickerLabel(id, runtimeinstall.DefaultOptions())
+	default:
+		return ""
+	}
+}
+
+func compactRuntimePickerLabel(id string, opts runtimeinstall.Options) string {
+	status := runtimeinstall.RuntimeAvailabilitySummary(id, opts)
+	specLabel := map[string]string{
+		"claude-code": "Claude Code (CLAUDE.md, SKILL, hooks, ...)",
+		"codex":       "Codex (.codex/config.toml, SKILL, hooks, ...)",
+		"opencode":    "OpenCode (OPENCODE.md, SKILL, plugin, MCP, ...)",
+		"kiro":        "Kiro IDE (.kiro/steering, SKILL, hooks, ...)",
+	}[id]
+	if specLabel == "" {
+		return id
+	}
+	return fmt.Sprintf("%s %s", runtimeStatusDot(status), specLabel)
+}
+
+func compactRuntimeCoverageSummary(opts runtimeinstall.Options) string {
+	return ""
+}
+
+func runtimeStatusDot(status string) string {
+	switch status {
+	case "installed":
+		return StyleSuccess.Render("●")
+	case "available":
+		return StyleWarning.Render("●")
+	default:
+		return StyleError.Render("●")
 	}
 }
 
@@ -159,8 +193,8 @@ type initConfig struct {
 	GitTrackingMode string
 	EnableSemantic  bool
 	SemanticModel   string
-	Platforms       []string // excludes "opencode"; use EnableChatUI for that
-	EnableChatUI    bool     // whether to include "opencode" platform
+	Platforms       []string
+	EnableChatUI    bool
 }
 
 // Aliases for centralized styles (see styles.go)
@@ -186,6 +220,8 @@ func runInit(cmd *cobra.Command, args []string) error {
 	}
 
 	root := filepath.Join(cwd, ".knowns")
+	hasGitRepo := isGitRepo(cwd)
+	gitAvailable := isGitAvailable()
 
 	// Check if already initialized
 	if _, err := os.Stat(root); err == nil {
@@ -198,11 +234,16 @@ func runInit(cmd *cobra.Command, args []string) error {
 		fmt.Println()
 	}
 
-	// Check git exists
-	if !isGitRepo(cwd) {
-		fmt.Println(warnStyle.Render("Warning: No git repository found."))
-		fmt.Println(dimStyle.Render("  Please initialize git first: git init"))
-		fmt.Println()
+	// Check git availability / repository status.
+	if !hasGitRepo {
+		if gitAvailable {
+			fmt.Println(dimStyle.Render("No git repository found — Knowns will run git init after setup."))
+			fmt.Println()
+		} else {
+			fmt.Println(warnStyle.Render("Warning: No git repository found and git is not available in PATH."))
+			fmt.Println(dimStyle.Render("  Install git to enable repository setup and git-aware tracking."))
+			fmt.Println()
+		}
 	}
 
 	var cfg initConfig
@@ -231,7 +272,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 		}
 
 		// Run full wizard with huh
-		wizardCfg, err := runWizard(cwd, gitTracked, gitIgnored, existingPlatforms, existingEnableChatUI, existingName, existingGitTrackingMode, existingSemanticEnabled, existingSemanticModel)
+		wizardCfg, err := runWizard(cwd, gitTracked, gitIgnored, gitAvailable, existingPlatforms, existingEnableChatUI, existingName, existingGitTrackingMode, existingSemanticEnabled, existingSemanticModel)
 		if err != nil {
 			if err == huh.ErrUserAborted {
 				fmt.Println(warnStyle.Render("Setup cancelled."))
@@ -256,8 +297,9 @@ func runInit(cmd *cobra.Command, args []string) error {
 			Name:            name,
 			GitTrackingMode: gitMode,
 			EnableSemantic:  isTTY(),
-			SemanticModel:   "gte-small",
+			SemanticModel:   "multilingual-e5-small",
 			Platforms:       []string{"claude-code", "agents"},
+			EnableChatUI:    true,
 		}
 	}
 
@@ -309,6 +351,15 @@ func runInit(cmd *cobra.Command, args []string) error {
 		},
 	}
 
+	if !hasGitRepo && gitAvailable {
+		steps = append([]initStep{{
+			label: "Initializing git repository",
+			run: func() error {
+				return gitInit(cwd)
+			},
+		}}, steps...)
+	}
+
 	// Conditional semantic download steps
 	if cfg.EnableSemantic {
 		dlSteps, alreadyInstalled, err := buildSemanticDownloadSteps(cfg.SemanticModel)
@@ -325,8 +376,19 @@ func runInit(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	if cfg.EnableSemantic {
+		steps = append(steps, initStep{
+			label: "Preparing project and global semantic stores",
+			run: func() error {
+				store := storage.NewStore(root)
+				_, _, err := ensureProjectAndGlobalSemanticReady(store, cfg.SemanticModel)
+				return err
+			},
+		})
+	}
+
 	// OpenCode install check (before config steps)
-	if cfg.EnableChatUI {
+	if hasPlatform(cfg.Platforms, "opencode") {
 		fmt.Println()
 		if err := maybeInstallOpenCode(force); err != nil {
 			fmt.Fprintf(os.Stderr, "Warning: OpenCode setup issue: %v\n", err)
@@ -372,6 +434,26 @@ func runInit(cmd *cobra.Command, args []string) error {
 			},
 		})
 	}
+	for _, runtimeName := range []string{"claude-code", "codex", "kiro", "opencode"} {
+		if !hasPlatform(cfg.Platforms, runtimeName) {
+			continue
+		}
+		selectedRuntime := runtimeName
+		opts := runtimeinstall.DefaultOptions()
+		// Skip runtimes that are unavailable and cannot be auto-installed.
+		if !runtimeinstall.CanAutoInstall(selectedRuntime) {
+			st, err := runtimeinstall.StatusFor(selectedRuntime, opts)
+			if err != nil || !st.Available {
+				continue
+			}
+		}
+		steps = append(steps, initStep{
+			label: fmt.Sprintf("Installing %s runtime hooks", runtimeinstall.RuntimePickerLabel(selectedRuntime, opts)),
+			run: func() error {
+				return runtimeinstall.Install(selectedRuntime, opts)
+			},
+		})
+	}
 	steps = append(steps,
 		initStep{
 			label: "Creating instruction files",
@@ -380,6 +462,15 @@ func runInit(cmd *cobra.Command, args []string) error {
 			},
 		},
 	)
+	if cfg.EnableSemantic {
+		steps = append(steps, initStep{
+			label: "Building project and global semantic indices",
+			run: func() error {
+				store := storage.NewStore(root)
+				return reindexSemanticStores(store)
+			},
+		})
+	}
 
 	fmt.Println()
 	if err := runInitSteps(steps); err != nil {
@@ -397,7 +488,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	return maybeOpenBrowser(cwd, openFlag, noOpen)
 }
 
-func runWizard(cwd string, gitTracked, gitIgnored bool, existingPlatforms []string, existingEnableChatUI *bool, existingName string, existingGitTrackingMode string, existingSemanticEnabled *bool, existingSemanticModel string) (*initConfig, error) {
+func runWizard(cwd string, gitTracked, gitIgnored bool, gitAvailable bool, existingPlatforms []string, existingEnableChatUI *bool, existingName string, existingGitTrackingMode string, existingSemanticEnabled *bool, existingSemanticModel string) (*initConfig, error) {
 	defaultName := filepath.Base(cwd)
 	if existingName != "" {
 		defaultName = existingName
@@ -428,7 +519,7 @@ func runWizard(cwd string, gitTracked, gitIgnored bool, existingPlatforms []stri
 
 	// --- Group 1b: Git tracking mode (only if in a git repo and not set via flag) ---
 	var gitGroup *huh.Group
-	if hasGit && !gitTracked && !gitIgnored {
+	if (hasGit || gitAvailable) && !gitTracked && !gitIgnored {
 		cfg.GitTrackingMode = "git-tracked"
 		if existingGitTrackingMode != "" {
 			cfg.GitTrackingMode = existingGitTrackingMode
@@ -436,14 +527,11 @@ func runWizard(cwd string, gitTracked, gitIgnored bool, existingPlatforms []stri
 		gitGroup = huh.NewGroup(
 			huh.NewSelect[string]().
 				Title("Git tracking mode").
-				Description("Controls what Knowns data is committed to git.\n"+
-					"  git-tracked  → tasks, docs & templates are committed; no Knowns .gitignore rules are added.\n"+
-					"  git-ignored  → only docs & templates are committed; tasks stay local/private.\n"+
-					"  none         → no .gitignore changes; you manage git tracking manually.").
+				Description("Choose what Knowns data is committed to git.").
 				Options(
-					huh.NewOption("Git Tracked (recommended for teams)", "git-tracked"),
-					huh.NewOption("Git Ignored (personal use)", "git-ignored"),
-					huh.NewOption("None (manage manually)", "none"),
+					huh.NewOption("Git Tracked  · tasks, docs, templates", "git-tracked"),
+					huh.NewOption("Git Ignored  · docs, templates only", "git-ignored"),
+					huh.NewOption("None  · manage tracking manually", "none"),
 				).
 				Value(&cfg.GitTrackingMode),
 		)
@@ -453,19 +541,12 @@ func runWizard(cwd string, gitTracked, gitIgnored bool, existingPlatforms []stri
 		cfg.GitTrackingMode = "git-ignored"
 	}
 
-	// --- Group 2: AI platform selection (opencode handled separately) ---
-	// Use existing config platforms if available (minus opencode), else default.
-	defaultPlatforms := []string{"claude-code", "agents"}
+	// --- Group 2: AI platform selection ---
+	defaultPlatforms := []string{"claude-code", "opencode", "agents"}
 	if len(existingPlatforms) > 0 {
-		// Strip "opencode" — it's controlled by EnableChatUI below.
-		filtered := existingPlatforms[:0:0]
-		for _, p := range existingPlatforms {
-			if p != "opencode" {
-				filtered = append(filtered, p)
-			}
-		}
-		if len(filtered) > 0 {
-			defaultPlatforms = filtered
+		defaultPlatforms = append([]string(nil), existingPlatforms...)
+		if len(defaultPlatforms) == 0 {
+			defaultPlatforms = []string{"claude-code", "opencode", "agents"}
 		}
 	}
 	cfg.Platforms = append([]string(nil), defaultPlatforms...)
@@ -477,11 +558,12 @@ func runWizard(cwd string, gitTracked, gitIgnored bool, existingPlatforms []stri
 	for i, id := range wizardPlatformIDs {
 		platformOptions[i] = huh.NewOption(platformLabel(id), id).Selected(selectedSet[id])
 	}
+	runtimeSummary := compactRuntimeCoverageSummary(runtimeinstall.DefaultOptions())
 	group2 := huh.NewGroup(
 		huh.NewMultiSelect[string]().
 			Title("AI platforms to integrate").
 			Description("Choose which platforms to generate config and instruction files for.\n" +
-				"At least one platform must be selected.").
+				"At least one platform must be selected.\n\n" + runtimeSummary).
 			Options(platformOptions...).
 			Validate(func(selected []string) error {
 				if len(selected) == 0 {
@@ -492,36 +574,38 @@ func runWizard(cwd string, gitTracked, gitIgnored bool, existingPlatforms []stri
 			Value(&cfg.Platforms),
 	)
 
-	// --- Group 3: Chat UI (OpenCode) ---
-	// Detect if opencode CLI is available; use existing config as default.
-	opencodeDetected := false
-	if _, err := exec.LookPath("opencode"); err == nil {
-		opencodeDetected = true
-	}
-	// Pre-populate from dedicated enableChatUI field; fall back to checking platforms for migration.
+	// --- Group 3: Chat UI ---
 	if existingEnableChatUI != nil {
 		cfg.EnableChatUI = *existingEnableChatUI
 	} else {
 		cfg.EnableChatUI = hasPlatform(existingPlatforms, "opencode")
 	}
+	if hasPlatform(cfg.Platforms, "opencode") {
+		cfg.EnableChatUI = true
+	}
 	chatUIDesc := "Enables Chat UI with AI code sessions, task-linked conversations,\n" +
-		"and live coding assistance powered by OpenCode.\n" +
-		"Requires: opencode CLI (https://opencode.ai)"
-	if opencodeDetected {
-		chatUIDesc += "\n" + successStyle.Render("✓ opencode detected in PATH")
+		"and live coding assistance powered by OpenCode.\n"
+	if hasPlatform(cfg.Platforms, "opencode") {
+		chatUIDesc += runtimeinstall.RuntimePickerDescription("opencode", runtimeinstall.DefaultOptions())
 	} else {
-		chatUIDesc += "\n" + warnStyle.Render("⚠ opencode not found — install it before using Chat UI")
+		chatUIDesc += "Select OpenCode above if you want Knowns to configure its runtime plugin as part of init."
 	}
 	group3 := huh.NewGroup(
 		huh.NewConfirm().
 			Title("Enable Chat UI?").
 			Description(chatUIDesc).
 			Value(&cfg.EnableChatUI),
-	)
+	).WithHideFunc(func() bool {
+		if hasPlatform(cfg.Platforms, "opencode") {
+			cfg.EnableChatUI = true
+			return true
+		}
+		return false
+	})
 
 	// --- Group 4: Semantic search ---
 	cfg.EnableSemantic = true
-	cfg.SemanticModel = "gte-small"
+	cfg.SemanticModel = "multilingual-e5-small"
 	if existingSemanticEnabled != nil {
 		cfg.EnableSemantic = *existingSemanticEnabled
 	}
@@ -563,8 +647,7 @@ func runWizard(cwd string, gitTracked, gitIgnored bool, existingPlatforms []stri
 		return nil, err
 	}
 
-	// Merge EnableChatUI → cfg.Platforms so the rest of init can use hasPlatform().
-	if cfg.EnableChatUI {
+	if cfg.EnableChatUI && !hasPlatform(cfg.Platforms, "opencode") {
 		cfg.Platforms = append(cfg.Platforms, "opencode")
 	}
 
@@ -585,6 +668,31 @@ var execLookPath = exec.LookPath
 
 // defaultExecLookPath is the original value of execLookPath for test cleanup.
 var defaultExecLookPath = exec.LookPath
+
+// execCommand is used to run external commands in init flows. Overridable in tests.
+var execCommand = exec.Command
+
+// defaultExecCommand is the original value of execCommand for test cleanup.
+var defaultExecCommand = exec.Command
+
+func isGitAvailable() bool {
+	_, err := execLookPath("git")
+	return err == nil
+}
+
+func gitInit(dir string) error {
+	cmd := execCommand("git", "init")
+	cmd.Dir = dir
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		trimmed := strings.TrimSpace(string(output))
+		if trimmed == "" {
+			return fmt.Errorf("git init failed: %w", err)
+		}
+		return fmt.Errorf("git init failed: %s", trimmed)
+	}
+	return nil
+}
 
 // mcpCommand returns the command and args for starting the Knowns MCP server
 // in generated project configs. Uses the local knowns binary if available,
@@ -912,8 +1020,8 @@ func renderCanonicalInstructionContent() string {
 	sb.WriteString("- Use shell commands for git, tests, builds, generators, and other terminal operations.\n")
 	sb.WriteString("- Prefer targeted retrieval over loading large files in full.\n")
 	sb.WriteString("- Use `knowns search` for discovery and quick relevance checks.\n")
-	sb.WriteString("- Use `knowns retrieve` when a workflow needs structured context with citations and context-pack assembly.\n")
-	sb.WriteString("- Prefer `--plain` for human-facing inspection. Prefer `--json` for `retrieve` when output will be consumed by an agent, script, or workflow.\n\n")
+	sb.WriteString("- Use MCP `retrieve` tool when a workflow needs structured context with citations and context-pack assembly. Fall back to CLI `knowns retrieve` if MCP is unavailable.\n")
+	sb.WriteString("- Prefer `--plain` for human-facing inspection. Prefer `--json` for CLI `retrieve` when output will be consumed by an agent, script, or workflow.\n\n")
 	sb.WriteString("### Preferred Tool Matrix\n\n")
 	sb.WriteString("- `knowns_*`: canonical operations on tasks, docs, templates, validation, and time.\n")
 	sb.WriteString("- `read`: inspect a known file.\n")
@@ -929,14 +1037,22 @@ func renderCanonicalInstructionContent() string {
 	sb.WriteString("- Cross-project: `promote_memory()` to move project knowledge to global (`project→global`).\n")
 	sb.WriteString("- Memory complements docs: memory is for fast agent recall, docs are for structured human-readable reference.\n")
 	sb.WriteString("- Never duplicate the full doc content into memory — store a summary and reference the doc with `@doc/<path>`.\n")
-	sb.WriteString("- During any skill: if you discover a reusable pattern, decision, convention, or failure, save it with `add_memory(layer=\"project\")`. Capture knowledge as it emerges, don't wait for extraction.\n\n")
+	sb.WriteString("- During any skill: if you discover a reusable pattern, decision, convention, or failure, save it with `add_memory(layer=\"project\")`. Capture knowledge as it emerges, don't wait for extraction.\n")
+	sb.WriteString("- Proactively save durable memory without waiting for the user to say \"save this\" when confidence is high.\n")
+	sb.WriteString("- Use `working` for session-only context, active investigations, temporary blockers, and other short-lived facts.\n")
+	sb.WriteString("- Use `project` for repo-specific rules, architecture decisions, conventions, recurring failure patterns, and implementation constraints.\n")
+	sb.WriteString("- Use `global` for stable user preferences or workflow rules that should carry across repositories and future sessions.\n")
+	sb.WriteString("- Ask the user only when the information appears durable but the correct scope (`working`, `project`, or `global`) is genuinely ambiguous.\n")
+	sb.WriteString("- After any meaningful user instruction, correction, or newly discovered pattern, quickly evaluate whether it should be stored as memory and save it when appropriate.\n")
+	sb.WriteString("- If the user states a stable collaboration preference, default to saving it as `global` memory unless they clearly scoped it to this repository only.\n\n")
 	sb.WriteString("## Critical Rules\n\n")
 	sb.WriteString("- Never manually edit Knowns-managed task or doc markdown.\n")
 	sb.WriteString("- Search first, then read only relevant docs and code.\n")
 	sb.WriteString("- Follow `@task-<id>`, `@doc/<path>`, and `@template/<name>` references before acting.\n")
 	sb.WriteString("- Use `appendNotes` for progress updates; `notes` replaces existing notes and should only be used intentionally.\n")
 	sb.WriteString("- Validate before marking work complete.\n")
-	sb.WriteString("- Use skills for detailed workflow execution instead of duplicating step-by-step process here.\n\n")
+	sb.WriteString("- Use skills for detailed workflow execution instead of duplicating step-by-step process here.\n")
+	sb.WriteString("- Compatibility shim files must stay lightweight and must direct agents back to `KNOWNS.md` for behavioral rules instead of restating divergent guidance.\n\n")
 	sb.WriteString("## Git Safety\n\n")
 	sb.WriteString("- Assume the worktree may already contain user changes.\n")
 	sb.WriteString("- Never revert or overwrite unrelated user changes unless explicitly requested.\n")
@@ -971,7 +1087,7 @@ func renderCanonicalInstructionContent() string {
 	sb.WriteString("- In `doc edit`, `-a` means `--append`.\n")
 	sb.WriteString("- Use raw task IDs where a command expects an ID value rather than a mention.\n")
 	sb.WriteString("- Use `--plain` for read, list, and search commands, not for create or edit commands.\n")
-	sb.WriteString("- Use `--json` for `retrieve` when the result will be parsed or fed into an agent workflow; use `--plain` when inspecting manually.\n")
+	sb.WriteString("- Use `--json` for CLI `retrieve` when the result will be parsed or fed into an agent workflow; use `--plain` when inspecting manually.\n")
 	sb.WriteString("- Use `--smart` when reading docs through the CLI.\n\n")
 	sb.WriteString("### Retrieval Pitfalls\n\n")
 	sb.WriteString("- Do not read every doc hoping to find the answer; search first.\n")
@@ -1012,16 +1128,18 @@ func renderCompatibilityInstructionContent(relativePath, platform, projectRoot s
 	sb.WriteString("- Knowns is the repository memory layer for humans and the AI-friendly working layer for agents.\n")
 	sb.WriteString("- The source of truth for repo-level agent guidance is `KNOWNS.md`.\n")
 	sb.WriteString("- Read `KNOWNS.md` first whenever the runtime supports reading repository files.\n")
+	sb.WriteString("- Load behavior, memory policy, and workflow rules from `KNOWNS.md`; treat this file only as a compatibility entrypoint.\n")
 	sb.WriteString("- If this file and `KNOWNS.md` differ, follow `KNOWNS.md`.\n\n")
 	sb.WriteString("## Minimum Rules\n\n")
 	sb.WriteString("- Use Knowns as the canonical system for tasks, docs, templates, and workflow state.\n")
 	sb.WriteString("- Never manually edit Knowns-managed task or doc markdown.\n")
 	sb.WriteString("- Search first, then read only relevant docs and code.\n")
-	sb.WriteString("- Use `knowns search` for discovery; use `knowns retrieve` when a workflow needs structured context with citations.\n")
+	sb.WriteString("- Use `search` for discovery; use MCP `retrieve` tool when a workflow needs structured context with citations. Fall back to CLI `knowns retrieve` if MCP is unavailable.\n")
 	sb.WriteString("- For code context retrieval, prefer MCP tools over CLI: use `code_search` first, then `code_symbols`, then `code_deps`. Treat CLI `knowns code ...` as fallback for manual inspection or debugging.\n")
 	sb.WriteString("- Plan before implementation unless the user explicitly overrides that workflow.\n")
 	sb.WriteString("- Validate before considering work complete.\n")
-	sb.WriteString("- Use memory tools: `list_memories` at session start, `add_memory` after tasks for reusable knowledge, `add_working_memory` for session cache.\n\n")
+	sb.WriteString("- Use memory tools: `list_memories` at session start, `add_memory` after tasks for reusable knowledge, `add_working_memory` for session cache.\n")
+	sb.WriteString("- Proactively capture durable memory based on `KNOWNS.md` memory rules; do not wait for an explicit user instruction to save memory when scope and durability are clear.\n\n")
 	sb.WriteString("## Quick Reference\n\n")
 	sb.WriteString("```bash\n")
 	sb.WriteString("knowns doc list --plain               # List docs\n")
@@ -1029,7 +1147,7 @@ func renderCompatibilityInstructionContent(relativePath, platform, projectRoot s
 	sb.WriteString("knowns task <id> --plain              # View task\n")
 	sb.WriteString("knowns doc \"<path>\" --plain --smart  # View doc\n")
 	sb.WriteString("knowns search \"query\" --plain        # Search docs/tasks\n")
-	sb.WriteString("knowns retrieve \"query\" --json      # Retrieve structured context pack\n")
+	sb.WriteString("knowns retrieve \"query\" --json      # Retrieve structured context pack (CLI fallback)\n")
 	sb.WriteString("knowns guidelines --plain             # Full workflow reference\n")
 	sb.WriteString("```\n\n")
 	sb.WriteString("<!-- KNOWNS GUIDELINES END -->\n")

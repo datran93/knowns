@@ -13,6 +13,8 @@ import (
 	"github.com/howznguyen/knowns/internal/models"
 )
 
+const globalSemanticStoreDir = "global"
+
 // Store is the top-level coordinator for all .knowns/ sub-stores.
 type Store struct {
 	// Root is the absolute path to the .knowns/ directory.
@@ -31,8 +33,7 @@ type Store struct {
 // NewStore creates a Store rooted at the given .knowns/ directory path.
 // The directory does not need to exist yet; call Init to create it.
 func NewStore(root string) *Store {
-	home, _ := os.UserHomeDir()
-	globalRoot := filepath.Join(home, ".knowns")
+	globalRoot := GlobalRootPath()
 
 	s := &Store{Root: root}
 	s.Tasks = &TaskStore{root: root}
@@ -45,6 +46,27 @@ func NewStore(root string) *Store {
 	s.Chats = &ChatStore{root: root}
 	s.Memory = &MemoryStore{root: root, globalRoot: globalRoot}
 	return s
+}
+
+// GlobalRootPath returns the machine-level Knowns root (~/.knowns).
+func GlobalRootPath() string {
+	if home := os.Getenv("HOME"); home != "" {
+		return filepath.Join(home, ".knowns")
+	}
+	home, _ := os.UserHomeDir()
+	return filepath.Join(home, ".knowns")
+}
+
+// GlobalSemanticStoreRoot returns the dedicated store root for global semantic
+// config and indices under the machine-level Knowns directory.
+func GlobalSemanticStoreRoot() string {
+	return filepath.Join(GlobalRootPath(), globalSemanticStoreDir)
+}
+
+// NewGlobalSemanticStore creates a store used for global semantic config and
+// indices while continuing to read global memories from ~/.knowns/memory.
+func NewGlobalSemanticStore() *Store {
+	return NewStore(GlobalSemanticStoreRoot())
 }
 
 // SemanticDB returns a connection to the semantic search database (index.db).

@@ -69,6 +69,10 @@ type indexEntry struct {
 	Priority string   `json:"priority,omitempty"`
 	Labels   []string `json:"labels,omitempty"`
 
+	// Memory fields.
+	MemoryLayer string `json:"memoryLayer,omitempty"`
+	MemoryStore string `json:"memoryStore,omitempty"`
+
 	// Code fields (populated when Type == ChunkTypeCode).
 	Name      string `json:"name,omitempty"`
 	Signature string `json:"signature,omitempty"`
@@ -92,8 +96,8 @@ func NewFileVectorStore(dir string, model string, dimensions int) *FileVectorSto
 }
 
 func (s *FileVectorStore) embeddingsPath() string { return filepath.Join(s.dir, "embeddings.bin") }
-func (s *FileVectorStore) indexPath() string       { return filepath.Join(s.dir, "index.json") }
-func (s *FileVectorStore) versionPath() string     { return filepath.Join(s.dir, "version.json") }
+func (s *FileVectorStore) indexPath() string      { return filepath.Join(s.dir, "index.json") }
+func (s *FileVectorStore) versionPath() string    { return filepath.Join(s.dir, "version.json") }
 
 // Load reads the store from disk into memory. Safe to call multiple times.
 func (s *FileVectorStore) Load() error {
@@ -218,23 +222,25 @@ func (s *FileVectorStore) AddChunks(chunks []Chunk) {
 		s.vecs = append(s.vecs, c.Embedding...)
 
 		s.index = append(s.index, indexEntry{
-			ID:            c.ID,
-			Type:          c.Type,
-			Offset:        offset,
-			TokenCount:    c.TokenCount,
-			DocPath:       c.DocPath,
-			Section:       c.Section,
-			HeadingLevel:  c.HeadingLevel,
-			HeaderPath:    c.HeaderPath,
-			Position:      c.Position,
-			TaskID:        c.TaskID,
-			Field:         c.Field,
-			Status:        c.Status,
-			Priority:      c.Priority,
-			Labels:        c.Labels,
-			Name:          c.Name,
-			Signature:     c.Signature,
-			Content:       c.Content,
+			ID:           c.ID,
+			Type:         c.Type,
+			Offset:       offset,
+			TokenCount:   c.TokenCount,
+			DocPath:      c.DocPath,
+			Section:      c.Section,
+			HeadingLevel: c.HeadingLevel,
+			HeaderPath:   c.HeaderPath,
+			Position:     c.Position,
+			TaskID:       c.TaskID,
+			Field:        c.Field,
+			Status:       c.Status,
+			Priority:     c.Priority,
+			Labels:       c.Labels,
+			MemoryLayer:  c.MemoryLayer,
+			MemoryStore:  c.MemoryStore,
+			Name:         c.Name,
+			Signature:    c.Signature,
+			Content:      c.Content,
 		})
 	}
 }
@@ -293,6 +299,9 @@ func (s *FileVectorStore) Search(queryVec []float32, opts VectorSearchOpts) []Sc
 	var candidates []scored
 
 	for i, entry := range s.index {
+		if opts.ChunkType != "" && entry.Type != opts.ChunkType {
+			continue
+		}
 		start := entry.Offset
 		end := start + s.dimensions
 		if end > len(s.vecs) {
@@ -318,22 +327,24 @@ func (s *FileVectorStore) Search(queryVec []float32, opts VectorSearchOpts) []Sc
 		entry := s.index[c.idx]
 		results[i] = ScoredChunk{
 			Chunk: Chunk{
-				ID:            entry.ID,
-				Type:          entry.Type,
-				TokenCount:    entry.TokenCount,
-				DocPath:       entry.DocPath,
-				Section:       entry.Section,
-				HeadingLevel:  entry.HeadingLevel,
-				HeaderPath:    entry.HeaderPath,
-				Position:      entry.Position,
-				TaskID:        entry.TaskID,
-				Field:         entry.Field,
-				Status:        entry.Status,
-				Priority:      entry.Priority,
-				Labels:        entry.Labels,
-				Name:          entry.Name,
-				Signature:     entry.Signature,
-				Content:       entry.Content,
+				ID:           entry.ID,
+				Type:         entry.Type,
+				TokenCount:   entry.TokenCount,
+				DocPath:      entry.DocPath,
+				Section:      entry.Section,
+				HeadingLevel: entry.HeadingLevel,
+				HeaderPath:   entry.HeaderPath,
+				Position:     entry.Position,
+				TaskID:       entry.TaskID,
+				Field:        entry.Field,
+				Status:       entry.Status,
+				Priority:     entry.Priority,
+				Labels:       entry.Labels,
+				MemoryLayer:  entry.MemoryLayer,
+				MemoryStore:  entry.MemoryStore,
+				Name:         entry.Name,
+				Signature:    entry.Signature,
+				Content:      entry.Content,
 			},
 			Score: c.score,
 		}

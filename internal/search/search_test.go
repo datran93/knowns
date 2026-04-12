@@ -489,6 +489,31 @@ func TestSQLiteVectorStore_ClearRemovesHashes(t *testing.T) {
 	}
 }
 
+func TestSQLiteVectorStore_SearchFiltersByChunkType(t *testing.T) {
+	dir := t.TempDir()
+	store := NewSQLiteVectorStore(dir, "test-model", 2)
+	if err := store.Load(); err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	defer store.Close()
+
+	store.AddChunks([]Chunk{
+		{ID: "doc:test:chunk:1", Type: ChunkTypeDoc, Content: "doc", Embedding: []float32{1, 0}},
+		{ID: "memory:test:chunk:1", Type: ChunkTypeMemory, MemoryID: "mem1", MemoryLayer: models.MemoryLayerProject, MemoryStore: "project-store", Content: "memory", Embedding: []float32{1, 0}},
+	})
+
+	results := store.Search([]float32{1, 0}, VectorSearchOpts{TopK: 5, Threshold: 0.1, ChunkType: ChunkTypeMemory})
+	if len(results) != 1 {
+		t.Fatalf("results = %d, want 1", len(results))
+	}
+	if results[0].Type != ChunkTypeMemory {
+		t.Fatalf("result type = %s, want memory", results[0].Type)
+	}
+	if results[0].MemoryStore != "project-store" {
+		t.Fatalf("memory store = %q, want project-store", results[0].MemoryStore)
+	}
+}
+
 // --- FileVectorStore Content Hash No-ops ---
 
 func TestFileVectorStore_ContentHashNoOps(t *testing.T) {
@@ -586,6 +611,23 @@ func TestEngineRetrieve_ExpandsReferences(t *testing.T) {
 	}
 	if !foundExpanded {
 		t.Fatal("expected at least one expanded candidate")
+	}
+}
+
+func TestMergeStoreMemoryResultsPreservesProjectAndGlobalHits(t *testing.T) {
+	results := mergeStoreMemoryResults([]models.SearchResult{
+		{Type: "memory", ID: "mem-project", Title: "Project memory", Score: 0.92, MemoryLayer: models.MemoryLayerProject, MemoryStore: memoryStoreProject},
+		{Type: "memory", ID: "mem-global", Title: "Global memory", Score: 0.88, MemoryLayer: models.MemoryLayerGlobal, MemoryStore: memoryStoreGlobal},
+	}, 10)
+
+	if len(results) != 2 {
+		t.Fatalf("results = %d, want 2", len(results))
+	}
+	if results[0].MemoryStore == results[1].MemoryStore {
+		t.Fatalf("expected distinct memory stores, got %q and %q", results[0].MemoryStore, results[1].MemoryStore)
+	}
+	if results[0].MemoryLayer == "" || results[1].MemoryLayer == "" {
+		t.Fatalf("expected memory layer provenance, got %+v", results)
 	}
 }
 

@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/howznguyen/knowns/internal/runtimeinstall"
 )
 
 func TestCreateOpenCodeConfigQuietCreatesConfig(t *testing.T) {
@@ -132,6 +134,52 @@ func TestCreateInstructionFilesQuietIncludesOpenCode(t *testing.T) {
 
 	if _, err := os.Stat(filepath.Join(projectRoot, "OPENCODE.md")); err != nil {
 		t.Fatalf("expected OPENCODE.md to be created: %v", err)
+	}
+}
+
+func TestRenderCanonicalInstructionContentIncludesProactiveMemoryRules(t *testing.T) {
+	content := renderCanonicalInstructionContent()
+
+	assertContains(t, content, "- Proactively save durable memory without waiting for the user to say \"save this\" when confidence is high.")
+	assertContains(t, content, "- Use `global` for stable user preferences or workflow rules that should carry across repositories and future sessions.")
+	assertContains(t, content, "- If the user states a stable collaboration preference, default to saving it as `global` memory unless they clearly scoped it to this repository only.")
+	assertContains(t, content, "- Compatibility shim files must stay lightweight and must direct agents back to `KNOWNS.md` for behavioral rules instead of restating divergent guidance.")
+}
+
+func TestRenderCompatibilityInstructionContentDefersBehaviorToKnowns(t *testing.T) {
+	content := renderCompatibilityInstructionContent("AGENTS.md", "Generic AI", "/tmp/example-project")
+
+	assertContains(t, content, "- Load behavior, memory policy, and workflow rules from `KNOWNS.md`; treat this file only as a compatibility entrypoint.")
+	assertContains(t, content, "- Proactively capture durable memory based on `KNOWNS.md` memory rules; do not wait for an explicit user instruction to save memory when scope and durability are clear.")
+}
+
+func TestPlatformLabelUsesUnifiedRuntimeArtifactSummary(t *testing.T) {
+	label := platformLabel("opencode")
+	if !strings.Contains(label, "plugin") {
+		t.Fatalf("expected OpenCode label to include plugin artifact summary, got %q", label)
+	}
+	label = platformLabel("codex")
+	if !strings.Contains(label, ".codex/config.toml") {
+		t.Fatalf("expected Codex label to include config artifact summary, got %q", label)
+	}
+}
+
+func TestRuntimeInstallHelpersExposeAvailabilitySummary(t *testing.T) {
+	opts := runtimeinstall.Options{
+		HomeDir:        t.TempDir(),
+		ExecutablePath: "/usr/local/bin/knowns",
+		LookPath: func(name string) (string, error) {
+			if name == "claude" {
+				return "/usr/local/bin/claude", nil
+			}
+			return "", os.ErrNotExist
+		},
+	}
+	if got := runtimeinstall.RuntimeAvailabilitySummary("claude-code", opts); got != "available" {
+		t.Fatalf("RuntimeAvailabilitySummary = %q, want available", got)
+	}
+	if got := runtimeinstall.RuntimePickerDescription("opencode", opts); !strings.Contains(strings.ToLower(got), "install") {
+		t.Fatalf("expected install-oriented OpenCode description, got %q", got)
 	}
 }
 

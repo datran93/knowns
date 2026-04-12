@@ -100,12 +100,17 @@ knowns task list
 knowns browser --open
 ```
 
-### New in v0.18.0
+### New in v0.18.0+
 
-- Run `knowns browser` outside a repo and switch between registered workspaces in the UI.
-- Build a code index with `knowns code ingest` and explore symbols, dependencies, and code search results.
+- Workspace-aware browser mode — run `knowns browser` outside a repo to scan for projects and switch between them without restarting.
+- AST-based code intelligence for Go, TypeScript, JavaScript, and Python via `knowns code ingest`.
+- Code graph visualization in the browser UI — explore symbols, dependencies, and relationships.
 - Use `knowns browser --watch` or `knowns code watch` to keep code search data fresh while you work.
 - Explore richer chat history and runtime status from the browser chat page.
+- Self-update with `knowns update` — detects install method and upgrades in place.
+- `knowns retrieve` for structured context retrieval with citations (designed for agent workflows).
+- ONNX Runtime-based local semantic search with SQLite vector store — no external API needed.
+- Kiro IDE and Codex platform support during `knowns init`.
 
 ---
 
@@ -302,14 +307,34 @@ knowns search "query" [options]
 **Options:**
 | Option | Description |
 |--------|-------------|
-| `--type` | task \| doc |
+| `--type` | all \| task \| doc \| memory |
 | `--status` | Filter by status |
 | `--priority` | Filter by priority |
+| `--label` | Filter by label |
+| `--tag` | Filter by tag |
+| `--assignee` | Filter by assignee |
+| `--keyword` | Force keyword-only search |
+| `--limit` | Limit results (default: 20) |
 | `--plain` | Plain text output |
+| `--json` | JSON output |
+
+```bash
+knowns retrieve "query" [options]
+```
+
+**Options:**
+| Option | Description |
+|--------|-------------|
+| `--expand-references` | Expand @doc/@task references |
+| `--source-types` | Comma-separated: doc,task,memory |
+| `--keyword` | Force keyword-only retrieval |
+| `--limit` | Limit candidates (default: 20) |
+| `--plain` | Plain text output |
+| `--json` | JSON output |
 
 ### Model Commands
 
-Manage embedding models for semantic search.
+Manage embedding models for semantic search. Requires ONNX Runtime (`knowns search --install-runtime`).
 
 #### List Models
 
@@ -328,11 +353,13 @@ knowns model download <model-id>
 **Built-in models:**
 | Model | Quality | Dimensions | Best for |
 |-------|---------|------------|----------|
-| `gte-small` ★ | Balanced | 384 | Most projects |
+| `multilingual-e5-small` | Balanced | 384 | Multilingual (default) |
+| `gte-small` ★ | Balanced | 384 | English projects |
 | `all-MiniLM-L6-v2` | Fast | 384 | Large codebases |
 | `gte-base` | Quality | 768 | High accuracy |
-| `bge-small-en-v1.5` | Balanced | 384 | English text |
-| `e5-small-v2` | Balanced | 384 | General use |
+| `bge-small-en-v1.5` | Balanced | 384 | English retrieval |
+| `bge-base-en-v1.5` | Quality | 768 | Top retrieval |
+| `nomic-embed-text-v1.5` | Quality | 768 | Long context (8K tokens) |
 
 #### Set Model for Project
 
@@ -545,7 +572,7 @@ Related: @template/react-component
 knowns browser --open
 ```
 
-This starts the Web UI server and opens it in your browser. Default port is `3001` unless overridden in config or via `--port`.
+This starts the Web UI server and opens it in your browser. Default port is `6420` unless overridden in config or via `--port`.
 
 ### Navigation
 
@@ -688,22 +715,46 @@ Add to your Claude Desktop config (`~/Library/Application Support/Claude/claude_
 | `list_tasks`          | List tasks with filters                             |
 | `create_task`         | Create a new task                                   |
 | `update_task`         | Update task fields                                  |
+| `delete_task`         | Delete a task (dry-run by default)                  |
+| `get_task_history`    | Get version history of a task                       |
 | `get_doc`             | Get document content                                |
 | `list_docs`           | List all documents                                  |
+| `create_doc`          | Create a new document                               |
+| `update_doc`          | Update a document                                   |
+| `delete_doc`          | Delete a doc (dry-run by default)                   |
+| `get_doc_history`     | Get version history of a doc                        |
 | `search`              | Unified search (tasks + docs + memories)            |
+| `retrieve`            | Ranked context retrieval with citations             |
+| `reindex_search`      | Rebuild semantic search index                       |
+| `code_search`         | Search indexed code with neighbor expansion         |
+| `code_symbols`        | List indexed code symbols                           |
+| `code_deps`           | List code dependency edges                          |
+| `code_graph`          | Return full code graph (nodes and edges)            |
 | `list_templates`      | List available templates                            |
 | `get_template`        | Get template config                                 |
 | `run_template`        | Run template (use `dryRun: true` first)             |
 | `create_template`     | Create new template                                 |
+| `validate`            | Validate refs and file integrity                    |
+| `get_board`           | Get kanban board state                              |
 | `add_memory`          | Create a memory entry (project or global layer)     |
 | `list_memories`       | List memories with filters                          |
 | `get_memory`          | Get memory entry by ID                              |
 | `update_memory`       | Update memory entry                                 |
 | `delete_memory`       | Delete memory entry                                 |
 | `promote_memory`      | Promote up one layer (working→project→global)       |
+| `demote_memory`       | Demote down one layer (global→project→working)      |
 | `add_working_memory`  | Add ephemeral session-scoped memory                 |
 | `list_working_memories` | List session memories                             |
+| `get_working_memory`  | Get working memory by ID                            |
+| `delete_working_memory` | Delete a working memory entry                     |
 | `clear_working_memory` | Clear all session memories                         |
+| `detect_projects`     | Scan for Knowns projects                            |
+| `set_project`         | Set active project (for global MCP configs)         |
+| `get_current_project` | Get current active project                          |
+| `start_time`          | Start timer for a task                              |
+| `stop_time`           | Stop active timer                                   |
+| `add_time`            | Manual time entry                                   |
+| `get_time_report`     | Generate time report                                |
 
 ### Plain Text Mode
 
@@ -760,8 +811,8 @@ Stop the current timer with `knowns time stop` before starting a new one.
 
 #### Web UI won't start
 
-- Check if port 3001 is available
-- Try `knowns browser --port 3002`
+- Check if port 6420 is available
+- Try `knowns browser --port 6421`
 
 #### Tasks not syncing
 
@@ -783,7 +834,17 @@ knowns task create --help
 For detailed logging:
 
 ```bash
-DEBUG=knowns:* knowns <command>
+KNOWNS_DEBUG=1 knowns <command>
+```
+
+### Self-Update
+
+```bash
+# Check for updates
+knowns update --check
+
+# Update to latest version and sync configs
+knowns update
 ```
 
 ### Report Issues

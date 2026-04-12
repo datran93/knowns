@@ -2,6 +2,10 @@
 
 Integrate Knowns with AI assistants via Model Context Protocol (MCP).
 
+<p align="center">
+  <img src="../images/mcp-integration.svg" alt="MCP Integration Architecture" width="100%">
+</p>
+
 ## What is MCP?
 
 [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) is a standard for connecting AI assistants to external tools and data sources. Knowns implements an MCP server that allows AI assistants to read and manage your tasks and documentation directly.
@@ -11,7 +15,10 @@ Integrate Knowns with AI assistants via Model Context Protocol (MCP).
 | Platform | Config File | Scope | Auto-discover |
 |----------|-------------|-------|---------------|
 | **Claude Code** | `.mcp.json` | Per-project | ✅ |
+| **Kiro IDE** | `.kiro/settings/mcp.json` | Per-project | ✅ |
 | **Gemini CLI** | platform-managed | Global | ✅ |
+| **OpenCode** | `opencode.json` | Per-project | ✅ |
+| **Codex** | `.codex/config.toml` | Per-project | ⚠️ Manual |
 | **Cursor** | `.cursor/mcp.json` | Per-project | ⚠️ Manual |
 | **Claude Desktop** | app config file | Global | ⚠️ Manual |
 
@@ -124,6 +131,40 @@ Edit Claude's configuration file:
 ```
 
 > **Note**: Replace `/path/to/your/project` with your actual project path where `.knowns/` folder exists.
+
+#### Kiro IDE (Per-project)
+
+`knowns init` automatically creates `.kiro/steering/knowns.md` (references `KNOWNS.md` via `#[[file:KNOWNS.md]]`) and `.kiro/settings/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "knowns": {
+      "command": "knowns",
+      "args": ["mcp", "--stdio"],
+      "disabled": false,
+      "autoApprove": ["*"]
+    }
+  }
+}
+```
+
+#### OpenCode (Per-project)
+
+`knowns init` creates `opencode.json`:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "knowns": {
+      "type": "local",
+      "command": ["knowns", "mcp", "--stdio"],
+      "enabled": true
+    }
+  }
+}
+```
 
 #### Cursor (Per-project)
 
@@ -244,11 +285,13 @@ Starting timer and beginning implementation..."
 | `create_doc`  | Create new doc  | `title`, `description?`, `content?`, `tags?`, `folder?`                             |
 | `update_doc`  | Update doc      | `path`, `title?`, `description?`, `content?`, `appendContent?`, `tags?`, `section?` |
 
-### Unified Search
+### Unified Search & Retrieval
 
-| Tool     | Description                     | Parameters                                           |
-| -------- | ------------------------------- | ---------------------------------------------------- |
-| `search` | Search tasks + docs             | `query`, `type?` (all/task/doc), `mode?` (hybrid/semantic/keyword), `status?`, `priority?`, `label?`, `tag?`, `assignee?` |
+| Tool       | Description                     | Parameters                                           |
+| ---------- | ------------------------------- | ---------------------------------------------------- |
+| `search`   | Search tasks + docs + memories  | `query`, `type?` (all/task/doc/memory), `mode?` (hybrid/semantic/keyword), `status?`, `priority?`, `label?`, `tag?`, `assignee?`, `limit?` |
+| `retrieve` | Ranked context with citations   | `query`, `mode?`, `limit?`, `sourceTypes?`, `expandReferences?`, `status?`, `priority?`, `assignee?`, `label?`, `tag?` |
+| `reindex_search` | Rebuild semantic search index | - |
 
 **Large Document Workflow:**
 
@@ -309,6 +352,8 @@ mcp__knowns__run_template({
 | --------- | ----------- |
 | `scope`   | `all`, `tasks`, `docs`, `templates`, or `sdd` |
 | `fix`     | Attempt to auto-fix issues (default: `false`) |
+| `entity`  | Validate a specific task or doc only |
+| `strict`  | Treat warnings as errors (default: `false`) |
 
 **Example:**
 
@@ -349,6 +394,26 @@ mcp__knowns__validate({ "scope": "tasks" })
 | Tool        | Description            | Parameters |
 | ----------- | ---------------------- | ---------- |
 | `get_board` | Get kanban board state | -          |
+
+### Code Intelligence
+
+| Tool           | Description                                      | Parameters                                    |
+| -------------- | ------------------------------------------------ | --------------------------------------------- |
+| `code_search`  | Search indexed code with neighbor expansion      | `query`, `limit?`, `neighbors?`, `edgeTypes?`, `mode?` |
+| `code_symbols` | List indexed code symbols                        | `path?`, `kind?`, `limit?`                    |
+| `code_deps`    | List code dependency edges                       | `type?`, `limit?`                             |
+| `code_graph`   | Return full code graph (nodes and edges)         | -                                             |
+
+> **Note:** Code intelligence tools require running `knowns code ingest` first to build the code index.
+
+### Document & Task History
+
+| Tool               | Description                    | Parameters |
+| ------------------ | ------------------------------ | ---------- |
+| `get_doc_history`  | Get version history of a doc   | `path`     |
+| `get_task_history` | Get version history of a task  | `taskId`   |
+| `delete_doc`       | Delete a doc (dry-run default) | `path`, `dryRun?` |
+| `delete_task`      | Delete a task (dry-run default)| `taskId`, `dryRun?` |
 
 ## Benefits
 

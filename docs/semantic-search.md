@@ -1,12 +1,14 @@
 # Semantic Search Guide
 
-Search tasks, docs, memories, and optionally indexed code by **meaning**, not just keywords. Uses local AI models for privacy and offline capability.
+Search tasks, docs, memories, and optionally indexed code by **meaning**, not just keywords. Uses local AI models with ONNX Runtime for privacy and offline capability.
 
 ## Table of Contents
 
 - [Getting Started](#getting-started)
+- [ONNX Runtime](#onnx-runtime)
 - [Model Management](#model-management)
 - [Search Usage](#search-usage)
+- [Retrieval](#retrieval)
 - [Code Intelligence](#code-intelligence)
 - [Configuration](#configuration)
 - [How It Works](#how-it-works)
@@ -21,21 +23,32 @@ Search tasks, docs, memories, and optionally indexed code by **meaning**, not ju
 ```bash
 knowns init my-project
 # → "Enable semantic search?" [y/n] → y
-# → "Select model:" → gte-small (recommended)
+# → "Select model:" → multilingual-e5-small (default) or gte-small
 ```
 
-The model downloads automatically to `~/.knowns/models/` (shared across projects).
+The model and ONNX Runtime download automatically to `~/.knowns/` (shared across projects).
 
 ### Enable on Existing Project
 
+You can run the full setup flow interactively:
+
 ```bash
-# 1. Enable in config
+knowns search --setup
+```
+
+Or do it step by step:
+
+```bash
+# 1. Install ONNX Runtime (if not already)
+knowns search --install-runtime
+
+# 2. Enable in config
 knowns config set settings.semanticSearch.enabled true
 
-# 2. Download model (if not already)
-knowns model download gte-small
+# 3. Download model (if not already)
+knowns model download multilingual-e5-small
 
-# 3. Build search index
+# 4. Build search index
 knowns search --reindex
 ```
 
@@ -43,10 +56,35 @@ knowns search --reindex
 
 ```bash
 knowns search --status-check
-# → Semantic: enabled (gte-small)
-# → Index: 145 items, last updated 2m ago
-# → Model: ~/.knowns/models/gte-small (67MB)
+# → ONNX Runtime: installed
+# →   Path: ~/.knowns/lib/libonnxruntime.dylib
+# → Model: multilingual-e5-small
+# → Enabled: true
+# → Index: 145 chunks (model: multilingual-e5-small)
+# → Status: ready (hybrid search active)
 ```
+
+---
+
+## ONNX Runtime
+
+Semantic search requires [ONNX Runtime](https://onnxruntime.ai/) to run embedding models locally. It is installed to `~/.knowns/lib/` and shared across all projects.
+
+### Install ONNX Runtime
+
+```bash
+knowns search --install-runtime
+```
+
+This downloads the correct ONNX Runtime shared library for your platform (`darwin/arm64`, `darwin/x64`, `linux/x64`, etc.) and extracts it to `~/.knowns/lib/`.
+
+### Check Status
+
+```bash
+knowns search --status-check
+```
+
+If ONNX Runtime is missing, semantic search falls back to keyword-only mode silently.
 
 ---
 
@@ -56,11 +94,15 @@ Models are stored globally at `~/.knowns/models/` and shared across all projects
 
 ### Available Models
 
-| Model              | Size  | Speed  | Quality | Best For                         |
-| ------------------ | ----- | ------ | ------- | -------------------------------- |
-| `gte-small`        | 67MB  | Fast   | Good    | Most projects (recommended)      |
-| `all-MiniLM-L6-v2` | 80MB  | Fast   | Good    | Alternative option               |
-| `gte-base`         | 220MB | Medium | Better  | Large projects with complex docs |
+| Model                    | Dims | Max Tokens | HuggingFace ID                          | Best For                              |
+| ------------------------ | ---- | ---------- | --------------------------------------- | ------------------------------------- |
+| `gte-small`              | 384  | 512        | `Xenova/gte-small`                      | Good balance, English-focused         |
+| `all-MiniLM-L6-v2`      | 384  | 256        | `Xenova/all-MiniLM-L6-v2`              | Fastest, smallest                     |
+| `gte-base`               | 768  | 512        | `Xenova/gte-base`                       | Higher quality, English-focused       |
+| `bge-small-en-v1.5`     | 384  | 512        | `Xenova/bge-small-en-v1.5`             | Strong retrieval quality              |
+| `bge-base-en-v1.5`      | 768  | 512        | `Xenova/bge-base-en-v1.5`              | Top retrieval quality                 |
+| `nomic-embed-text-v1.5`  | 768  | 8192       | `nomic-ai/nomic-embed-text-v1.5`       | Long context (8K tokens)              |
+| `multilingual-e5-small`  | 384  | 512        | `Xenova/multilingual-e5-small`          | Multilingual support (default)        |
 
 ### Commands
 
@@ -77,12 +119,16 @@ knowns model remove gte-small
 
 ### First Download
 
-First model download may take 1-2 minutes depending on connection. Progress is shown:
+First model download may take 1-2 minutes depending on connection. A progress UI shows download status for each file:
 
 ```
-Downloading gte-small...
-[████████████████████] 100% (67MB)
-Model saved to ~/.knowns/models/gte-small
+  ⊙ Setting up semantic search (3 downloads)...
+
+  ✓ ONNX Runtime (darwin/arm64) (12MB)
+  ✓ multilingual-e5-small — model.onnx (471MB)
+  ✓ multilingual-e5-small — tokenizer.json (1.2MB)
+
+✓ Semantic search ready
 ```
 
 ---
@@ -101,6 +147,10 @@ knowns search "auth error" --keyword
 # Search specific type
 knowns search "api design" --type doc
 knowns search "login bug" --type task
+knowns search "auth pattern" --type memory
+
+# Limit results
+knowns search "auth" --limit 5
 ```
 
 ### Search Output
@@ -144,8 +194,8 @@ In `.knowns/config.json`:
   "settings": {
     "semanticSearch": {
       "enabled": true,
-      "model": "gte-small",
-      "huggingFaceId": "Xenova/gte-small",
+      "model": "multilingual-e5-small",
+      "huggingFaceId": "Xenova/multilingual-e5-small",
       "dimensions": 384
     }
   }
@@ -157,7 +207,7 @@ In `.knowns/config.json`:
 | Key             | Type    | Default       | Description                             |
 | --------------- | ------- | ------------- | --------------------------------------- |
 | `enabled`       | boolean | `false`       | Enable/disable semantic search          |
-| `model`         | string  | `"gte-small"` | Model ID to use                         |
+| `model`         | string  | `"multilingual-e5-small"` | Model ID to use                         |
 | `huggingFaceId` | string  | -             | HuggingFace ID for the selected model    |
 | `dimensions`    | number  | -             | Embedding dimensions (auto-detected)    |
 
@@ -193,10 +243,11 @@ graph TD
 
 ### Storage
 
-| Location                | Content              | Shared?          |
-| ----------------------- | -------------------- | ---------------- |
-| `~/.knowns/models/`     | Downloaded AI models | Yes (global)     |
-| `.knowns/search-index/` | Project search index | No (per-project) |
+| Location                | Content                    | Shared?          |
+| ----------------------- | -------------------------- | ---------------- |
+| `~/.knowns/lib/`        | ONNX Runtime shared lib    | Yes (global)     |
+| `~/.knowns/models/`     | Downloaded AI models       | Yes (global)     |
+| `.knowns/.search/`      | Project search index (SQLite) | No (per-project) |
 
 ### Indexing
 
@@ -213,6 +264,9 @@ Index updates automatically when:
 - Tasks created/updated
 - Docs created/updated
 - Manual reindex via `knowns search --reindex`
+- Via runtime queue (background daemon) when available
+
+Background indexing uses a shared runtime queue. Index updates are debounced (entity: 5s, code: 1s) and routed through the runtime daemon when available, falling back to in-process indexing.
 
 ### Chunking Strategy
 
@@ -241,6 +295,28 @@ Combines two approaches:
 2. **Keyword**: Exact term matching for precision
 
 Results are merged and ranked by combined score.
+
+---
+
+## Retrieval
+
+`knowns retrieve` provides structured context retrieval with citations and context-pack assembly, designed for agent workflows:
+
+```bash
+# Retrieve with JSON output (for agents)
+knowns retrieve "error handling patterns" --json
+
+# Expand references found in results
+knowns retrieve "auth" --expand-references
+
+# Filter source types
+knowns retrieve "api design" --source-types doc,memory
+
+# Plain text output
+knowns retrieve "auth" --plain
+```
+
+Use `search` for discovery and quick relevance checks. Use `retrieve` when you need assembled context with citations.
 
 ---
 
@@ -279,6 +355,10 @@ Or run the browser with the watcher enabled:
 knowns browser --watch
 ```
 
+### Auto-Ingest on Browser Startup
+
+When you run `knowns browser`, the server automatically checks if semantic search is configured but no code chunks exist in the index. If so, it runs a best-effort code ingest in the background — no manual `knowns code ingest` needed for the first run.
+
 ### Search indexed code
 
 ```bash
@@ -309,6 +389,18 @@ Error: Model 'gte-small' not found
 knowns model download gte-small
 ```
 
+### ONNX Runtime Not Found
+
+```
+ONNX Runtime: not found
+```
+
+**Fix:**
+
+```bash
+knowns search --install-runtime
+```
+
 ### Index Out of Date
 
 ```
@@ -332,7 +424,7 @@ knowns search --reindex
 2. Check if index exists:
 
    ```bash
-   ls .knowns/search-index/
+    ls .knowns/.search/
    ```
 
 3. Rebuild index:
@@ -366,10 +458,11 @@ knowns search --reindex
 
 ## Tips
 
-1. **Start with `gte-small`** - Best balance of speed and quality
+1. **Start with `multilingual-e5-small`** - Default model with multilingual support; use `gte-small` for a smaller English-only option
 2. **Reindex after bulk changes** - `knowns search --reindex`
 3. **Use `--type` filter** - Faster and more relevant results
 4. **Check status regularly** - `knowns search --status-check`
+5. **Use `retrieve` for agents** - `knowns retrieve "query" --json` for structured context
 
 ---
 

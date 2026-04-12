@@ -935,6 +935,18 @@ func (s *Server) prepareOpenCodeRuntimeMemory(r *http.Request, activeRoot string
 	if err != nil {
 		return inspection, err
 	}
+	if _, _, err := runtimememory.Capture(store, runtimememory.Input{
+		Runtime:     "opencode",
+		ProjectRoot: activeRoot,
+		WorkingDir:  activeRoot,
+		ActionType:  inferOpenCodeActionType(r.URL.Path),
+		UserPrompt:  extractOpenCodePrompt(payload),
+		Mode:        mode,
+		MaxItems:    settings.MaxItems,
+		MaxBytes:    settings.MaxBytes,
+	}); err != nil {
+		return inspection, err
+	}
 	inspection.Pack = pack
 	if len(pack.Items) == 0 {
 		return inspection, nil

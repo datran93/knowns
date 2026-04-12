@@ -12,6 +12,9 @@ import (
 	"github.com/howznguyen/knowns/internal/storage"
 )
 
+const memoryStoreProject = "project-store"
+const memoryStoreGlobal = "global-store"
+
 // SearchOptions configures a search query.
 type SearchOptions struct {
 	Query    string
@@ -65,9 +68,10 @@ func (e *Engine) Search(opts SearchOptions) ([]models.SearchResult, error) {
 	}
 
 	mode := SearchMode(opts.Mode)
+	semanticAvailable := e.SemanticAvailable() || e.memorySemanticAvailable()
 
 	// Auto-detect mode: if semantic not available, fall back to keyword.
-	if mode != ModeKeyword && !e.SemanticAvailable() {
+	if mode != ModeKeyword && !semanticAvailable {
 		mode = ModeKeyword
 	}
 
@@ -104,6 +108,7 @@ func (e *Engine) Search(opts SearchOptions) ([]models.SearchResult, error) {
 
 // Retrieve executes mixed-source retrieval and assembles a context pack.
 func (e *Engine) Retrieve(opts models.RetrievalOptions) (*models.RetrievalResponse, error) {
+	semanticAvailable := e.SemanticAvailable() || e.memorySemanticAvailable()
 	searchOpts := SearchOptions{
 		Query:    opts.Query,
 		Mode:     opts.Mode,
@@ -130,7 +135,7 @@ func (e *Engine) Retrieve(opts models.RetrievalOptions) (*models.RetrievalRespon
 
 	response := &models.RetrievalResponse{
 		Query:      strings.TrimSpace(opts.Query),
-		Mode:       effectiveMode(searchOpts.Mode, e.SemanticAvailable()),
+		Mode:       effectiveMode(searchOpts.Mode, semanticAvailable),
 		Candidates: candidates,
 		ContextPack: models.ContextPack{
 			Items: e.buildContextPack(candidates),
@@ -212,6 +217,7 @@ func (e *Engine) buildCandidates(results []models.SearchResult) []models.Retriev
 			Tags:             result.Tags,
 			MemoryLayer:      result.MemoryLayer,
 			Category:         result.Category,
+			MemoryStore:      result.MemoryStore,
 			SourcePreference: sourcePreference(result.Type),
 		}
 		candidate.Metadata = e.sourceRecord(result)
@@ -359,6 +365,7 @@ func (e *Engine) sourceRecord(result models.SearchResult) models.SourceRecord {
 		Priority:    result.Priority,
 		MemoryLayer: result.MemoryLayer,
 		Category:    result.Category,
+		MemoryStore: result.MemoryStore,
 	}
 	switch result.Type {
 	case "doc":
@@ -534,6 +541,10 @@ var (
 // ─── keyword search (existing logic) ─────────────────────────────────
 
 func (e *Engine) keywordSearch(query string, opts SearchOptions) ([]models.SearchResult, error) {
+	if opts.Type == "memory" {
+		return e.keywordSearchMemories(query, strings.Fields(strings.ToLower(query)), opts)
+	}
+
 	var results []models.SearchResult
 	queryLower := strings.ToLower(query)
 	words := strings.Fields(queryLower)
@@ -676,6 +687,7 @@ func (e *Engine) keywordSearchMemories(query string, words []string, opts Search
 			Snippet:     snippet,
 			MemoryLayer: entry.Layer,
 			Category:    entry.Category,
+			MemoryStore: memoryStoreForLayer(entry.Layer),
 			Tags:        entry.Tags,
 			MatchedBy:   []string{"keyword"},
 		})
@@ -743,6 +755,9 @@ func (e *Engine) keywordSearchCode(queryLower string, words []string, opts Searc
 // ─── semantic search ─────────────────────────────────────────────────
 
 func (e *Engine) semanticSearch(query string, opts SearchOptions) ([]models.SearchResult, error) {
+	if opts.Type == "memory" {
+		return e.semanticMemorySearch(query, opts)
+	}
 	queryVec, err := e.embedder.EmbedQuery(query)
 	if err != nil {
 		return nil, err
@@ -751,6 +766,7 @@ func (e *Engine) semanticSearch(query string, opts SearchOptions) ([]models.Sear
 	scored := e.vecStore.Search(queryVec, VectorSearchOpts{
 		TopK:      opts.Limit * 2, // get more to allow filtering
 		Threshold: 0.3,
+		ChunkType: chunkTypeForSearchType(opts.Type),
 	})
 
 	return e.scoredChunksToResults(scored, opts, "semantic", query)
@@ -759,6 +775,9 @@ func (e *Engine) semanticSearch(query string, opts SearchOptions) ([]models.Sear
 // ─── hybrid search ───────────────────────────────────────────────────
 
 func (e *Engine) hybridSearch(query string, opts SearchOptions) ([]models.SearchResult, error) {
+	if opts.Type == "memory" {
+		return e.hybridMemorySearch(query, opts)
+	}
 	// Run both in sequence (could be parallel, but for simplicity).
 	kwResults, err := e.keywordSearch(query, opts)
 	if err != nil {
@@ -774,6 +793,179 @@ func (e *Engine) hybridSearch(query string, opts SearchOptions) ([]models.Search
 	// Merge results.
 	merged := mergeResults(kwResults, semResults, opts.Limit*2) // get more for reranking
 	return e.rerank(merged, query, opts.Limit), nil
+}
+
+func (e *Engine) memorySemanticAvailable() bool {
+	stores, err := initMemorySemanticStores(e.store)
+	if err != nil {
+		return false
+	}
+	defer closeMemorySemanticStores(stores)
+	for _, store := range stores {
+		if store.engine != nil && store.engine.SemanticAvailable() {
+			return true
+		}
+	}
+	return false
+}
+
+func (e *Engine) semanticMemorySearch(query string, opts SearchOptions) ([]models.SearchResult, error) {
+	stores, err := initMemorySemanticStores(e.store)
+	if err != nil {
+		return nil, err
+	}
+	defer closeMemorySemanticStores(stores)
+
+	var merged []models.SearchResult
+	for _, semStore := range stores {
+		if semStore.engine == nil || !semStore.engine.SemanticAvailable() {
+			continue
+		}
+		results, err := semStore.engine.semanticSearchSingleStore(query, opts, semStore.memoryLayer, semStore.storeName)
+		if err != nil {
+			continue
+		}
+		merged = append(merged, results...)
+	}
+	return mergeStoreMemoryResults(merged, opts.Limit), nil
+}
+
+func (e *Engine) hybridMemorySearch(query string, opts SearchOptions) ([]models.SearchResult, error) {
+	kwResults, err := e.keywordSearchMemories(strings.ToLower(query), strings.Fields(strings.ToLower(query)), opts)
+	if err != nil {
+		return nil, err
+	}
+	semResults, err := e.semanticMemorySearch(query, opts)
+	if err != nil {
+		return kwResults, nil
+	}
+	merged := mergeResults(kwResults, semResults, opts.Limit*2)
+	return e.rerank(merged, query, opts.Limit), nil
+}
+
+func (e *Engine) semanticSearchSingleStore(query string, opts SearchOptions, memoryLayer string, memoryStore string) ([]models.SearchResult, error) {
+	queryVec, err := e.embedder.EmbedQuery(query)
+	if err != nil {
+		return nil, err
+	}
+	scored := e.vecStore.Search(queryVec, VectorSearchOpts{
+		TopK:      opts.Limit * 2,
+		Threshold: 0.3,
+		ChunkType: ChunkTypeMemory,
+	})
+	results, err := e.scoredChunksToResults(scored, opts, "semantic", query)
+	if err != nil {
+		return nil, err
+	}
+	for i := range results {
+		results[i].MemoryLayer = memoryLayer
+		results[i].MemoryStore = memoryStore
+	}
+	return results, nil
+}
+
+type memorySemanticStore struct {
+	engine      *Engine
+	store       *storage.Store
+	embedder    *Embedder
+	vecStore    VectorStore
+	memoryLayer string
+	storeName   string
+}
+
+func initMemorySemanticStores(projectStore *storage.Store) ([]memorySemanticStore, error) {
+	stores := make([]memorySemanticStore, 0, 2)
+	if projectStore == nil {
+		return stores, nil
+	}
+	if embedder, vecStore, err := InitSemantic(projectStore); err == nil && embedder != nil && vecStore != nil {
+		stores = append(stores, memorySemanticStore{
+			engine:      NewEngine(projectStore, embedder, vecStore),
+			store:       projectStore,
+			embedder:    embedder,
+			vecStore:    vecStore,
+			memoryLayer: models.MemoryLayerProject,
+			storeName:   memoryStoreProject,
+		})
+	}
+	globalStore := storage.NewGlobalSemanticStore()
+	if embedder, vecStore, err := InitSemantic(globalStore); err == nil && embedder != nil && vecStore != nil {
+		stores = append(stores, memorySemanticStore{
+			engine:      NewEngine(globalStore, embedder, vecStore),
+			store:       globalStore,
+			embedder:    embedder,
+			vecStore:    vecStore,
+			memoryLayer: models.MemoryLayerGlobal,
+			storeName:   memoryStoreGlobal,
+		})
+	}
+	return stores, nil
+}
+
+func closeMemorySemanticStores(stores []memorySemanticStore) {
+	for _, semStore := range stores {
+		if semStore.embedder != nil {
+			semStore.embedder.Close()
+		}
+		if semStore.vecStore != nil {
+			semStore.vecStore.Close()
+		}
+	}
+}
+
+func mergeStoreMemoryResults(results []models.SearchResult, limit int) []models.SearchResult {
+	if len(results) == 0 {
+		return nil
+	}
+	byKey := make(map[string]models.SearchResult, len(results))
+	for _, result := range results {
+		key := result.Type + ":" + result.ID + ":" + result.MemoryStore
+		if existing, ok := byKey[key]; ok && existing.Score >= result.Score {
+			continue
+		}
+		byKey[key] = result
+	}
+	merged := make([]models.SearchResult, 0, len(byKey))
+	for _, result := range byKey {
+		merged = append(merged, result)
+	}
+	sort.Slice(merged, func(i, j int) bool {
+		if merged[i].Score != merged[j].Score {
+			return merged[i].Score > merged[j].Score
+		}
+		return merged[i].Title < merged[j].Title
+	})
+	if limit > 0 && len(merged) > limit {
+		merged = merged[:limit]
+	}
+	return merged
+}
+
+func memoryStoreForLayer(layer string) string {
+	if layer == models.MemoryLayerGlobal {
+		return memoryStoreGlobal
+	}
+	return memoryStoreProject
+}
+
+func resultMergeKey(result models.SearchResult) string {
+	if result.Type == "memory" && result.MemoryStore != "" {
+		return result.Type + ":" + result.ID + ":" + result.MemoryStore
+	}
+	return result.Type + ":" + result.ID
+}
+
+func chunkTypeForSearchType(searchType string) ChunkType {
+	switch searchType {
+	case "memory":
+		return ChunkTypeMemory
+	case "task":
+		return ChunkTypeTask
+	case "doc":
+		return ChunkTypeDoc
+	default:
+		return ""
+	}
 }
 
 // mergeResults combines keyword and semantic results using Reciprocal Rank Fusion (RRF).
@@ -794,7 +986,7 @@ func mergeResults(kwResults, semResults []models.SearchResult, limit int) []mode
 
 	// Add keyword results with RRF scores.
 	for rank, r := range kwResults {
-		key := r.Type + ":" + r.ID
+		key := resultMergeKey(r)
 		merged[key] = &mergedItem{
 			result:    r,
 			rrfScore:  1.0 / (k + float64(rank+1)),
@@ -804,7 +996,7 @@ func mergeResults(kwResults, semResults []models.SearchResult, limit int) []mode
 
 	// Add semantic results with RRF scores.
 	for rank, r := range semResults {
-		key := r.Type + ":" + r.ID
+		key := resultMergeKey(r)
 		rrfScore := 1.0 / (k + float64(rank+1))
 		if item, ok := merged[key]; ok {
 			item.rrfScore += rrfScore
@@ -942,20 +1134,25 @@ func (e *Engine) scoredChunksToResults(scored []ScoredChunk, opts SearchOptions,
 			}
 
 		case ChunkTypeMemory:
-			key = "memory:" + sc.MemoryID
+			key = "memory:" + sc.MemoryID + ":" + sc.MemoryStore
 
 			if opts.Type != "" && opts.Type != "all" && opts.Type != "memory" {
 				continue
 			}
 
 			title := sc.MemoryID
-			var memLayer, category string
+			memLayer := sc.MemoryLayer
+			memStore := sc.MemoryStore
+			var category string
 			var tags []string
-			if entry, err := e.store.Memory.Get(sc.MemoryID); err == nil {
+			if entry, err := e.memoryEntryForChunk(sc); err == nil {
 				title = entry.Title
 				memLayer = entry.Layer
 				category = entry.Category
 				tags = entry.Tags
+			}
+			if memStore == "" {
+				memStore = memoryStoreForLayer(memLayer)
 			}
 
 			result = models.SearchResult{
@@ -965,6 +1162,7 @@ func (e *Engine) scoredChunksToResults(scored []ScoredChunk, opts SearchOptions,
 				Score:       chunkScore,
 				MemoryLayer: memLayer,
 				Category:    category,
+				MemoryStore: memStore,
 				Tags:        tags,
 				MatchedBy:   []string{method},
 			}
@@ -1006,6 +1204,21 @@ func (e *Engine) scoredChunksToResults(scored []ScoredChunk, opts SearchOptions,
 		results = append(results, sr.result)
 	}
 	return results, nil
+}
+
+func (e *Engine) memoryEntryForChunk(sc ScoredChunk) (*models.MemoryEntry, error) {
+	if e.store == nil || e.store.Memory == nil {
+		return nil, fmt.Errorf("memory store unavailable")
+	}
+	if sc.MemoryLayer != "" {
+		if entry, err := e.store.Memory.GetInLayer(sc.MemoryID, sc.MemoryLayer); err == nil {
+			return entry, nil
+		}
+	}
+	if sc.MemoryStore == memoryStoreGlobal {
+		return e.store.Memory.GetInLayer(sc.MemoryID, models.MemoryLayerGlobal)
+	}
+	return e.store.Memory.Get(sc.MemoryID)
 }
 
 // ─── scoring helpers ──────────────────────────────────────────────────

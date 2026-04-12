@@ -23,14 +23,14 @@ knowns browser --scan ~/Workspaces,~/Projects --open
 knowns browser --watch
 ```
 
-Default port is `3001` unless overridden by `settings.serverPort` or `--port`.
+Default port is `6420` unless overridden by `settings.serverPort` or `--port`. If the port is busy, the next ports are tried automatically (up to 3 attempts).
 
 ---
 
 ## Browser Flags
 
 ```bash
-knowns browser --port 3002
+knowns browser --port 6421
 knowns browser --no-open
 knowns browser --restart
 knowns browser --dev
@@ -51,6 +51,7 @@ knowns browser --watch
 - search and navigation shortcuts
 - chat UI with timeline/history navigation and runtime status
 - real-time updates from local project data
+- auto-ingest: if semantic search is configured but no code chunks exist, the browser auto-ingests code on startup
 
 ### Workspace Switching
 
@@ -101,7 +102,7 @@ The browser connects to the local Go server and updates when project data change
 ### Port already in use
 
 ```bash
-knowns browser --port 3002
+knowns browser --port 6421
 ```
 
 ### Browser does not open automatically

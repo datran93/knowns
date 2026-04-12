@@ -20,6 +20,7 @@ import (
 	"github.com/howznguyen/knowns/internal/models"
 	"github.com/howznguyen/knowns/internal/runtimequeue"
 	"github.com/howznguyen/knowns/internal/search"
+	"github.com/howznguyen/knowns/internal/storage"
 	"github.com/spf13/cobra"
 )
 
@@ -275,6 +276,7 @@ func sprintPlainResults(taskResults, docResults, memoryResults []models.SearchRe
 				snip := truncate(r.Snippet, 100)
 				fmt.Fprintf(&b, "    %s\n", snip)
 			}
+			fmt.Fprintf(&b, "    Scope: %s\n", formatMemoryScope(r.MemoryLayer, r.MemoryStore))
 			fmt.Fprintf(&b, "    Matched by: %s\n", formatMatchedBy(r.MatchedBy))
 		}
 		fmt.Fprintln(&b)
@@ -348,6 +350,7 @@ func renderPrettyResults(query, mode string, results []models.SearchResult, task
 				snip := truncate(r.Snippet, 100)
 				fmt.Fprintf(&b, "    %s\n", StyleDim.Render(snip))
 			}
+			fmt.Fprintf(&b, "    %s\n", StyleDim.Render("Scope: "+formatMemoryScope(r.MemoryLayer, r.MemoryStore)))
 			fmt.Fprintf(&b, "    %s\n", StyleDim.Render("Matched by: "+formatMatchedBy(r.MatchedBy)))
 			fmt.Fprintln(&b)
 		}
@@ -371,6 +374,9 @@ func sprintPlainRetrieval(resp *models.RetrievalResponse) string {
 			fmt.Fprintf(&b, "    Expanded from: %s\n", strings.Join(candidate.ExpandedFrom, ", "))
 		}
 		fmt.Fprintf(&b, "    Citation: %s\n", formatRetrievalCitation(candidate.Citation))
+		if candidate.Type == "memory" {
+			fmt.Fprintf(&b, "    Scope: %s\n", formatMemoryScope(candidate.MemoryLayer, candidate.MemoryStore))
+		}
 		if candidate.Snippet != "" {
 			fmt.Fprintf(&b, "    %s\n", truncate(candidate.Snippet, 120))
 		}
@@ -416,6 +422,9 @@ func renderPrettyRetrieval(resp *models.RetrievalResponse) string {
 			StyleBold.Render("— "+candidate.Title),
 			StyleDim.Render(fmt.Sprintf("(%.3f)", candidate.Score)))
 		fmt.Fprintf(&b, "    %s\n", StyleDim.Render("Citation: "+formatRetrievalCitation(candidate.Citation)))
+		if candidate.Type == "memory" {
+			fmt.Fprintf(&b, "    %s\n", StyleDim.Render("Scope: "+formatMemoryScope(candidate.MemoryLayer, candidate.MemoryStore)))
+		}
 		fmt.Fprintf(&b, "    %s\n", StyleDim.Render(fmt.Sprintf("Direct match: %t", candidate.DirectMatch)))
 		if len(candidate.ExpandedFrom) > 0 {
 			fmt.Fprintf(&b, "    %s\n", StyleDim.Render("Expanded from: "+strings.Join(candidate.ExpandedFrom, ", ")))
@@ -471,6 +480,20 @@ func formatMatchedBy(methods []string) string {
 		return "keyword"
 	}
 	return strings.Join(methods, " + ")
+}
+
+func formatMemoryScope(layer, store string) string {
+	parts := make([]string, 0, 2)
+	if layer != "" {
+		parts = append(parts, layer)
+	}
+	if store != "" {
+		parts = append(parts, store)
+	}
+	if len(parts) == 0 {
+		return "unknown"
+	}
+	return strings.Join(parts, " / ")
 }
 
 // ─── semantic search initialization ──────────────────────────────────
@@ -925,7 +948,7 @@ func runReindex() error {
 	if avail, _ := search.IsONNXAvailable(); avail {
 		cfg, _ := store.Config.Load()
 		if cfg != nil && (cfg.Settings.SemanticSearch == nil || cfg.Settings.SemanticSearch.Model == "") {
-			defaultModel := "gte-small"
+			defaultModel := "multilingual-e5-small"
 			fmt.Println(searchDimStyle.Render(fmt.Sprintf("  No model configured — downloading default model (%s)...", defaultModel)))
 			fmt.Println()
 			if err := runSemanticSetup(defaultModel); err != nil {
@@ -950,75 +973,56 @@ func runReindex() error {
 		}
 	}
 
-	// Try semantic reindex.
-	embedder, vecStore, semanticErr := initSemanticSearchReal()
-	if embedder != nil && vecStore != nil {
-		defer embedder.Close()
-
-		fmt.Printf("%s\n\n", RenderInfo(fmt.Sprintf("Rebuilding semantic search index (%d tasks, %d docs)...", taskCount, docCount)))
-
-		startTime := time.Now()
-		state := &reindexState{phase: "tasks", total: taskCount}
-
-		bar := NewBrandProgressBar()
-		m := &reindexModel{
-			bar:            bar,
-			state:          state,
-			startTime:      startTime,
-			phaseStartTime: startTime,
-		}
-		p := tea.NewProgram(m, tea.WithInput(os.Stdin))
-		m.prog = p
-
-		// Start reindex in background goroutine (outside Init, like dlProgressModel).
-		go func() {
-			engine := search.NewEngine(store, embedder, vecStore)
-			err := engine.Reindex(func(phase string, current, totalItems int) {
-				state.phase = phase
-				state.processed = current
-				state.total = totalItems
-			})
-			chunkCount := vecStore.Count()
-			p.Send(reindexDoneMsg{err: err, chunkCount: chunkCount})
-		}()
-
-		if _, err := p.Run(); err != nil {
-			// Fallback: no TTY — run with simple text progress.
-			engine := search.NewEngine(store, embedder, vecStore)
-			if err := engine.Reindex(func(phase string, current, totalItems int) {
-				fmt.Fprintf(os.Stderr, "\r  Indexing %s (%d/%d)...", phase, current, totalItems)
-			}); err != nil {
-				fmt.Fprintln(os.Stderr)
-				return fmt.Errorf("reindex failed: %w", err)
-			}
-			fmt.Fprintln(os.Stderr)
-		} else if state.err != nil {
-			return fmt.Errorf("reindex failed: %w", state.err)
-		}
-
-		fmt.Println()
-		count := vecStore.Count()
-		elapsed := int(time.Since(startTime).Seconds())
-		fmt.Println(searchSuccessStyle.Render(
-			fmt.Sprintf("✓ Search index rebuilt (%d tasks, %d docs, %d chunks) in %s",
-				taskCount, docCount, count, formatDuration(elapsed))))
+	if err := reindexSemanticStores(store); err == nil {
 		return nil
+	} else if err != search.ErrSemanticNotConfigured {
+		fmt.Println(searchWarnStyle.Render(fmt.Sprintf("Semantic search initialization failed: %s", err)))
+		fmt.Println()
 	}
 
 	// Fallback: keyword-only — no index to rebuild.
-	if semanticErr != nil && semanticErr != search.ErrSemanticNotConfigured {
-		fmt.Println(searchWarnStyle.Render(fmt.Sprintf("Semantic search initialization failed: %s", semanticErr)))
-		fmt.Println()
-	} else {
+	if true {
 		fmt.Println(searchDimStyle.Render("Semantic search is not configured."))
 		fmt.Println()
 		fmt.Println(RenderNextSteps(
-			RenderCmd("knowns model download gte-small"),
+			RenderCmd("knowns model download multilingual-e5-small"),
 			RenderCmd("knowns search --reindex"),
 		))
 	}
 	fmt.Println(searchDimStyle.Render("Keyword search does not require indexing (scans tasks/docs on each query)."))
 	fmt.Println(RenderInfo(fmt.Sprintf("Found %d tasks and %d docs available for keyword search.", taskCount, docCount)))
+	return nil
+}
+
+func reindexSemanticStores(store *storage.Store) error {
+	if store == nil {
+		return search.ErrSemanticNotConfigured
+	}
+	if err := reindexSemanticStore(store, "project"); err != nil && err != search.ErrSemanticNotConfigured {
+		return err
+	}
+	if err := reindexSemanticStore(storage.NewGlobalSemanticStore(), "global"); err != nil && err != search.ErrSemanticNotConfigured {
+		return err
+	}
+	return nil
+}
+
+func reindexSemanticStore(store *storage.Store, label string) error {
+	embedder, vecStore, err := search.InitSemantic(store)
+	if err != nil {
+		return err
+	}
+	if embedder == nil || vecStore == nil {
+		return search.ErrSemanticNotConfigured
+	}
+	defer embedder.Close()
+	defer vecStore.Close()
+	engine := search.NewEngine(store, embedder, vecStore)
+	if err := engine.Reindex(nil); err != nil {
+		return err
+	}
+	count := vecStore.Count()
+	fmt.Println(searchSuccessStyle.Render(fmt.Sprintf("✓ %s semantic index rebuilt (%d chunks)", strings.Title(label), count)))
 	return nil
 }
 

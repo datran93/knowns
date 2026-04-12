@@ -2,6 +2,10 @@
 
 Code generation and scaffolding system for Knowns CLI.
 
+<p align="center">
+  <img src="../images/template-pipeline.svg" alt="Template Execution Pipeline" width="100%">
+</p>
+
 ## Overview
 
 Template System is a lightweight code generator that creates files/folders from predefined templates. Inspired by [Plop.js](https://plopjs.com/) but designed simpler, optimized for AI-assisted workflows.

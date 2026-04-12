@@ -1,0 +1,13 @@
+{
+  "description": "Inject bounded Knowns memory when the session starts.",
+  "enabled": true,
+  "name": "Knowns runtime memory",
+  "then": {
+    "command": "/Users/howznguyen/Workspaces/Knowns/knowns-go/bin/knowns runtime-memory hook --runtime kiro --event agentspawn",
+    "type": "runCommand"
+  },
+  "version": "1.0.0",
+  "when": {
+    "type": "agentSpawn"
+  }
+}

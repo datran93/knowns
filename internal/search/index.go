@@ -131,7 +131,7 @@ func (s *IndexService) Reindex(progress ReindexProgress) error {
 	}
 
 	// Phase 4: Index memory entries.
-	memories, err := s.store.Memory.List("")
+	memories, err := s.memoryEntriesForIndex()
 	if err != nil {
 		memories = nil // non-fatal
 	}
@@ -210,7 +210,7 @@ func (s *IndexService) RemoveDoc(docPath string) error {
 func (s *IndexService) IndexMemory(memoryID string) error {
 	s.vecStore.RemoveByPrefix(fmt.Sprintf("memory:%s:", memoryID))
 
-	entry, err := s.store.Memory.Get(memoryID)
+	entry, err := s.memoryEntryForIndex(memoryID)
 	if err != nil {
 		return err
 	}
@@ -251,6 +251,29 @@ func (s *IndexService) embedAndStoreMemory(entry *models.MemoryEntry) error {
 	}
 	result := ChunkMemory(entry, maxTokens, s.embedder.GetTokenizer())
 	return s.embedAndStore(result.Chunks)
+}
+
+func (s *IndexService) memoryEntriesForIndex() ([]*models.MemoryEntry, error) {
+	if s.store == nil || s.store.Memory == nil {
+		return nil, nil
+	}
+	if s.store.Root == storage.GlobalSemanticStoreRoot() {
+		return s.store.Memory.ListGlobalOnly()
+	}
+	return s.store.Memory.ListLocal()
+}
+
+func (s *IndexService) memoryEntryForIndex(memoryID string) (*models.MemoryEntry, error) {
+	if s.store == nil || s.store.Memory == nil {
+		return nil, fmt.Errorf("memory store unavailable")
+	}
+	if s.store.Root == storage.GlobalSemanticStoreRoot() {
+		return s.store.Memory.GetInLayer(memoryID, models.MemoryLayerGlobal)
+	}
+	if entry, err := s.store.Memory.GetInLayer(memoryID, models.MemoryLayerProject); err == nil {
+		return entry, nil
+	}
+	return s.store.Memory.GetInLayer(memoryID, models.MemoryLayerWorking)
 }
 
 func (s *IndexService) embedAndStore(chunks []Chunk) error {

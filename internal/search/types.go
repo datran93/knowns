@@ -48,9 +48,10 @@ type Chunk struct {
 	// Memory fields (populated when Type == ChunkTypeMemory).
 	MemoryID    string `json:"memoryId,omitempty"`
 	MemoryLayer string `json:"memoryLayer,omitempty"`
+	MemoryStore string `json:"memoryStore,omitempty"`
 
 	// Code fields (populated when Type == ChunkTypeCode).
-	Name      string `json:"name,omitempty"`       // symbol name e.g. "getGraph"
+	Name      string `json:"name,omitempty"`      // symbol name e.g. "getGraph"
 	Signature string `json:"signature,omitempty"` // function/method signature
 }
 
@@ -70,6 +71,7 @@ type ScoredChunk struct {
 type VectorSearchOpts struct {
 	TopK      int
 	Threshold float64 // minimum cosine similarity (0-1)
+	ChunkType ChunkType
 }
 
 // MatchMethod describes how a result was found.

@@ -22,6 +22,16 @@ func (ms *MemoryStore) projectDir() string { return filepath.Join(ms.root, "memo
 func (ms *MemoryStore) workingDir() string { return filepath.Join(ms.root, ".working-memory") }
 func (ms *MemoryStore) globalDir() string  { return filepath.Join(ms.globalRoot, "memory") }
 
+// ListLocal returns working + project memories without global entries.
+func (ms *MemoryStore) ListLocal() ([]*models.MemoryEntry, error) {
+	return ms.listLayers([]string{models.MemoryLayerWorking, models.MemoryLayerProject})
+}
+
+// ListGlobalOnly returns only global memories.
+func (ms *MemoryStore) ListGlobalOnly() ([]*models.MemoryEntry, error) {
+	return ms.listLayers([]string{models.MemoryLayerGlobal})
+}
+
 // dirForLayer returns the directory for a given memory layer.
 func (ms *MemoryStore) dirForLayer(layer string) (string, error) {
 	switch layer {
@@ -51,8 +61,6 @@ type memoryFrontmatter struct {
 // List returns memory entries, optionally filtered by layer.
 // If layer is empty, returns entries from all layers.
 func (ms *MemoryStore) List(layer string) ([]*models.MemoryEntry, error) {
-	var entries []*models.MemoryEntry
-
 	layers := []string{models.MemoryLayerWorking, models.MemoryLayerProject, models.MemoryLayerGlobal}
 	if layer != "" {
 		if !models.ValidMemoryLayer(layer) {
@@ -60,6 +68,11 @@ func (ms *MemoryStore) List(layer string) ([]*models.MemoryEntry, error) {
 		}
 		layers = []string{layer}
 	}
+	return ms.listLayers(layers)
+}
+
+func (ms *MemoryStore) listLayers(layers []string) ([]*models.MemoryEntry, error) {
+	var entries []*models.MemoryEntry
 
 	for _, l := range layers {
 		dir, _ := ms.dirForLayer(l)
@@ -103,26 +116,29 @@ func (ms *MemoryStore) listDir(dir, layer string) ([]*models.MemoryEntry, error)
 
 // Get retrieves a memory entry by ID. Searches project, working, then global.
 func (ms *MemoryStore) Get(id string) (*models.MemoryEntry, error) {
-	filename := models.MemoryFileName(id)
-
-	// Search order: project → working → global
-	dirs := []struct {
-		dir   string
-		layer string
-	}{
-		{ms.projectDir(), models.MemoryLayerProject},
-		{ms.workingDir(), models.MemoryLayerWorking},
-		{ms.globalDir(), models.MemoryLayerGlobal},
-	}
-
-	for _, d := range dirs {
-		absPath := filepath.Join(d.dir, filename)
-		if _, err := os.Stat(absPath); err == nil {
-			return ms.parseFile(absPath, d.layer)
+	for _, layer := range []string{models.MemoryLayerProject, models.MemoryLayerWorking, models.MemoryLayerGlobal} {
+		entry, err := ms.GetInLayer(id, layer)
+		if err == nil {
+			return entry, nil
 		}
 	}
-
 	return nil, fmt.Errorf("memory %q not found", id)
+}
+
+// GetInLayer retrieves a memory entry by ID from a specific layer only.
+func (ms *MemoryStore) GetInLayer(id, layer string) (*models.MemoryEntry, error) {
+	if !models.ValidMemoryLayer(layer) {
+		return nil, fmt.Errorf("invalid memory layer: %q", layer)
+	}
+	dir, err := ms.dirForLayer(layer)
+	if err != nil {
+		return nil, err
+	}
+	absPath := filepath.Join(dir, models.MemoryFileName(id))
+	if _, err := os.Stat(absPath); err != nil {
+		return nil, fmt.Errorf("memory %q not found in %s layer", id, layer)
+	}
+	return ms.parseFile(absPath, layer)
 }
 
 // Create writes a new memory entry to the appropriate layer directory.

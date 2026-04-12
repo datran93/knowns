@@ -1,14 +1,16 @@
 <p align="center">
-  <img src="./images/logo.png" alt="Knowns logo" width="240">
+  <img src="./images/cover.svg" alt="Knowns — The memory layer for AI-native development" width="100%">
 </p>
 
 # Knowns
 
-[![Go](https://img.shields.io/badge/go-%3E%3D1.24.2-00ADD8?style=flat-square&logo=go)](https://go.dev/)
-[![npm](https://img.shields.io/npm/v/knowns.svg?style=flat-square)](https://www.npmjs.com/package/knowns)
-[![CI](https://github.com/knowns-dev/knowns/actions/workflows/ci.yml/badge.svg)](https://github.com/knowns-dev/knowns/actions/workflows/ci.yml)
-[![Platform](https://img.shields.io/badge/platform-win%20%7C%20mac%20%7C%20linux-lightgrey?style=flat-square)](#installation)
-[![License](https://img.shields.io/github/license/knowns-dev/knowns?style=flat-square)](LICENSE)
+<p align="center">
+  <a href="https://go.dev/"><img src="https://img.shields.io/badge/go-%3E%3D1.24.2-00ADD8?style=flat-square&logo=go" alt="Go"></a>
+  <a href="https://www.npmjs.com/package/knowns"><img src="https://img.shields.io/npm/v/knowns.svg?style=flat-square" alt="npm"></a>
+  <a href="https://github.com/knowns-dev/knowns/actions/workflows/ci.yml"><img src="https://github.com/knowns-dev/knowns/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="#installation"><img src="https://img.shields.io/badge/platform-win%20%7C%20mac%20%7C%20linux-lightgrey?style=flat-square" alt="Platform"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/knowns-dev/knowns?style=flat-square" alt="License"></a>
+</p>
 
 > Turn stateless AI into a project-aware engineering partner.
 
@@ -79,6 +81,10 @@ Knowns provides **persistent, structured project understanding** so AI can opera
 
 Think of it as your project's **external brain**.
 
+<p align="center">
+  <img src="./images/knowledge-graph.svg" alt="Knowns Knowledge Graph" width="100%">
+</p>
+
 Knowns connects:
 
 - Specs
@@ -92,6 +98,10 @@ So AI doesn’t just generate code — it understands what it’s building.
 ---
 
 ## Core Capabilities
+
+<p align="center">
+  <img src="./images/capabilities.svg" alt="Knowns Core Capabilities" width="100%">
+</p>
 
 ### 🧠 Persistent Project Memory
 
@@ -125,6 +135,10 @@ Keep your knowledge private and fully under your control.
 ## How It Works
 
 Knowns sits **above your existing tools** and makes them readable by AI.
+
+<p align="center">
+  <img src="./images/architecture.svg" alt="Knowns Architecture" width="100%">
+</p>
 
 Your stack stays the same.
 
@@ -279,6 +293,10 @@ knowns sync                                 # Sync skills + instruction files
 ## Claude Code Skills Workflow
 
 When using Claude Code with Knowns, use skills (slash commands) for a guided workflow:
+
+<p align="center">
+  <img src="./images/workflow.svg" alt="Knowns AI Workflow" width="100%">
+</p>
 
 ```
 /kn-init     → Read project docs, understand context

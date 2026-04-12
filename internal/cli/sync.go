@@ -93,7 +93,7 @@ func runSync(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	// 4. Model download
+	// 4. Model download / semantic store setup
 	if syncModel {
 		if err := runSyncModel(store, force); err != nil {
 			// Non-fatal — warn and continue
@@ -136,49 +136,19 @@ func runSyncModel(store *storage.Store, force bool) error {
 		return nil // no config, skip silently
 	}
 
-	if cfg.Settings.SemanticSearch == nil || !cfg.Settings.SemanticSearch.Enabled {
-		fmt.Println(StyleDim.Render("Semantic search not enabled. Skipping model download."))
-		return nil
+	defaultModelID := "multilingual-e5-small"
+	if cfg.Settings.SemanticSearch != nil && cfg.Settings.SemanticSearch.Model != "" {
+		defaultModelID = cfg.Settings.SemanticSearch.Model
 	}
-
-	modelID := cfg.Settings.SemanticSearch.Model
-	if modelID == "" {
-		return nil
-	}
-
-	var selected *embeddingModel
-	for i := range supportedModels {
-		if supportedModels[i].ID == modelID {
-			selected = &supportedModels[i]
-			break
-		}
-	}
-	if selected == nil {
-		return fmt.Errorf("unknown model %q in config", modelID)
-	}
-
-	if isModelInstalled(selected) && !force {
-		fmt.Printf("%s Model %s already installed.\n", StyleSuccess.Render("✓"), selected.Name)
-		return nil
-	}
-
-	fmt.Printf("%s\n", RenderInfo(fmt.Sprintf("Downloading embedding model: %s (~%dMB)...", StyleBold.Render(selected.Name), selected.SizeMB)))
-
-	steps, alreadyInstalled, err := buildSemanticDownloadSteps(modelID)
+	projectChanged, globalChanged, err := ensureProjectAndGlobalSemanticReady(store, defaultModelID)
 	if err != nil {
 		return err
 	}
-	if alreadyInstalled {
-		fmt.Printf("%s Model %s already installed.\n", StyleSuccess.Render("✓"), selected.Name)
-		return nil
+	if !projectChanged && !globalChanged && !force {
+		if model := findSupportedModel(defaultModelID); model != nil {
+			fmt.Printf("%s Model %s already installed.\n", StyleSuccess.Render("✓"), model.Name)
+		}
 	}
-
-	if err := runInitSteps(steps); err != nil {
-		return fmt.Errorf("model download failed: %w", err)
-	}
-
-	fmt.Println(RenderSuccess(fmt.Sprintf("Model %s installed.", selected.Name)))
-	fmt.Println()
 	return nil
 }
 

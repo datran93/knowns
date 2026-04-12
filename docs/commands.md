@@ -424,11 +424,13 @@ Validate references and file integrity across tasks and docs.
 knowns validate [options]
 ```
 
-| Option    | Description                          |
-| --------- | ------------------------------------ |
-| `--scope` | `all`, `tasks`, or `docs`            |
-| `--fix`   | Attempt to auto-fix issues           |
-| `--plain` | Plain text output                    |
+| Option    | Description                                    |
+| --------- | ---------------------------------------------- |
+| `--scope` | `all`, `tasks`, `docs`, `templates`, or `sdd`  |
+| `--fix`   | Attempt to auto-fix issues                     |
+| `--entity`| Validate a specific task or doc only            |
+| `--strict`| Treat warnings as errors                        |
+| `--plain` | Plain text output                              |
 
 **What it checks:**
 
@@ -456,18 +458,69 @@ knowns validate --plain
 
 ### `knowns search`
 
-Search tasks and documentation.
+Search tasks, documentation, and memories.
 
 ```bash
 knowns search <query> [options]
 ```
 
-| Option       | Description              |
-| ------------ | ------------------------ |
-| `--type`     | `task` or `doc`          |
-| `--status`   | Filter tasks by status   |
-| `--priority` | Filter tasks by priority |
-| `--plain`    | Plain text output        |
+| Option              | Description                                  |
+| ------------------- | -------------------------------------------- |
+| `--type`            | `all`, `task`, `doc`, or `memory`            |
+| `--status`          | Filter tasks by status                       |
+| `--priority`        | Filter tasks by priority                     |
+| `--label`           | Filter tasks by label                        |
+| `--tag`             | Filter docs or memories by tag               |
+| `--assignee`        | Filter tasks by assignee                     |
+| `--keyword`         | Force keyword-only search (skip semantic)    |
+| `--limit`           | Limit search results (default: 20)           |
+| `--reindex`         | Rebuild the search index                     |
+| `--setup`           | Set up semantic search                       |
+| `--status-check`    | Show semantic search status                  |
+| `--install-runtime` | Download and install ONNX Runtime            |
+| `--plain`           | Plain text output                            |
+| `--json`            | JSON output                                  |
+
+**Examples:**
+
+```bash
+knowns search "authentication" --type doc --plain
+knowns search "login bug" --type task --status in-progress
+knowns search "auth pattern" --keyword --limit 5
+knowns search --status-check
+knowns search --reindex
+knowns search --install-runtime
+```
+
+### `knowns retrieve`
+
+Retrieve ranked context across docs, tasks, and memories with citations and context-pack assembly.
+
+```bash
+knowns retrieve <query> [options]
+```
+
+| Option                | Description                                      |
+| --------------------- | ------------------------------------------------ |
+| `--status`            | Filter tasks by status                           |
+| `--priority`          | Filter tasks by priority                         |
+| `--label`             | Filter tasks by label                            |
+| `--tag`               | Filter docs or memories by tag                   |
+| `--assignee`          | Filter tasks by assignee                         |
+| `--keyword`           | Force keyword-only retrieval                     |
+| `--expand-references` | Expand @doc/@task/@memory references into result |
+| `--source-types`      | Comma-separated source types: `doc,task,memory`  |
+| `--limit`             | Limit ranked candidates (default: 20)            |
+| `--plain`             | Plain text output                                |
+| `--json`              | JSON output                                      |
+
+**Examples:**
+
+```bash
+knowns retrieve "error handling patterns" --json
+knowns retrieve "auth" --expand-references --source-types doc,memory
+knowns retrieve "api design" --limit 10 --plain
+```
 
 ---
 
@@ -855,6 +908,37 @@ knowns skill sync
 
 ## Other Commands
 
+### `knowns update`
+
+Update the Knowns CLI to the latest version and sync project configs.
+
+```bash
+knowns update [options]
+```
+
+| Option    | Description                              |
+| --------- | ---------------------------------------- |
+| `--check` | Only check for updates without installing |
+
+This command:
+
+1. Checks the npm registry for the latest version
+2. Detects how Knowns was installed (Homebrew, npm, shell script, etc.)
+3. Runs the appropriate upgrade command
+4. Syncs MCP configs (`.mcp.json`, `.kiro/settings/mcp.json`, `opencode.json`) to use the local binary
+
+For script-managed installs (`~/.knowns/bin/`), the binary is downloaded and replaced directly.
+
+**Examples:**
+
+```bash
+# Check for updates
+knowns update --check
+
+# Update and sync
+knowns update
+```
+
 ### `knowns init`
 
 Initialize Knowns in current directory with interactive wizard.
@@ -870,6 +954,10 @@ knowns init [project-name] [options]
 | `--wizard`    | Force interactive wizard mode             |
 | `--no-wizard` | Skip wizard, use defaults                 |
 | `-f, --force` | Reinitialize (overwrites existing config) |
+| `--open`      | Launch Chat UI immediately after init     |
+| `--no-open`   | Skip the Chat UI launch after init        |
+| `--git-tracked` | Track .knowns/ files in git             |
+| `--git-ignored` | Add .knowns/ to .gitignore              |
 
 **Examples:**
 
@@ -888,11 +976,10 @@ knowns init --force
 
 1. Project name
 2. Git tracking mode (`git-tracked`, `git-ignored`, or `none`)
-3. AI platforms to integrate (multi-select)
+3. AI platforms to integrate (multi-select: `claude-code`, `opencode`, `codex`, `kiro`, `gemini`, `copilot`, `agents`)
 4. Enable Chat UI
-5. Auto-sync skills on update
-6. Enable semantic search
-7. Select embedding model (if semantic enabled)
+5. Enable semantic search
+6. Select embedding model (if semantic enabled)
 
 When using `--force`, all fields are pre-populated from existing `config.json`.
 
@@ -944,7 +1031,7 @@ knowns browser [options]
 | `--dev`      | Enable development mode                  |
 | `--open`     | Open browser after starting              |
 | `--no-open`  | Don't automatically open browser         |
-| `--port`     | Custom port (default: `3001` or config)  |
+| `--port`     | Custom port (default: `6420`; tries next ports if busy) |
 | `--restart`  | Restart server if already running        |
 | `--project`  | Open a specific project path directly    |
 | `--scan`     | Comma-separated directories to scan for projects |

@@ -108,6 +108,19 @@ func (s *SQLiteVectorStore) createSchema() error {
 		}
 	}
 
+	for _, col := range []string{"memory_layer", "memory_store"} {
+		var hasCol int
+		row = s.db.QueryRow(`SELECT COUNT(*) FROM pragma_table_info('chunks') WHERE name=?`, col)
+		if err := row.Scan(&hasCol); err == nil && hasCol == 0 {
+			var hasMemoryRows int
+			row2 := s.db.QueryRow(`SELECT COUNT(*) FROM chunks WHERE type='memory'`)
+			if err := row2.Scan(&hasMemoryRows); err == nil && hasMemoryRows > 0 {
+				s.db.Exec("DROP TABLE IF EXISTS chunks")
+				break
+			}
+		}
+	}
+
 	schema := `
 CREATE TABLE IF NOT EXISTS metadata (
     key   TEXT PRIMARY KEY,
@@ -127,14 +140,17 @@ CREATE TABLE IF NOT EXISTS chunks (
     header_path     TEXT,
     position        INTEGER,
 
-    task_id         TEXT,
-    field           TEXT,
-    status          TEXT,
-    priority        TEXT,
-    labels          TEXT,
+	    task_id         TEXT,
+	    field           TEXT,
+	    status          TEXT,
+	    priority        TEXT,
+	    labels          TEXT,
 
-    name            TEXT,
-    signature       TEXT
+	    memory_layer    TEXT,
+	    memory_store    TEXT,
+
+	    name            TEXT,
+	    signature       TEXT
 );
 
 CREATE TABLE IF NOT EXISTS content_hashes (
@@ -207,6 +223,7 @@ func (s *SQLiteVectorStore) loadIntoMemory() error {
 		SELECT id, type, content, token_count, embedding,
 		       doc_path, section, heading_level, header_path, position,
 		       task_id, field, status, priority, labels,
+		       COALESCE(memory_layer, ''), COALESCE(memory_store, ''),
 		       COALESCE(name, ''), COALESCE(signature, '')
 		FROM chunks
 	`)
@@ -225,12 +242,14 @@ func (s *SQLiteVectorStore) loadIntoMemory() error {
 		var docPath, section, parentSection sql.NullString
 		var headingLevel, position sql.NullInt64
 		var taskID, field, status, priority, labels sql.NullString
+		var memoryLayer, memoryStore string
 		var name, signature string
 
 		if err := rows.Scan(
 			&entry.ID, &entry.Type, &content, &entry.TokenCount, &embBlob,
 			&docPath, &section, &headingLevel, &parentSection, &position,
 			&taskID, &field, &status, &priority, &labels,
+			&memoryLayer, &memoryStore,
 			&name, &signature,
 		); err != nil {
 			return err
@@ -245,6 +264,8 @@ func (s *SQLiteVectorStore) loadIntoMemory() error {
 		entry.Field = field.String
 		entry.Status = status.String
 		entry.Priority = priority.String
+		entry.MemoryLayer = memoryLayer
+		entry.MemoryStore = memoryStore
 		entry.Content = content.String
 		entry.Name = name
 		entry.Signature = signature
@@ -293,8 +314,9 @@ func (s *SQLiteVectorStore) Save() error {
 		INSERT OR REPLACE INTO chunks (id, type, content, token_count, embedding,
 		    doc_path, section, heading_level, header_path, position,
 		    task_id, field, status, priority, labels,
+		    memory_layer, memory_store,
 		    name, signature)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`)
 	if err != nil {
 		return err
@@ -328,6 +350,7 @@ func (s *SQLiteVectorStore) Save() error {
 			nullStr(entry.TaskID), nullStr(entry.Field),
 			nullStr(entry.Status), nullStr(entry.Priority),
 			labelsJSON,
+			nullStr(entry.MemoryLayer), nullStr(entry.MemoryStore),
 			nullStr(entry.Name), nullStr(entry.Signature),
 		); err != nil {
 			return err
@@ -394,23 +417,25 @@ func (s *SQLiteVectorStore) AddChunks(chunks []Chunk) {
 		s.vecs = append(s.vecs, c.Embedding...)
 
 		s.index = append(s.index, indexEntry{
-			ID:            c.ID,
-			Type:          c.Type,
-			Offset:        offset,
-			TokenCount:    c.TokenCount,
-			DocPath:       c.DocPath,
-			Section:       c.Section,
-			HeadingLevel:  c.HeadingLevel,
-			HeaderPath:    c.HeaderPath,
-			Position:      c.Position,
-			TaskID:        c.TaskID,
-			Field:         c.Field,
-			Status:        c.Status,
-			Priority:      c.Priority,
-			Labels:        c.Labels,
-			Name:          c.Name,
-			Signature:     c.Signature,
-			Content:       c.Content,
+			ID:           c.ID,
+			Type:         c.Type,
+			Offset:       offset,
+			TokenCount:   c.TokenCount,
+			DocPath:      c.DocPath,
+			Section:      c.Section,
+			HeadingLevel: c.HeadingLevel,
+			HeaderPath:   c.HeaderPath,
+			Position:     c.Position,
+			TaskID:       c.TaskID,
+			Field:        c.Field,
+			Status:       c.Status,
+			Priority:     c.Priority,
+			Labels:       c.Labels,
+			MemoryLayer:  c.MemoryLayer,
+			MemoryStore:  c.MemoryStore,
+			Name:         c.Name,
+			Signature:    c.Signature,
+			Content:      c.Content,
 		})
 	}
 }
@@ -466,6 +491,9 @@ func (s *SQLiteVectorStore) Search(queryVec []float32, opts VectorSearchOpts) []
 	var candidates []scored
 
 	for i, entry := range s.index {
+		if opts.ChunkType != "" && entry.Type != opts.ChunkType {
+			continue
+		}
 		start := entry.Offset
 		end := start + s.dimensions
 		if end > len(s.vecs) {
@@ -491,22 +519,24 @@ func (s *SQLiteVectorStore) Search(queryVec []float32, opts VectorSearchOpts) []
 		entry := s.index[c.idx]
 		results[i] = ScoredChunk{
 			Chunk: Chunk{
-				ID:            entry.ID,
-				Type:          entry.Type,
-				TokenCount:    entry.TokenCount,
-				DocPath:       entry.DocPath,
-				Section:       entry.Section,
-				HeadingLevel:  entry.HeadingLevel,
-				HeaderPath:    entry.HeaderPath,
-				Position:      entry.Position,
-				TaskID:        entry.TaskID,
-				Field:         entry.Field,
-				Status:        entry.Status,
-				Priority:      entry.Priority,
-				Labels:        entry.Labels,
-				Name:          entry.Name,
-				Signature:     entry.Signature,
-				Content:       entry.Content,
+				ID:           entry.ID,
+				Type:         entry.Type,
+				TokenCount:   entry.TokenCount,
+				DocPath:      entry.DocPath,
+				Section:      entry.Section,
+				HeadingLevel: entry.HeadingLevel,
+				HeaderPath:   entry.HeaderPath,
+				Position:     entry.Position,
+				TaskID:       entry.TaskID,
+				Field:        entry.Field,
+				Status:       entry.Status,
+				Priority:     entry.Priority,
+				Labels:       entry.Labels,
+				MemoryLayer:  entry.MemoryLayer,
+				MemoryStore:  entry.MemoryStore,
+				Name:         entry.Name,
+				Signature:    entry.Signature,
+				Content:      entry.Content,
 			},
 			Score: c.score,
 		}

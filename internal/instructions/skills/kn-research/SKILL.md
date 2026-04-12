@@ -32,9 +32,10 @@ mcp__knowns__get_doc({ "path": "<path>", "smart": true })
 Unified search returns docs and memory entries. If relevant memories appear, include them in findings and note whether they're still current.
 
 Use `search` for discovery-first research. Only use `retrieve` when the next consumer needs assembled context with citations rather than raw hits:
-```bash
-knowns retrieve "<topic>" --json
+```json
+mcp__knowns__retrieve({ "query": "<topic>" })
 ```
+If MCP is unavailable, fall back to CLI: `knowns retrieve "<topic>" --json`
 
 ## Step 2: Search Completed Tasks
 

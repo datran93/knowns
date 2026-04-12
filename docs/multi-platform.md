@@ -2,6 +2,10 @@
 
 Knowns can sync instruction files and built-in skills for several AI platforms.
 
+<p align="center">
+  <img src="../images/multi-platform.svg" alt="Multi-Platform Sync" width="100%">
+</p>
+
 ---
 
 ## Supported Platforms

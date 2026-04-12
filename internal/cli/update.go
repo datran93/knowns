@@ -93,6 +93,9 @@ func runUpgrade() error {
 	}
 
 	installCmd := util.DetectInstallCmd()
+	if isHomebrewInstallCommand(installCmd) {
+		return runHomebrewUpgrade(installCmd)
+	}
 	fmt.Printf("%s Running: %s\n", StyleBold.Render("Upgrading..."), StyleInfo.Render(installCmd))
 
 	parts := strings.Fields(installCmd)
@@ -123,7 +126,48 @@ func recommendedUpdateCommand() string {
 	if err == nil && meta != nil && meta.IsScriptManaged() {
 		return "knowns update"
 	}
-	return util.DetectInstallCmd()
+	installCmd := util.DetectInstallCmd()
+	if isHomebrewInstallCommand(installCmd) {
+		return "brew update && HOMEBREW_NO_AUTO_UPDATE=1 " + installCmd
+	}
+	return installCmd
+}
+
+func isHomebrewInstallCommand(cmd string) bool {
+	return strings.HasPrefix(strings.TrimSpace(cmd), "brew ")
+}
+
+func runHomebrewUpgrade(installCmd string) error {
+	updateBin, err := exec.LookPath("brew")
+	if err != nil {
+		return fmt.Errorf("brew not found in PATH — install it first or upgrade manually")
+	}
+
+	updateCmd := exec.Command(updateBin, "update")
+	updateCmd.Stdout = os.Stdout
+	updateCmd.Stderr = os.Stderr
+	updateCmd.Stdin = os.Stdin
+	fmt.Printf("%s Running: %s\n", StyleBold.Render("Refreshing Homebrew..."), StyleInfo.Render("brew update"))
+	if err := updateCmd.Run(); err != nil {
+		return fmt.Errorf("brew update failed: %w", err)
+	}
+
+	parts := strings.Fields(installCmd)
+	if len(parts) == 0 {
+		return fmt.Errorf("could not determine upgrade command")
+	}
+	fmt.Printf("%s Running: %s\n", StyleBold.Render("Upgrading..."), StyleInfo.Render("HOMEBREW_NO_AUTO_UPDATE=1 "+installCmd))
+	upgrade := exec.Command(updateBin, parts[1:]...)
+	upgrade.Stdout = os.Stdout
+	upgrade.Stderr = os.Stderr
+	upgrade.Stdin = os.Stdin
+	upgrade.Env = append(os.Environ(), "HOMEBREW_NO_AUTO_UPDATE=1")
+	if err := upgrade.Run(); err != nil {
+		return fmt.Errorf("upgrade failed: %w", err)
+	}
+
+	fmt.Println(StyleSuccess.Render("✓") + " Upgrade complete.")
+	return nil
 }
 
 func runScriptManagedUpgrade(meta *util.InstallMetadata) error {

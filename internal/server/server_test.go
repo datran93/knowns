@@ -509,3 +509,51 @@ func TestProxyOpenCodeSupportsManualAndDebugModes(t *testing.T) {
 		t.Fatalf("manual inject status header = %q, want %q", manualInjectRR.Header().Get(runtimememory.HeaderStatus), runtimememory.StatusInjected)
 	}
 }
+
+func TestProxyOpenCodeAutoCapturesStableMemoryPreference(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	projectRoot := t.TempDir()
+	store := storage.NewStore(filepath.Join(projectRoot, ".knowns"))
+	if err := store.Init("runtime-memory"); err != nil {
+		t.Fatalf("init store: %v", err)
+	}
+	project, err := store.Config.Load()
+	if err != nil {
+		t.Fatalf("load config: %v", err)
+	}
+	project.Settings.RuntimeMemory = &models.RuntimeMemorySettings{Mode: runtimememory.ModeAuto}
+	if err := store.Config.Save(project); err != nil {
+		t.Fatalf("save config: %v", err)
+	}
+
+	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer target.Close()
+
+	cfg := opencode.DefaultConfig()
+	serverURL := target.URL
+	cfg.Host = serverURL[len("http://"):strings.LastIndex(serverURL, ":")]
+	cfg.Port, err = strconv.Atoi(serverURL[strings.LastIndex(serverURL, ":")+1:])
+	if err != nil {
+		t.Fatalf("parse port: %v", err)
+	}
+
+	s := &Server{store: store, projectRoot: projectRoot, runtimeOpenCode: &cfg, opencodeProxy: buildOpenCodeProxy(cfg), runtimeStatus: opencode.RuntimeStatus{Configured: true, Mode: opencode.RuntimeModeManaged, State: opencode.RuntimeStateReady, Ready: true}}
+	req := httptest.NewRequest(http.MethodPost, "/api/opencode/session/abc/prompt_async", strings.NewReader(`{"parts":[{"type":"text","text":"toi muon AI tu luu memory, khong doi toi nhac moi them"}]}`))
+	req.Header.Set("Content-Type", "application/json")
+	rr := httptest.NewRecorder()
+
+	s.proxyOpenCode(rr, req)
+
+	entries, err := store.Memory.List(models.MemoryLayerGlobal)
+	if err != nil {
+		t.Fatalf("list global memories: %v", err)
+	}
+	if len(entries) != 1 {
+		t.Fatalf("global memories = %d, want 1", len(entries))
+	}
+	if !strings.Contains(entries[0].Content, "proactively save durable memory") {
+		t.Fatalf("unexpected global memory content: %q", entries[0].Content)
+	}
+}

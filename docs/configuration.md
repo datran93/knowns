@@ -34,8 +34,9 @@ Current Go CLI config is centered around a root project object:
       "dimensions": 384,
       "maxTokens": 512
     },
-    "serverPort": 3001,
-    "platforms": ["claude-code", "opencode", "gemini", "copilot", "agents"]
+    "serverPort": 6420,
+    "runtimeMemory": "auto",
+    "platforms": ["claude-code", "opencode", "codex", "kiro", "gemini", "copilot", "agents"]
   }
 }
 ```
@@ -64,6 +65,7 @@ Current Go CLI config is centered around a root project object:
 | `settings.enableChatUI` | boolean | Show/hide Chat UI in browser |
 | `settings.opencodeServer` | object | OpenCode server connection settings |
 | `settings.opencodeModels` | object | Project-level OpenCode model preferences |
+| `settings.runtimeMemory` | string | Runtime memory mode: `off`, `auto`, `manual`, `debug` |
 
 ---
 
@@ -107,6 +109,8 @@ Supported values in config:
 
 - `claude-code`
 - `opencode`
+- `codex`
+- `kiro`
 - `gemini`
 - `copilot`
 - `agents`
@@ -115,12 +119,29 @@ Supported values in config:
 
 ## Browser Server Port
 
-If `settings.serverPort` is set, `knowns browser` uses it as the default port. Otherwise the CLI falls back to `3001`.
+If `settings.serverPort` is set, `knowns browser` uses it as the default port. Otherwise the CLI falls back to `6420`.
 
 ```bash
 knowns browser
 knowns browser --open
-knowns browser --port 3002
+knowns browser --port 6421
+```
+
+---
+
+## Runtime Memory
+
+`settings.runtimeMemory` controls how agents capture and persist memory during sessions.
+
+| Mode | Description |
+| ---- | ----------- |
+| `off` | No runtime memory capture |
+| `auto` | Automatically capture memories based on scope and durability rules |
+| `manual` | Only capture memories when explicitly requested |
+| `debug` | Like `auto`, but also logs memory decisions for troubleshooting |
+
+```bash
+knowns config set settings.runtimeMemory auto
 ```
 
 ---

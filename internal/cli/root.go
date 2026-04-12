@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -168,8 +169,21 @@ func maybeAutoSetup() {
 	fmt.Println()
 }
 
+func shouldSkipCLIWarnings(args []string) bool {
+	for _, name := range []string{"runtime", "runtime-memory", "__runtime"} {
+		if slices.Contains(args, name) {
+			return true
+		}
+	}
+	return false
+}
+
 // Execute runs the root command.
 func Execute() error {
+	if shouldSkipCLIWarnings(os.Args[1:]) {
+		return rootCmd.Execute()
+	}
+
 	// Warn if skills are out of sync after a CLI upgrade.
 	maybeWarnSkillsOutOfSync()
 

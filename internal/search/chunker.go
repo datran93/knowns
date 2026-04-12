@@ -468,6 +468,7 @@ func ChunkMemory(entry *models.MemoryEntry, maxTokens int, tok Tokenizer) ChunkR
 					Type:        ChunkTypeMemory,
 					MemoryID:    entry.ID,
 					MemoryLayer: entry.Layer,
+					MemoryStore: entry.Layer,
 					Content:     currentContent,
 					TokenCount:  currentTokens,
 				})
@@ -494,6 +495,7 @@ func ChunkMemory(entry *models.MemoryEntry, maxTokens int, tok Tokenizer) ChunkR
 				Type:        ChunkTypeMemory,
 				MemoryID:    entry.ID,
 				MemoryLayer: entry.Layer,
+				MemoryStore: entry.Layer,
 				Content:     currentContent,
 				TokenCount:  currentTokens,
 			})
@@ -505,6 +507,7 @@ func ChunkMemory(entry *models.MemoryEntry, maxTokens int, tok Tokenizer) ChunkR
 			Type:        ChunkTypeMemory,
 			MemoryID:    entry.ID,
 			MemoryLayer: entry.Layer,
+			MemoryStore: entry.Layer,
 			Content:     text,
 			TokenCount:  tc,
 		})

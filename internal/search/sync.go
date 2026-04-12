@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/howznguyen/knowns/internal/models"
 	"github.com/howznguyen/knowns/internal/runtimequeue"
 	"github.com/howznguyen/knowns/internal/storage"
 )
@@ -138,29 +139,53 @@ func BestEffortRemoveDoc(store *storage.Store, docPath string) {
 }
 
 func BestEffortIndexMemory(store *storage.Store, memoryID string) {
-	if enqueueRuntimeJob(store, runtimequeue.JobIndexMemory, memoryID, func() {
-		scheduleBestEffort(store, "index-memory", memoryID, func(svc *IndexService) error {
+	targetStore, targetRoot := memoryIndexTarget(store, memoryID)
+	if targetStore == nil {
+		return
+	}
+	if enqueueRuntimeJob(targetStore, runtimequeue.JobIndexMemory, memoryID, func() {
+		scheduleBestEffort(targetStore, "index-memory", memoryID, func(svc *IndexService) error {
 			return svc.IndexMemory(memoryID)
 		})
 	}) {
 		return
 	}
-	scheduleBestEffort(store, "index-memory", memoryID, func(svc *IndexService) error {
+	_ = targetRoot
+	scheduleBestEffort(targetStore, "index-memory", memoryID, func(svc *IndexService) error {
 		return svc.IndexMemory(memoryID)
 	})
 }
 
 func BestEffortRemoveMemory(store *storage.Store, memoryID string) {
-	if enqueueRuntimeJob(store, runtimequeue.JobRemoveMemory, memoryID, func() {
-		scheduleBestEffort(store, "remove-memory", memoryID, func(svc *IndexService) error {
+	targetStore, _ := memoryIndexTarget(store, memoryID)
+	if targetStore == nil {
+		return
+	}
+	if enqueueRuntimeJob(targetStore, runtimequeue.JobRemoveMemory, memoryID, func() {
+		scheduleBestEffort(targetStore, "remove-memory", memoryID, func(svc *IndexService) error {
 			return svc.RemoveMemory(memoryID)
 		})
 	}) {
 		return
 	}
-	scheduleBestEffort(store, "remove-memory", memoryID, func(svc *IndexService) error {
+	scheduleBestEffort(targetStore, "remove-memory", memoryID, func(svc *IndexService) error {
 		return svc.RemoveMemory(memoryID)
 	})
+}
+
+func memoryIndexTarget(store *storage.Store, memoryID string) (*storage.Store, string) {
+	if store == nil || store.Memory == nil {
+		return nil, ""
+	}
+	entry, err := store.Memory.Get(memoryID)
+	if err != nil {
+		return store, store.Root
+	}
+	if entry.Layer == models.MemoryLayerGlobal {
+		globalStore := storage.NewGlobalSemanticStore()
+		return globalStore, globalStore.Root
+	}
+	return store, store.Root
 }
 
 // BestEffortIndexAll runs a full code index of all files in projectRoot.

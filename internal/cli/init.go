@@ -439,10 +439,18 @@ func runInit(cmd *cobra.Command, args []string) error {
 			continue
 		}
 		selectedRuntime := runtimeName
+		opts := runtimeinstall.DefaultOptions()
+		// Skip runtimes that are unavailable and cannot be auto-installed.
+		if !runtimeinstall.CanAutoInstall(selectedRuntime) {
+			st, err := runtimeinstall.StatusFor(selectedRuntime, opts)
+			if err != nil || !st.Available {
+				continue
+			}
+		}
 		steps = append(steps, initStep{
-			label: fmt.Sprintf("Installing %s runtime hooks", runtimeinstall.RuntimePickerLabel(selectedRuntime, runtimeinstall.DefaultOptions())),
+			label: fmt.Sprintf("Installing %s runtime hooks", runtimeinstall.RuntimePickerLabel(selectedRuntime, opts)),
 			run: func() error {
-				return runtimeinstall.Install(selectedRuntime, runtimeinstall.DefaultOptions())
+				return runtimeinstall.Install(selectedRuntime, opts)
 			},
 		})
 	}

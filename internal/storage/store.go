@@ -50,6 +50,9 @@ func NewStore(root string) *Store {
 
 // GlobalRootPath returns the machine-level Knowns root (~/.knowns).
 func GlobalRootPath() string {
+	if home := os.Getenv("HOME"); home != "" {
+		return filepath.Join(home, ".knowns")
+	}
 	home, _ := os.UserHomeDir()
 	return filepath.Join(home, ".knowns")
 }

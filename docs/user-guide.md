@@ -33,6 +33,8 @@ npx knowns <command>
 irm https://knowns.sh/script/install.ps1 | iex
 ```
 
+The macOS/Linux shell installer and the Windows PowerShell installer both auto-run `knowns search --install-runtime` after installing the binary. If that step fails, rerun it manually.
+
 ```bash
 # Shell uninstaller (macOS/Linux)
 curl -fsSL https://knowns.sh/script/uninstall | sh
@@ -334,7 +336,7 @@ knowns retrieve "query" [options]
 
 ### Model Commands
 
-Manage embedding models for semantic search. Requires ONNX Runtime (`knowns search --install-runtime`).
+Manage embedding models for semantic search. Requires ONNX Runtime; the install scripts try to install it automatically, or you can run `knowns search --install-runtime` manually.
 
 #### List Models
 

@@ -213,6 +213,15 @@ main() {
     write_install_metadata
     success "Recorded install metadata in ${KNOWN_DIR}/install.json"
 
+    # Install ONNX Runtime for semantic search
+    printf "\n"
+    printf "  ${DIM}⠋${RESET} Installing ONNX Runtime for semantic search...\r"
+    if "${INSTALL_DIR}/${BINARY}" search --install-runtime >/dev/null 2>&1; then
+        success "Installed ONNX Runtime"
+    else
+        info "ONNX Runtime install failed; run 'knowns search --install-runtime' later to enable semantic search"
+    fi
+
     # Verify installation
     printf "\n"
     if command -v knowns >/dev/null 2>&1; then

@@ -181,6 +181,8 @@ irm https://knowns.sh/script/install.ps1 | iex
 $env:KNOWNS_VERSION = "0.18.0"; irm https://knowns.sh/script/install.ps1 | iex
 ```
 
+The shell installer on macOS/Linux and the PowerShell installer on Windows both auto-run `knowns search --install-runtime` after installing the binary. If that step fails, rerun it manually.
+
 ### Uninstall
 
 ```bash

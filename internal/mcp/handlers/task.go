@@ -244,6 +244,10 @@ func RegisterTaskTools(s *server.MCPServer, getStore func() *storage.Store) {
 			mcp.WithString("appendNotes",
 				mcp.Description("Append to implementation notes"),
 			),
+			mcp.WithArray("clear",
+				mcp.Description("Explicitly clear string fields like title, description, assignee, spec, plan, or notes"),
+				mcp.WithStringItems(),
+			),
 		),
 		func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			store := getStore()
@@ -265,11 +269,16 @@ func RegisterTaskTools(s *server.MCPServer, getStore func() *storage.Store) {
 			oldTask := *task
 
 			args := req.GetArguments()
+			clearFields := stringSetArg(args, "clear")
 
-			if v, ok := stringArg(args, "title"); ok {
+			if clearFields["title"] {
+				task.Title = ""
+			} else if v, ok := stringArg(args, "title"); ok && v != "" {
 				task.Title = v
 			}
-			if v, ok := stringArg(args, "description"); ok {
+			if clearFields["description"] {
+				task.Description = ""
+			} else if v, ok := stringArg(args, "description"); ok && v != "" {
 				task.Description = v
 			}
 			if v, ok := stringArg(args, "status"); ok {
@@ -278,7 +287,9 @@ func RegisterTaskTools(s *server.MCPServer, getStore func() *storage.Store) {
 			if v, ok := stringArg(args, "priority"); ok {
 				task.Priority = v
 			}
-			if v, ok := stringArg(args, "assignee"); ok {
+			if clearFields["assignee"] {
+				task.Assignee = ""
+			} else if v, ok := stringArg(args, "assignee"); ok && v != "" {
 				task.Assignee = v
 			}
 			if _, ok := args["labels"]; ok {
@@ -288,7 +299,9 @@ func RegisterTaskTools(s *server.MCPServer, getStore func() *storage.Store) {
 					task.Labels = []string{}
 				}
 			}
-			if v, ok := stringArg(args, "spec"); ok {
+			if clearFields["spec"] {
+				task.Spec = ""
+			} else if v, ok := stringArg(args, "spec"); ok && v != "" {
 				task.Spec = v
 			}
 			if _, ok := args["fulfills"]; ok {
@@ -351,10 +364,14 @@ func RegisterTaskTools(s *server.MCPServer, getStore func() *storage.Store) {
 				}
 			}
 
-			if v, ok := stringArg(args, "plan"); ok {
+			if clearFields["plan"] {
+				task.ImplementationPlan = ""
+			} else if v, ok := stringArg(args, "plan"); ok && v != "" {
 				task.ImplementationPlan = v
 			}
-			if v, ok := stringArg(args, "notes"); ok {
+			if clearFields["notes"] {
+				task.ImplementationNotes = ""
+			} else if v, ok := stringArg(args, "notes"); ok && v != "" {
 				task.ImplementationNotes = v
 			}
 			if v, ok := stringArg(args, "appendNotes"); ok && v != "" {
@@ -595,6 +612,20 @@ func stringSliceArg(args map[string]any, key string) ([]string, bool) {
 		return result, true
 	}
 	return nil, false
+}
+
+func stringSetArg(args map[string]any, key string) map[string]bool {
+	values, ok := stringSliceArg(args, key)
+	if !ok {
+		return nil
+	}
+	set := make(map[string]bool, len(values))
+	for _, value := range values {
+		if value != "" {
+			set[value] = true
+		}
+	}
+	return set
 }
 
 // intSliceArg extracts a []int from an args map value (JSON arrays of numbers come as []any of float64).

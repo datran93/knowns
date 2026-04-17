@@ -14,6 +14,8 @@ import { GraphToolbar } from "./graph/GraphToolbar";
 import { useContainerSize } from "./graph/useContainerSize";
 import {
 	buildSelectedNodeReferences,
+	isKnowledgeSemanticEdge,
+	knowledgeSemanticEdgeColors,
 	KNOWLEDGE_FILTERS,
 	type FilterState,
 } from "./graph/constants";
@@ -80,6 +82,9 @@ function getEdgeColor(edge: GraphEdge): string {
 	case "mention":
 		return "#64748b";
 	default:
+		if (isKnowledgeSemanticEdge(edge.type)) {
+			return knowledgeSemanticEdgeColors[edge.type];
+		}
 		return "#94a3b8";
 	}
 }
@@ -95,7 +100,14 @@ function filterGraphData(data: GraphData, filters: FilterState): GraphData {
 				(e) =>
 					visibleNodeIds.has(e.source) &&
 					visibleNodeIds.has(e.target) &&
-					((e.type === "parent" && filters.edgeParent) || (e.type === "spec" && filters.edgeSpec) || (e.type === "mention" && filters.edgeMention)),
+					((e.type === "parent" && filters.edgeParent) ||
+						(e.type === "spec" && filters.edgeSpec) ||
+						(e.type === "references" && filters.edgeReferences) ||
+						(e.type === "implements" && filters.edgeImplements) ||
+						(e.type === "blocked-by" && filters.edgeBlockedBy) ||
+						(e.type === "related" && filters.edgeRelated) ||
+						(e.type === "depends" && filters.edgeDepends) ||
+						(e.type === "follows" && filters.edgeFollows)),
 			)
 		: [];
 	const connectedIds = new Set<string>();
@@ -131,15 +143,10 @@ function computeNeighborhood(data: GraphData, rootId: string, hops: number) {
 	return distances;
 }
 
-function buildForceData(
-	data: GraphData,
-	searchQuery: string,
-	selectedNodeId: string | null,
-): {
+function buildForceData(data: GraphData, searchQuery: string): {
 	nodes: ForceNode[];
 	links: ForceLink[];
 	matches: number;
-	impactSummary: { tasks: number; docs: number } | null;
 } {
 	const query = searchQuery.trim().toLowerCase();
 	const matchedIds = new Set<string>();
@@ -150,22 +157,9 @@ function buildForceData(
 		}
 	}
 
-	let highlightedIds = new Set<string>(matchedIds);
-	let impactSummary: { tasks: number; docs: number } | null = null;
-	if (selectedNodeId) {
-		const distances = computeNeighborhood(data, selectedNodeId, 3);
-		highlightedIds = new Set(distances.keys());
-		const hop1to3 = [...distances.entries()].filter(([, d]) => d > 0 && d <= 3).map(([id]) => id);
-		const affected = data.nodes.filter((n) => hop1to3.includes(n.id));
-		impactSummary = {
-			tasks: affected.filter((n) => n.type === "task").length,
-			docs: affected.filter((n) => n.type === "doc").length,
-		};
-	}
-
 	const nodes: ForceNode[] = data.nodes.map((node) => {
 		const baseColor = getNodeColor(node);
-		const active = selectedNodeId ? highlightedIds.has(node.id) : matchedIds.size > 0 ? highlightedIds.has(node.id) : true;
+		const active = matchedIds.size > 0 ? matchedIds.has(node.id) : true;
 		return {
 			...node,
 			color: active ? baseColor : "rgba(148,163,184,0.25)",
@@ -175,17 +169,13 @@ function buildForceData(
 	});
 
 	const links: ForceLink[] = data.edges.map((edge) => {
-		const active = selectedNodeId
-			? highlightedIds.has(edge.source) && highlightedIds.has(edge.target)
-			: matchedIds.size > 0
-				? highlightedIds.has(edge.source) || highlightedIds.has(edge.target)
-				: true;
+		const active = matchedIds.size > 0 ? matchedIds.has(edge.source) || matchedIds.has(edge.target) : true;
 		return {
 			...edge,
 			id: edgeId(edge),
 			color: active ? getEdgeColor(edge) : "rgba(148,163,184,0.15)",
-			width: selectedNodeId ? 2 : 1,
-			dashed: edge.type === "spec" || edge.type === "mention",
+			width: 1,
+			dashed: edge.type === "spec" || isKnowledgeSemanticEdge(edge.type),
 			muted: !active,
 		};
 	});
@@ -194,7 +184,6 @@ function buildForceData(
 		nodes,
 		links,
 		matches: matchedIds.size,
-		impactSummary,
 	};
 }
 
@@ -214,7 +203,7 @@ export default function GraphPage() {
 	const graphContainerRef = useRef<HTMLDivElement>(null);
 	const graphRef = useRef<ForceGraphMethods<ForceNode, ForceLink> | undefined>(undefined);
 	const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-	const stableForceDataRef = useRef<{ nodes: ForceNode[]; links: ForceLink[]; matches: number; impactSummary: { tasks: number; docs: number } | null }>({ ...EMPTY_FORCE_DATA, impactSummary: null });
+	const stableForceDataRef = useRef<{ nodes: ForceNode[]; links: ForceLink[]; matches: number }>({ ...EMPTY_FORCE_DATA });
 	const { isDark } = useTheme();
 	const { width, height } = useContainerSize(graphContainerRef);
 
@@ -263,10 +252,24 @@ export default function GraphPage() {
 	}, [searchQuery]);
 
 	const filteredData = useMemo(() => (data ? filterGraphData(data, filters) : null), [data, filters]);
+	const impactNeighborhood = useMemo(() => {
+		if (!filteredData || !impactNodeId) return null;
+		return computeNeighborhood(filteredData, impactNodeId, 2);
+	}, [filteredData, impactNodeId]);
+	const impactSummary = useMemo(() => {
+		if (!filteredData || !impactNodeId) return null;
+		const distances = computeNeighborhood(filteredData, impactNodeId, 3);
+		const hop1to3 = [...distances.entries()].filter(([, d]) => d > 0 && d <= 3).map(([id]) => id);
+		const affected = filteredData.nodes.filter((n) => hop1to3.includes(n.id));
+		return {
+			tasks: affected.filter((n) => n.type === "task").length,
+			docs: affected.filter((n) => n.type === "doc").length,
+		};
+	}, [filteredData, impactNodeId]);
 
 	const forceData = useMemo(() => {
-		if (!filteredData) return { ...EMPTY_FORCE_DATA, impactSummary: null };
-		const next = buildForceData(filteredData, debouncedSearchQuery, impactNodeId);
+		if (!filteredData) return { ...EMPTY_FORCE_DATA };
+		const next = buildForceData(filteredData, debouncedSearchQuery);
 		const prev = stableForceDataRef.current;
 		const structureSame = sameNodeIds(prev.nodes, next.nodes) && sameLinkIds(prev.links, next.links);
 		if (structureSame) {
@@ -274,14 +277,13 @@ export default function GraphPage() {
 				nodes: prev.nodes.map((node, i) => ({ ...node, color: next.nodes[i].color, val: next.nodes[i].val, highlighted: next.nodes[i].highlighted })),
 				links: prev.links.map((link, i) => ({ ...link, color: next.links[i].color, width: next.links[i].width, dashed: next.links[i].dashed, muted: next.links[i].muted })),
 				matches: next.matches,
-				impactSummary: next.impactSummary,
 			};
 			stableForceDataRef.current = merged;
 			return merged;
 		}
 		stableForceDataRef.current = next;
 		return next;
-	}, [filteredData, debouncedSearchQuery, impactNodeId]);
+	}, [filteredData, debouncedSearchQuery]);
 
 	useEffect(() => {
 		if (filteredData && (forceData.nodes.length > 0 || forceData.links.length > 0)) setEngineRunning(true);
@@ -382,15 +384,22 @@ export default function GraphPage() {
 							nodeLabel={() => ""}
 							nodeColor={(node) => (node as ForceNode).color}
 							nodeVal={(node) => (node as ForceNode).val || 6}
-							linkColor={(link) => (link as ForceLink).color}
-							linkWidth={(link) => (link as ForceLink).width}
-							linkDirectionalArrowLength={3.5}
-							linkDirectionalArrowRelPos={1}
-							onNodeClick={(node) => {
-								const gn = { id: node.id, label: node.label || String(node.id), type: (node as ForceNode).type, data: (node as ForceNode).data };
-								setSelectedNode(gn);
-								setImpactNodeId(node.id);
-							}}
+						linkColor={(link) => (link as ForceLink).color}
+						linkWidth={(link) => {
+							const l = link as ForceLink;
+							if (!impactNeighborhood) return l.width;
+							const source = typeof l.source === "string" ? l.source : l.source.id;
+							const target = typeof l.target === "string" ? l.target : l.target.id;
+							return impactNeighborhood.has(source) && impactNeighborhood.has(target) ? 2 : 0.6;
+						}}
+						linkDirectionalArrowLength={3.5}
+						linkDirectionalArrowRelPos={1}
+						onNodeClick={(node) => {
+							const gn = { id: node.id, label: node.label || String(node.id), type: (node as ForceNode).type, data: (node as ForceNode).data };
+							lockForceNodes(stableForceDataRef.current.nodes);
+							setSelectedNode(gn);
+							setImpactNodeId(node.id);
+						}}
 							onNodeHover={(node) => {
 								hoverNodeIdRef.current = node ? node.id : null;
 							}}
@@ -402,17 +411,19 @@ export default function GraphPage() {
 								setEngineRunning(false);
 							}}
 							onBackgroundClick={clearSelection}
-							nodeCanvasObject={(node, ctx, globalScale) => {
-								const n = node as ForceNode;
-								const label = n.label || n.id;
+						nodeCanvasObject={(node, ctx, globalScale) => {
+							const n = node as ForceNode;
+							const label = n.label || n.id;
 								const fontSize = 12 / globalScale;
-								const r = n.val || 6;
-								const x = n.x || 0;
-								const y = n.y || 0;
-								const isSelected = selectedNode?.id === n.id;
+							const r = n.val || 6;
+							const x = n.x || 0;
+							const y = n.y || 0;
+							const isSelected = selectedNode?.id === n.id;
+							const isActive = !impactNeighborhood || impactNeighborhood.has(n.id);
+							const displayColor = isActive ? n.color : "rgba(148,163,184,0.14)";
 
-								// Glow ring for selected node.
-								if (isSelected) {
+							// Glow ring for selected node.
+							if (isSelected) {
 									ctx.beginPath();
 									ctx.arc(x, y, r + 4, 0, 2 * Math.PI, false);
 									ctx.strokeStyle = n.color;
@@ -422,15 +433,15 @@ export default function GraphPage() {
 									ctx.globalAlpha = 1;
 								}
 
-								ctx.beginPath();
-								ctx.arc(x, y, r, 0, 2 * Math.PI, false);
-								ctx.fillStyle = n.color;
-								ctx.fill();
+							ctx.beginPath();
+							ctx.arc(x, y, r, 0, 2 * Math.PI, false);
+							ctx.fillStyle = displayColor;
+							ctx.fill();
 
-								if (isSelected || n.id === hoverNodeIdRef.current) {
-									ctx.font = `${fontSize}px Sans-Serif`;
-									ctx.fillStyle = isDark ? "#e5e7eb" : "#111827";
-									ctx.fillText(label, x + r + 2, y + fontSize / 3);
+							if ((isSelected || n.id === hoverNodeIdRef.current) && isActive) {
+								ctx.font = `${fontSize}px Sans-Serif`;
+								ctx.fillStyle = isDark ? "#e5e7eb" : "#111827";
+								ctx.fillText(label, x + r + 2, y + fontSize / 3);
 								}
 							}}
 						/>
@@ -459,20 +470,22 @@ export default function GraphPage() {
 							onClose={clearSelection}
 							onNavigate={handleNodeNavigate}
 							onShowImpact={handleShowImpact}
-							onSelectNode={(id) => {
-								const next = filteredData?.nodes.find((n) => n.id === id) || null;
-								setSelectedNode(next);
-							}}
+								onSelectNode={(id) => {
+									const next = filteredData?.nodes.find((n) => n.id === id) || null;
+									lockForceNodes(stableForceDataRef.current.nodes);
+									setSelectedNode(next);
+									setImpactNodeId(next?.id ?? null);
+								}}
 							impactActive={!!impactNodeId}
 							references={selectedNodeReferences}
 						/>
 					</div>
 
-					{forceData.impactSummary && (
+					{impactSummary && (
 						<div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 rounded-lg border bg-background/95 backdrop-blur-sm shadow-lg px-4 py-2 text-xs">
 							<span className="font-medium text-foreground">Impact: </span>
 							<span className="text-muted-foreground">
-								Affects {forceData.impactSummary.tasks} task{forceData.impactSummary.tasks !== 1 ? "s" : ""}, {forceData.impactSummary.docs} doc{forceData.impactSummary.docs !== 1 ? "s" : ""}
+								Affects {impactSummary.tasks} task{impactSummary.tasks !== 1 ? "s" : ""}, {impactSummary.docs} doc{impactSummary.docs !== 1 ? "s" : ""}
 							</span>
 						</div>
 					)}

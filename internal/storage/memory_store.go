@@ -71,6 +71,18 @@ func (ms *MemoryStore) List(layer string) ([]*models.MemoryEntry, error) {
 	return ms.listLayers(layers)
 }
 
+// ListPersistent returns persistent memory entries, optionally filtered by layer.
+func (ms *MemoryStore) ListPersistent(layer string) ([]*models.MemoryEntry, error) {
+	layers := []string{models.MemoryLayerProject, models.MemoryLayerGlobal}
+	if layer != "" {
+		if !models.ValidPersistentMemoryLayer(layer) {
+			return nil, fmt.Errorf("invalid persistent memory layer: %q", layer)
+		}
+		layers = []string{layer}
+	}
+	return ms.listLayers(layers)
+}
+
 func (ms *MemoryStore) listLayers(layers []string) ([]*models.MemoryEntry, error) {
 	var entries []*models.MemoryEntry
 
@@ -123,6 +135,63 @@ func (ms *MemoryStore) Get(id string) (*models.MemoryEntry, error) {
 		}
 	}
 	return nil, fmt.Errorf("memory %q not found", id)
+}
+
+// ResolveReferenceTarget resolves a semantic memory target.
+//
+// Semantic refs prefer the real memory ID, but also accept a title slug fallback
+// so inline refs like @memory-security-pattern can resolve the entry created from
+// the title "Security Pattern".
+func (ms *MemoryStore) ResolveReferenceTarget(target string) (*models.MemoryEntry, error) {
+	if entry, err := ms.Get(target); err == nil {
+		return entry, nil
+	}
+
+	target = strings.TrimSpace(target)
+	if target == "" {
+		return nil, fmt.Errorf("memory %q not found", target)
+	}
+
+	var match *models.MemoryEntry
+	for _, layer := range []string{models.MemoryLayerProject, models.MemoryLayerWorking, models.MemoryLayerGlobal} {
+		entries, err := ms.List(layer)
+		if err != nil {
+			continue
+		}
+		for _, entry := range entries {
+			if slugifyMemoryReferenceTitle(entry.Title) != target {
+				continue
+			}
+			if match != nil {
+				return nil, fmt.Errorf("memory ref %q is ambiguous", target)
+			}
+			match = entry
+		}
+	}
+
+	if match == nil {
+		return nil, fmt.Errorf("memory %q not found", target)
+	}
+
+	return match, nil
+}
+
+func slugifyMemoryReferenceTitle(title string) string {
+	title = strings.ToLower(title)
+	var b strings.Builder
+	prevHyphen := false
+	for _, r := range title {
+		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') {
+			b.WriteRune(r)
+			prevHyphen = false
+		} else if r == '-' || r == ' ' || r == '_' {
+			if !prevHyphen {
+				b.WriteRune('-')
+				prevHyphen = true
+			}
+		}
+	}
+	return strings.Trim(b.String(), "-")
 }
 
 // GetInLayer retrieves a memory entry by ID from a specific layer only.
@@ -239,6 +308,42 @@ func (ms *MemoryStore) Demote(id string) (*models.MemoryEntry, error) {
 	newLayer, ok := models.DemoteLayer(entry.Layer)
 	if !ok {
 		return nil, fmt.Errorf("cannot demote: already at bottom layer (%s)", entry.Layer)
+	}
+
+	return ms.moveLayer(entry, newLayer)
+}
+
+// PromotePersistent moves a persistent memory entry up one layer (project→global).
+func (ms *MemoryStore) PromotePersistent(id string) (*models.MemoryEntry, error) {
+	entry, err := ms.Get(id)
+	if err != nil {
+		return nil, err
+	}
+	if !models.ValidPersistentMemoryLayer(entry.Layer) {
+		return nil, fmt.Errorf("cannot promote: memory %q is not persistent", id)
+	}
+
+	newLayer, ok := models.PromotePersistentMemoryLayer(entry.Layer)
+	if !ok {
+		return nil, fmt.Errorf("cannot promote: already at top persistent layer (%s)", entry.Layer)
+	}
+
+	return ms.moveLayer(entry, newLayer)
+}
+
+// DemotePersistent moves a persistent memory entry down one layer (global→project).
+func (ms *MemoryStore) DemotePersistent(id string) (*models.MemoryEntry, error) {
+	entry, err := ms.Get(id)
+	if err != nil {
+		return nil, err
+	}
+	if !models.ValidPersistentMemoryLayer(entry.Layer) {
+		return nil, fmt.Errorf("cannot demote: memory %q is not persistent", id)
+	}
+
+	newLayer, ok := models.DemotePersistentMemoryLayer(entry.Layer)
+	if !ok {
+		return nil, fmt.Errorf("cannot demote: already at bottom persistent layer (%s)", entry.Layer)
 	}
 
 	return ms.moveLayer(entry, newLayer)

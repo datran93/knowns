@@ -68,7 +68,9 @@ Canonical repository guidance for agents working in this project.
 - Prefer targeted retrieval over loading large files in full.
 - Use `knowns search` for discovery and quick relevance checks.
 - Use MCP `retrieve` tool when a workflow needs structured context with citations and context-pack assembly. Fall back to CLI `knowns retrieve` if MCP is unavailable.
-- Prefer `--plain` for human-facing inspection. Prefer `--json` for `retrieve` when output will be consumed by an agent, script, or workflow.
+- Prefer `--json` for structured CLI reads consumed by agents, scripts, or workflows, including `get`, `list`, `search`, and `retrieve` commands.
+- Prefer `--plain` for human-facing inspection, quick content reads, and logs when JSON is unnecessary.
+- Do not rely on styled default CLI output for automation or parsing.
 
 ### Preferred Tool Matrix
 
@@ -96,6 +98,14 @@ Canonical repository guidance for agents working in this project.
 - Ask the user only when the information appears durable but the correct scope (`working`, `project`, or `global`) is genuinely ambiguous.
 - After any meaningful user instruction, correction, or newly discovered pattern, quickly evaluate whether it should be stored as memory and save it when appropriate.
 - If the user states a stable collaboration preference, default to saving it as `global` memory unless they clearly scoped it to this repository only.
+- Memory lifecycle policy:
+  - Keep a memory when it is still correct, reusable, and likely to be referenced again.
+  - Update a memory when the same underlying knowledge still applies but the wording, detail, or accuracy should improve.
+  - Archive or supersede a memory when it is no longer the current truth but still provides useful historical context.
+  - Delete a memory only when it is duplicate, accidental, temporary-only, unsafe to keep, or wrong without historical value.
+- Prefer updating over deleting when a memory may still be needed for search, references, or future recall.
+- Treat memory identity as stable: update content freely, but do not repurpose an existing memory ID for a different concept.
+- Before deleting a memory, check whether it is still referenced, still useful for context, or costly to rediscover.
 
 ## Critical Rules
 
@@ -151,7 +161,8 @@ Canonical repository guidance for agents working in this project.
 - In `doc edit`, `-a` means `--append`.
 - Use raw task IDs where a command expects an ID value rather than a mention.
 - Use `--plain` for read, list, and search commands, not for create or edit commands.
-- Use `--json` for `retrieve` when the result will be parsed or fed into an agent workflow; use `--plain` when inspecting manually.
+- Use `--json` for structured reads like `get`, `list`, `search`, and `retrieve` when the output will be parsed or fed into an agent workflow.
+- Use `--plain` when inspecting manually or when only clean text output is needed.
 - Use `--smart` when reading docs through the CLI.
 
 ### Retrieval Pitfalls

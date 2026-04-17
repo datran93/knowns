@@ -58,12 +58,39 @@ func ExecuteRuntimeJob(storeRoot string, job runtimequeue.Job) error {
 				chunks = append(chunks, chunk)
 			}
 			vecStore.AddChunks(chunks)
-			return vecStore.Save()
+			if err := vecStore.Save(); err != nil {
+				return err
+			}
+
+			allSyms, allEdges, err := IndexAllFiles(projectRoot, false)
+			if err != nil || len(allSyms) == 0 {
+				return err
+			}
+			db := store.SemanticDBWritable()
+			if db == nil {
+				return nil
+			}
+			defer db.Close()
+			return SaveCodeEdges(db, ResolveCodeEdges(allSyms, allEdges))
 		})
 	case runtimequeue.JobRemoveFile:
 		return executeRuntimeCode(store, string(job.Kind)+" "+job.Target, func(_ *Embedder, vecStore VectorStore) error {
+			projectRoot := filepath.Dir(storeRoot)
 			vecStore.RemoveByPrefix(fmt.Sprintf("code::%s::", job.Target))
-			return vecStore.Save()
+			if err := vecStore.Save(); err != nil {
+				return err
+			}
+
+			allSyms, allEdges, err := IndexAllFiles(projectRoot, false)
+			if err != nil {
+				return err
+			}
+			db := store.SemanticDBWritable()
+			if db == nil {
+				return nil
+			}
+			defer db.Close()
+			return SaveCodeEdges(db, ResolveCodeEdges(allSyms, allEdges))
 		})
 	case runtimequeue.JobIndexAll:
 		projectRoot := filepath.Dir(storeRoot)
@@ -90,7 +117,7 @@ func ExecuteRuntimeJob(storeRoot string, job runtimequeue.Job) error {
 			if len(edges) == 0 {
 				return nil
 			}
-			db := store.SemanticDB()
+			db := store.SemanticDBWritable()
 			if db == nil {
 				return nil
 			}

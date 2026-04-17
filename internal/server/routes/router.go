@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/howznguyen/knowns/internal/storage"
+	"github.com/howznguyen/knowns/internal/workingmemory"
 )
 
 // requireStore returns a middleware that returns 503 when no project is active.
@@ -26,7 +27,7 @@ func requireStore(manager *storage.Manager) func(http.Handler) http.Handler {
 // SetupRoutes registers all /api sub-routes onto r.
 // The caller is responsible for mounting r at the /api prefix.
 // manager may be nil when workspace switching is not needed (e.g. tests).
-func SetupRoutes(r chi.Router, store *storage.Store, sse Broadcaster, projectRoot string, manager *storage.Manager, onWorkspaceSwitch ...func(string)) {
+func SetupRoutes(r chi.Router, store *storage.Store, sse Broadcaster, projectRoot string, manager *storage.Manager, workingMemory *workingmemory.Store, onWorkspaceSwitch ...func(string)) {
 	// Project-scoped routes: guarded by requireStore so they return 503 in picker mode.
 	r.Group(func(r chi.Router) {
 		r.Use(requireStore(manager))
@@ -85,7 +86,7 @@ func SetupRoutes(r chi.Router, store *storage.Store, sse Broadcaster, projectRoo
 		ggr.Register(r)
 
 		// Memory
-		mr := &MemoryRoutes{store: store, mgr: manager, sse: sse}
+		mr := &MemoryRoutes{store: store, mgr: manager, sse: sse, working: workingMemory}
 		mr.Register(r)
 	})
 

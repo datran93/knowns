@@ -26,7 +26,7 @@ knowns init my-project
 # → "Select model:" → multilingual-e5-small (default) or gte-small
 ```
 
-The model and ONNX Runtime download automatically to `~/.knowns/` (shared across projects).
+The model and ONNX Runtime download automatically to `~/.knowns/` (shared across projects). The shell and PowerShell install scripts also auto-run `knowns search --install-runtime` after installing the binary.
 
 ### Enable on Existing Project
 
@@ -39,7 +39,7 @@ knowns search --setup
 Or do it step by step:
 
 ```bash
-# 1. Install ONNX Runtime (if not already)
+# 1. Install ONNX Runtime (install scripts already try this automatically)
 knowns search --install-runtime
 
 # 2. Enable in config
@@ -76,7 +76,7 @@ Semantic search requires [ONNX Runtime](https://onnxruntime.ai/) to run embeddin
 knowns search --install-runtime
 ```
 
-This downloads the correct ONNX Runtime shared library for your platform (`darwin/arm64`, `darwin/x64`, `linux/x64`, etc.) and extracts it to `~/.knowns/lib/`.
+This downloads the correct ONNX Runtime shared library for your platform (`darwin/arm64`, `darwin/x64`, `linux/x64`, `windows/x64`, etc.) and extracts it to `~/.knowns/lib/`. The install scripts for macOS, Linux, and Windows run this automatically after installing `knowns`; rerun it manually only if that step fails or you skipped the installer.
 
 ### Check Status
 
@@ -84,7 +84,7 @@ This downloads the correct ONNX Runtime shared library for your platform (`darwi
 knowns search --status-check
 ```
 
-If ONNX Runtime is missing, semantic search falls back to keyword-only mode silently.
+If ONNX Runtime is missing, search queries fall back to keyword-only mode, but semantic indexing commands still require the runtime to be installed.
 
 ---
 

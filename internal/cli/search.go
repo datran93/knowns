@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	pathpkg "path"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -499,7 +500,6 @@ func formatMemoryScope(layer, store string) string {
 // ─── semantic search initialization ──────────────────────────────────
 
 // initSemanticSearchReal attempts to create an embedder and vector store.
-// Returns (nil, nil) if semantic search is not available (silent fallback).
 func initSemanticSearchReal() (*search.Embedder, search.VectorStore, error) {
 	store := getStore()
 	embedder, vecStore, err := search.InitSemantic(store)
@@ -714,6 +714,11 @@ func extractONNXLib(archivePath, libName, destPath string) error {
 		return fmt.Errorf("%s not found in archive", libName)
 	}
 
+	targetName, err := resolveONNXTarTarget(archivePath, libName)
+	if err != nil {
+		return err
+	}
+
 	f, err := os.Open(archivePath)
 	if err != nil {
 		return err
@@ -735,26 +740,109 @@ func extractONNXLib(archivePath, libName, destPath string) error {
 		if err != nil {
 			return err
 		}
-
-		// Look for the library file in the archive.
-		base := filepath.Base(hdr.Name)
-		if base == libName && hdr.Typeflag == tar.TypeReg {
-			out, err := os.Create(destPath)
-			if err != nil {
-				return err
-			}
-			if _, err := io.Copy(out, tr); err != nil {
-				out.Close()
-				return err
-			}
-			out.Close()
-			// Make executable on unix.
-			os.Chmod(destPath, 0755)
-			return nil
+		if cleanTarPath(hdr.Name) != targetName || !isTarRegularFile(hdr.Typeflag) {
+			continue
 		}
+		out, err := os.Create(destPath)
+		if err != nil {
+			return err
+		}
+		if _, err := io.Copy(out, tr); err != nil {
+			out.Close()
+			return err
+		}
+		out.Close()
+		_ = os.Chmod(destPath, 0755)
+		return nil
 	}
 
 	return fmt.Errorf("%s not found in archive", libName)
+}
+
+func resolveONNXTarTarget(archivePath, libName string) (string, error) {
+	f, err := os.Open(archivePath)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	gz, err := gzip.NewReader(f)
+	if err != nil {
+		return "", err
+	}
+	defer gz.Close()
+
+	links := make(map[string]string)
+	regulars := make(map[string]struct{})
+	var directTarget string
+
+	tr := tar.NewReader(gz)
+	for {
+		hdr, err := tr.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return "", err
+		}
+		name := cleanTarPath(hdr.Name)
+		base := pathpkg.Base(name)
+		switch hdr.Typeflag {
+		case tar.TypeSymlink, tar.TypeLink:
+			resolved := cleanTarPath(pathpkg.Join(pathpkg.Dir(name), hdr.Linkname))
+			links[name] = resolved
+			if base == libName {
+				directTarget = resolved
+			}
+		case tar.TypeReg, tar.TypeRegA:
+			regulars[name] = struct{}{}
+			if base == libName {
+				directTarget = name
+			}
+		}
+	}
+
+	if directTarget == "" {
+		return "", fmt.Errorf("%s not found in archive", libName)
+	}
+
+	resolved, ok := resolveTarLinkTarget(directTarget, links, regulars)
+	if !ok {
+		return "", fmt.Errorf("%s not found in archive", libName)
+	}
+	return resolved, nil
+}
+
+func resolveTarLinkTarget(target string, links map[string]string, regulars map[string]struct{}) (string, bool) {
+	seen := map[string]struct{}{}
+	current := cleanTarPath(target)
+	for current != "" {
+		if _, ok := regulars[current]; ok {
+			return current, true
+		}
+		next, ok := links[current]
+		if !ok {
+			return "", false
+		}
+		if _, exists := seen[current]; exists {
+			return "", false
+		}
+		seen[current] = struct{}{}
+		current = cleanTarPath(next)
+	}
+	return "", false
+}
+
+func cleanTarPath(name string) string {
+	cleaned := pathpkg.Clean(strings.ReplaceAll(name, "\\", "/"))
+	if cleaned == "." {
+		return ""
+	}
+	return strings.TrimPrefix(cleaned, "./")
+}
+
+func isTarRegularFile(typeflag byte) bool {
+	return typeflag == tar.TypeReg || typeflag == tar.TypeRegA
 }
 
 // ─── reindex with bubbletea progress ─────────────────────────────────

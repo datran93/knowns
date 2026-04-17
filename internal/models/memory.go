@@ -38,6 +38,11 @@ func ValidMemoryLayer(layer string) bool {
 	return layer == MemoryLayerWorking || layer == MemoryLayerProject || layer == MemoryLayerGlobal
 }
 
+// ValidPersistentMemoryLayer reports whether layer is a persistent memory layer.
+func ValidPersistentMemoryLayer(layer string) bool {
+	return layer == MemoryLayerProject || layer == MemoryLayerGlobal
+}
+
 // PromoteLayer returns the next layer up, or an error string if already at top.
 func PromoteLayer(layer string) (string, bool) {
 	switch layer {
@@ -57,6 +62,26 @@ func DemoteLayer(layer string) (string, bool) {
 		return MemoryLayerProject, true
 	case MemoryLayerProject:
 		return MemoryLayerWorking, true
+	default:
+		return "", false
+	}
+}
+
+// PromotePersistentMemoryLayer returns the next persistent layer up.
+func PromotePersistentMemoryLayer(layer string) (string, bool) {
+	switch layer {
+	case MemoryLayerProject:
+		return MemoryLayerGlobal, true
+	default:
+		return "", false
+	}
+}
+
+// DemotePersistentMemoryLayer returns the next persistent layer down.
+func DemotePersistentMemoryLayer(layer string) (string, bool) {
+	switch layer {
+	case MemoryLayerGlobal:
+		return MemoryLayerProject, true
 	default:
 		return "", false
 	}

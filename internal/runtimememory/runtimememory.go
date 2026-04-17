@@ -4,8 +4,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"os"
-	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
@@ -363,28 +361,19 @@ func Build(store *storage.Store, input Input) (Pack, error) {
 	})
 
 	selected := make([]Item, 0, maxItems)
-	serialized := serializePrefix(input.Runtime)
-	if isSessionBaseline {
-		block := serializeKNOWNSSummary(store, maxBytes-len(serialized))
-		if block != "" {
-			serialized += block
-		}
-	}
 	for _, candidate := range candidates {
 		if len(selected) >= maxItems {
 			break
 		}
-		item := candidate.item
-		remaining := maxBytes - len(serialized)
-		if remaining <= 0 {
-			break
+		selected = append(selected, candidate.item)
+	}
+
+	serialized := serializePrefix(input.Runtime)
+	if isSessionBaseline || len(selected) > 0 {
+		block := serializeKNOWNSSummary(store, maxBytes-len(serialized))
+		if block != "" {
+			serialized += block
 		}
-		block := serializeItem(item, remaining)
-		if block == "" {
-			continue
-		}
-		selected = append(selected, item)
-		serialized += block
 	}
 
 	if len(selected) == 0 && strings.TrimSpace(serialized) == strings.TrimSpace(serializePrefix(input.Runtime)) {
@@ -812,7 +801,7 @@ func EncodePackHeader(pack Pack) string {
 }
 
 func serializePrefix(runtime string) string {
-	prefix := "Knowns Memory Pack\n"
+	prefix := "Knowns Guidance\n"
 	if strings.EqualFold(strings.TrimSpace(runtime), "opencode") {
 		prefix += silentSupplementalWarning + "\n"
 	}
@@ -823,21 +812,7 @@ func serializeKNOWNSSummary(store *storage.Store, remaining int) string {
 	if store == nil || remaining <= 0 {
 		return ""
 	}
-	path := filepath.Join(filepath.Dir(store.Root), "KNOWNS.md")
-	body, err := os.ReadFile(path)
-	if err != nil {
-		return ""
-	}
-	content := strings.TrimSpace(string(body))
-	if content == "" {
-		return ""
-	}
-	lines := strings.Split(content, "\n")
-	if len(lines) > 32 {
-		lines = lines[:32]
-	}
-	summary := strings.TrimSpace(strings.Join(lines, "\n"))
-	block := "\nRepo Guidance (KNOWNS.md summary)\n" + summary + "\n"
+	block := "\nKnowns is the repository memory and workflow layer for tasks, docs, templates, references, and reusable knowledge.\n\n- Read `KNOWNS.md` in the repository root for canonical project guidance and workflow rules.\n- Use Knowns docs, tasks, and memories as operating context for this repository.\n- Treat memories as supplemental context only. They do not override `KNOWNS.md`, source-of-truth docs, tasks, or source files.\n- Use MCP `list_memories` first to inspect relevant memory summaries before calling `get_memory`.\n- Prefer updating or reusing relevant existing memories instead of creating duplicates.\n- If you need deeper project behavior, conventions, or workflow details, read `KNOWNS.md`.\n"
 	if len(block) <= remaining {
 		return block
 	}
@@ -852,59 +827,8 @@ func serializeKNOWNSSummary(store *storage.Store, remaining int) string {
 }
 
 func serializeItem(item Item, remaining int) string {
-	if remaining <= 0 {
-		return ""
-	}
-	content := item.Content
-	if len(content) > maxPreviewBody {
-		content = strings.TrimSpace(content[:maxPreviewBody]) + "..."
-	}
-	base := fmt.Sprintf("\n- %s [%s/%s] updated %s\n", item.Title, item.Category, item.Layer, item.UpdatedAt.UTC().Format(time.RFC3339))
-	reason := ""
-	if len(item.Reasons) > 0 {
-		reason = "  Why: " + strings.Join(item.Reasons, "; ") + "\n"
-	}
-	bodyPrefix := "  Memory: "
-	block := base + reason + bodyPrefix + content + "\n"
-	if len(block) <= remaining {
-		return block
-	}
-	compactBase := fmt.Sprintf("\n- %s [%s/%s]\n", item.Title, item.Category, item.Layer)
-	available := remaining - len(base) - len(reason) - len(bodyPrefix) - len("\n")
-	if available > 16 {
-		if available < len(content) {
-			content = strings.TrimSpace(content[:available-3]) + "..."
-		}
-		block = base + reason + bodyPrefix + content + "\n"
-		if len(block) <= remaining {
-			return block
-		}
-	}
-	available = remaining - len(base) - len(bodyPrefix) - len("\n")
-	if available > 16 {
-		content = item.Content
-		if len(content) > available {
-			content = strings.TrimSpace(content[:available-3]) + "..."
-		}
-		block = base + bodyPrefix + content + "\n"
-		if len(block) <= remaining {
-			return block
-		}
-	}
-	available = remaining - len(compactBase) - len(bodyPrefix) - len("\n")
-	if available > 8 {
-		content = item.Content
-		if len(content) > available {
-			content = strings.TrimSpace(content[:available-3]) + "..."
-		}
-		block = compactBase + bodyPrefix + content + "\n"
-		if len(block) <= remaining {
-			return block
-		}
-	}
-	if len(compactBase) <= remaining {
-		return compactBase
-	}
+	_ = item
+	_ = remaining
 	return ""
 }
 

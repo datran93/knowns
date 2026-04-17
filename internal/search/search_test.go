@@ -655,7 +655,7 @@ func newRetrievalTestStore(t *testing.T) *storage.Store {
 		Path:        "guides/doc-only-retrieval",
 		Title:       "Doc Only Retrieval",
 		Description: "This doc is a direct match and links other sources",
-		Content:     "Doc only retrieval links @task-rag001 and @memory-mem001 for extra context.",
+		Content:     "Doc only retrieval links @task-rag001{implements} and @memory-mem001 for extra context.",
 		Tags:        []string{"rag"},
 		CreatedAt:   now,
 		UpdatedAt:   now,

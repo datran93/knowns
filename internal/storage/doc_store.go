@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/howznguyen/knowns/internal/models"
+	"github.com/howznguyen/knowns/internal/references"
 	"gopkg.in/yaml.v3"
 )
 
@@ -190,6 +191,101 @@ func (ds *DocStore) Update(doc *models.Doc) error {
 		return err
 	}
 	return ds.writeFile(absPath, doc)
+}
+
+// Rename rewrites a doc to a new path and removes the old file.
+func (ds *DocStore) Rename(oldPath string, doc *models.Doc) error {
+	if strings.TrimSpace(oldPath) == "" || doc == nil || strings.TrimSpace(doc.Path) == "" {
+		return fmt.Errorf("old path and new doc path are required")
+	}
+	oldAbsPath := filepath.Join(ds.docsDir(), filepath.FromSlash(strings.TrimSuffix(oldPath, ".md"))+".md")
+	newAbsPath := filepath.Join(ds.docsDir(), filepath.FromSlash(strings.TrimSuffix(doc.Path, ".md"))+".md")
+	if err := os.MkdirAll(filepath.Dir(newAbsPath), 0755); err != nil {
+		return err
+	}
+	if err := ds.writeFile(newAbsPath, doc); err != nil {
+		return err
+	}
+	if oldAbsPath != newAbsPath {
+		if err := os.Remove(oldAbsPath); err != nil && !os.IsNotExist(err) {
+			return err
+		}
+	}
+	return nil
+}
+
+// RewriteDocReferences rewrites @doc refs across local docs, tasks, and memories.
+func (ds *DocStore) RewriteDocReferences(oldPath, newPath string, taskStore *TaskStore, memoryStore *MemoryStore) error {
+	docs, err := ds.List()
+	if err != nil {
+		return err
+	}
+	for _, doc := range docs {
+		if doc.IsImported || doc.Path == newPath {
+			continue
+		}
+		fullDoc, err := ds.Get(doc.Path)
+		if err != nil {
+			continue
+		}
+		rewritten := references.RewriteDocPath(fullDoc.Content, oldPath, newPath)
+		if rewritten == fullDoc.Content {
+			continue
+		}
+		fullDoc.Content = rewritten
+		fullDoc.UpdatedAt = time.Now().UTC()
+		if err := ds.Update(fullDoc); err != nil {
+			return err
+		}
+	}
+	if taskStore != nil {
+		tasks, err := taskStore.List()
+		if err != nil {
+			return err
+		}
+		for _, task := range tasks {
+			updated := false
+			description := references.RewriteDocPath(task.Description, oldPath, newPath)
+			if description != task.Description {
+				task.Description = description
+				updated = true
+			}
+			plan := references.RewriteDocPath(task.ImplementationPlan, oldPath, newPath)
+			if plan != task.ImplementationPlan {
+				task.ImplementationPlan = plan
+				updated = true
+			}
+			notes := references.RewriteDocPath(task.ImplementationNotes, oldPath, newPath)
+			if notes != task.ImplementationNotes {
+				task.ImplementationNotes = notes
+				updated = true
+			}
+			if updated {
+				task.UpdatedAt = time.Now().UTC()
+				if err := taskStore.Update(task); err != nil {
+					return err
+				}
+			}
+		}
+	}
+	if memoryStore != nil {
+		memories, err := memoryStore.List("")
+		if err != nil {
+			return err
+		}
+		for _, memory := range memories {
+			rewritten := references.RewriteDocPath(memory.Content, oldPath, newPath)
+			if rewritten == memory.Content {
+				continue
+			}
+			memory.Content = rewritten
+			memory.UpdatedAt = time.Now().UTC()
+			if err := memoryStore.Update(memory); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 // Delete removes a doc file.

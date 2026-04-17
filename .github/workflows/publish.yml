@@ -140,13 +140,13 @@ jobs:
             goarch: amd64
             npm_pkg: knowns-win-x64
             ext: ".exe"
-            cgo_enabled: "0"
+            cgo_enabled: "1"
           - runner: windows-11-arm
             goos: windows
             goarch: arm64
             npm_pkg: knowns-win-arm64
             ext: ".exe"
-            cgo_enabled: "0"
+            cgo_enabled: "1"
     runs-on: ${{ matrix.runner }}
     defaults:
       run:

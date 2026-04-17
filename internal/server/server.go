@@ -35,6 +35,7 @@ import (
 	"github.com/howznguyen/knowns/internal/server/routes"
 	"github.com/howznguyen/knowns/internal/storage"
 	"github.com/howznguyen/knowns/internal/util"
+	"github.com/howznguyen/knowns/internal/workingmemory"
 	ui "github.com/howznguyen/knowns/ui"
 	"github.com/rs/cors"
 )
@@ -64,6 +65,7 @@ type Server struct {
 	opencodeProxyMu  sync.RWMutex
 	runtimeStatus    opencode.RuntimeStatus
 	runtimeStatusMu  sync.RWMutex
+	workingMemory    *workingmemory.Store
 	shutdownCh       chan struct{}      // Signals graceful shutdown from /api/shutdown endpoint
 	cancelSSEFwd     context.CancelFunc // Cancels the OpenCode SSE forwarder goroutine
 	cancelRuntimeMon context.CancelFunc
@@ -318,6 +320,7 @@ func NewServer(store *storage.Store, projectRoot string, port int, opts Options)
 		opencodeDaemon:  daemon,
 		runtimeOpenCode: runtimeOpenCode,
 		runtimeStatus:   runtimeStatus,
+		workingMemory:   workingmemory.NewStore(),
 		shutdownCh:      make(chan struct{}, 1),
 	}
 
@@ -711,7 +714,7 @@ func (s *Server) buildRouter() chi.Router {
 
 	// --- API routes ---
 	r.Route("/api", func(r chi.Router) {
-		routes.SetupRoutes(r, s.store, s.sse, s.projectRoot, s.manager, s.reinitOpenCode)
+		routes.SetupRoutes(r, s.store, s.sse, s.projectRoot, s.manager, s.workingMemory, s.reinitOpenCode)
 	})
 
 	// --- Agent status (CLI installation check) ---

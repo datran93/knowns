@@ -9,10 +9,8 @@ import { GraphDetailPanel } from "./GraphDetailPanel";
 import { CodeGraphLegend } from "./graph/GraphLegend";
 import { useContainerSize } from "./graph/useContainerSize";
 import {
-	buildOverviewCodeGraphElements,
 	buildSelectedNodeReferences,
 	CODE_GRAPH_FILTERS,
-	countCodeKinds,
 	getCodeKindColor,
 	getCodeNodeKind,
 	getVisibleCodeEdgeKinds,
@@ -97,25 +95,6 @@ function filterCodeGraphData(data: GraphData, filters: CodeFilterState): GraphDa
 	return { nodes, edges };
 }
 
-function toOverviewGraphData(data: GraphData): GraphData {
-	const elements = buildOverviewCodeGraphElements(data);
-	const nodeIds = new Set<string>();
-	const edgeIds = new Set<string>();
-	for (const el of elements) {
-		const source = typeof el.data?.source === "string" ? el.data.source : null;
-		const target = typeof el.data?.target === "string" ? el.data.target : null;
-		if (source && target) {
-			edgeIds.add(`${source}-${String(el.data?.edgeType)}-${target}`);
-		} else if (typeof el.data?.id === "string") {
-			nodeIds.add(el.data.id);
-		}
-	}
-	return {
-		nodes: data.nodes.filter((n) => nodeIds.has(n.id)),
-		edges: data.edges.filter((e) => edgeIds.has(edgeId(e))),
-	};
-}
-
 function computeNeighborhood(data: GraphData, rootId: string, hops: number) {
 	const adjacency = new Map<string, Set<string>>();
 	for (const node of data.nodes) adjacency.set(node.id, new Set());
@@ -140,7 +119,7 @@ function computeNeighborhood(data: GraphData, rootId: string, hops: number) {
 	return distances;
 }
 
-function buildForceData(data: GraphData, searchQuery: string, selectedNodeId: string | null): { nodes: ForceNode[]; links: ForceLink[]; matches: number } {
+function buildForceData(data: GraphData, searchQuery: string): { nodes: ForceNode[]; links: ForceLink[]; matches: number } {
 	const query = searchQuery.trim().toLowerCase();
 	const matchedIds = new Set<string>();
 	if (query) {
@@ -150,10 +129,7 @@ function buildForceData(data: GraphData, searchQuery: string, selectedNodeId: st
 		}
 	}
 	const activeIds = new Set<string>(matchedIds);
-	if (selectedNodeId) {
-		const distances = computeNeighborhood(data, selectedNodeId, 3);
-		for (const id of distances.keys()) activeIds.add(id);
-	} else if (matchedIds.size > 0) {
+	if (matchedIds.size > 0) {
 		for (const edge of data.edges) {
 			if (matchedIds.has(edge.source) || matchedIds.has(edge.target)) {
 				activeIds.add(edge.source);
@@ -162,7 +138,7 @@ function buildForceData(data: GraphData, searchQuery: string, selectedNodeId: st
 		}
 	}
 
-	const dimming = selectedNodeId || matchedIds.size > 0;
+	const dimming = matchedIds.size > 0;
 
 	const nodes: ForceNode[] = data.nodes.map((node) => ({
 		...node,
@@ -246,16 +222,20 @@ export default function CodeGraphPage() {
 	const isLargeGraph = !!data && (data.nodes.length >= LARGE_GRAPH_NODE_THRESHOLD || data.edges.length >= LARGE_GRAPH_EDGE_THRESHOLD);
 	const filteredData = useMemo(() => {
 		if (!data) return null;
-		const base = filterCodeGraphData(data, filters);
-		return isLargeGraph && !debouncedSearchQuery.trim() ? toOverviewGraphData(base) : base;
-	}, [data, filters, isLargeGraph, debouncedSearchQuery]);
+		return filterCodeGraphData(data, filters);
+	}, [data, filters]);
+
+	const selectedNeighborhood = useMemo(() => {
+		if (!filteredData || !selectedNode?.id) return null;
+		return computeNeighborhood(filteredData, selectedNode.id, 2);
+	}, [filteredData, selectedNode?.id]);
 
 	const forceData = useMemo(() => {
 		if (!filteredData) {
 			stableForceDataRef.current = EMPTY_FORCE_DATA;
 			return EMPTY_FORCE_DATA;
 		}
-		const next = buildForceData(filteredData, debouncedSearchQuery, selectedNode?.id ?? null);
+		const next = buildForceData(filteredData, debouncedSearchQuery);
 		const prev = stableForceDataRef.current;
 		const structureSame = sameNodeIds(prev.nodes, next.nodes) && sameLinkIds(prev.links, next.links);
 		if (structureSame) {
@@ -269,7 +249,7 @@ export default function CodeGraphPage() {
 		}
 		stableForceDataRef.current = next;
 		return next;
-	}, [filteredData, debouncedSearchQuery, selectedNode?.id]);
+	}, [filteredData, debouncedSearchQuery]);
 
 	useEffect(() => {
 		if (filteredData && (forceData.nodes.length > 0 || forceData.links.length > 0)) {
@@ -286,6 +266,9 @@ export default function CodeGraphPage() {
 	const visibleKindCount = forceData.nodes.length;
 	const edgeCount = forceData.links.length;
 	const selectedNodeReferences = useMemo(() => buildSelectedNodeReferences(filteredData, selectedNode), [filteredData, selectedNode]);
+	const reduceGraphOverhead = isLargeGraph && forceData.nodes.length > 1500;
+	const selectionMutedNodeColor = "rgba(148,163,184,0.14)";
+	const selectionMutedLinkColor = "rgba(148,163,184,0.08)";
 
 	const handleZoomToFit = useCallback(() => {
 		graphRef.current?.zoomToFit(400, 40);
@@ -351,7 +334,9 @@ export default function CodeGraphPage() {
 				<div className="flex-1" />
 
 				<span className="text-xs text-muted-foreground">
-					{visibleKindCount} symbols, {edgeCount} edges
+					{visibleKindCount}
+					{data && visibleKindCount !== data.nodes.length ? ` / ${data.nodes.length}` : ""} symbols, {edgeCount}
+					{data && edgeCount !== data.edges.length ? ` / ${data.edges.length}` : ""} edges
 				</span>
 
 				{engineRunning && <span className="text-xs text-amber-600 dark:text-amber-400">Layouting...</span>}
@@ -389,23 +374,44 @@ export default function CodeGraphPage() {
 						maxZoom={8}
 						enableZoomInteraction={true}
 						enablePanInteraction={true}
-						d3AlphaDecay={0.045}
-						d3VelocityDecay={0.28}
+						enablePointerInteraction={true}
+						autoPauseRedraw={reduceGraphOverhead}
+						d3AlphaDecay={reduceGraphOverhead ? 0.06 : 0.045}
+						d3VelocityDecay={reduceGraphOverhead ? 0.34 : 0.28}
 						warmupTicks={0}
-						cooldownTicks={isLargeGraph ? 80 : 140}
-						cooldownTime={isLargeGraph ? 3000 : 4500}
+						cooldownTicks={isLargeGraph ? 240 : 160}
+						cooldownTime={isLargeGraph ? 12000 : 6000}
 						onEngineStop={() => {
 							lockForceNodes(stableForceDataRef.current.nodes);
 							setEngineRunning(false);
 						}}
-						nodeLabel={(node) => `${node.label || node.id}\n${String((node as ForceNode).data.docPath || "")}`}
-						nodeColor={(node) => (node as ForceNode).color}
+						nodeLabel={() => ""}
+						nodeColor={(node) => {
+							const n = node as ForceNode;
+							if (!selectedNeighborhood) return n.color;
+							return selectedNeighborhood.has(n.id) ? n.color : selectionMutedNodeColor;
+						}}
 						nodeVal={(node) => (node as ForceNode).val || 6}
-						linkColor={(link) => (link as ForceLink).color}
-						linkWidth={(link) => (link as ForceLink).width}
+						linkColor={(link) => {
+							const l = link as ForceLink;
+							if (!selectedNeighborhood) return l.color;
+							const source = typeof l.source === "string" ? l.source : l.source.id;
+							const target = typeof l.target === "string" ? l.target : l.target.id;
+							return selectedNeighborhood.has(source) && selectedNeighborhood.has(target) ? l.color : selectionMutedLinkColor;
+						}}
+						linkWidth={(link) => {
+							const l = link as ForceLink;
+							if (!selectedNeighborhood) return l.width;
+							const source = typeof l.source === "string" ? l.source : l.source.id;
+							const target = typeof l.target === "string" ? l.target : l.target.id;
+							return selectedNeighborhood.has(source) && selectedNeighborhood.has(target) ? l.width : 0.6;
+						}}
 						linkDirectionalArrowLength={(link) => ((link as ForceLink).dashed ? 0 : 4)}
 						linkDirectionalArrowRelPos={1}
-						onNodeClick={(node) => setSelectedNode(toGraphNode(node as ForceNode))}
+						onNodeClick={(node) => {
+							lockForceNodes(stableForceDataRef.current.nodes);
+							setSelectedNode(toGraphNode(node as ForceNode));
+						}}
 						onNodeDragEnd={(node) => {
 							const n = node as ForceNode;
 							n.fx = n.x;
@@ -422,6 +428,8 @@ export default function CodeGraphPage() {
 							const x = n.x || 0;
 							const y = n.y || 0;
 							const isSelected = selectedNode?.id === n.id;
+							const isActive = !selectedNeighborhood || selectedNeighborhood.has(n.id);
+							const displayColor = isActive ? n.color : selectionMutedNodeColor;
 
 							// Glow ring for selected node.
 							if (isSelected) {
@@ -436,10 +444,11 @@ export default function CodeGraphPage() {
 
 							ctx.beginPath();
 							ctx.arc(x, y, r, 0, 2 * Math.PI, false);
-							ctx.fillStyle = n.color;
+							ctx.fillStyle = displayColor;
 							ctx.fill();
 
-							if (isSelected || !isLargeGraph || globalScale > 1.4) {
+							const canDrawLabel = isSelected || (!engineRunning && !isLargeGraph) || globalScale > 1.9 || (!engineRunning && globalScale > 1.35);
+							if (canDrawLabel && isActive) {
 								ctx.font = `${fontSize}px Sans-Serif`;
 								ctx.fillStyle = isDark ? "#e5e7eb" : "#111827";
 								ctx.fillText(label, x + r + 2, y + fontSize / 3);
@@ -472,14 +481,15 @@ export default function CodeGraphPage() {
 
 				{selectedNode && (
 					<div className="absolute top-3 right-3 z-10">
-						<GraphDetailPanel
+							<GraphDetailPanel
 							node={selectedNode}
 							onClose={clearSelection}
 							onNavigate={() => {}}
-							onSelectNode={(id) => {
-								const next = filteredData?.nodes.find((n) => n.id === id) || null;
-								setSelectedNode(next);
-							}}
+								onSelectNode={(id) => {
+									const next = filteredData?.nodes.find((n) => n.id === id) || null;
+									lockForceNodes(stableForceDataRef.current.nodes);
+									setSelectedNode(next);
+								}}
 							references={selectedNodeReferences}
 						/>
 					</div>

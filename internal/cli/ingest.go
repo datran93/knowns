@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/spf13/cobra"
 	"charm.land/bubbles/v2/progress"
 	tea "charm.land/bubbletea/v2"
+	"github.com/spf13/cobra"
 
 	"github.com/howznguyen/knowns/internal/search"
 	"github.com/howznguyen/knowns/internal/storage"
@@ -54,33 +54,36 @@ type ingestPhase struct {
 }
 
 type ingestState struct {
-	phase    string
+	phase     string
 	processed int
-	total    int
-	done     bool
-	err      error
+	total     int
+	done      bool
+	err       error
 }
 
 type ingestDoneMsg struct {
-	err        error
-	symCount   int
-	fileCount  int
-	edgeCount  int
+	err       error
+	symCount  int
+	fileCount int
+	edgeCount int
 }
 
 type ingestModel struct {
-	bar            progress.Model
-	state          *ingestState
-	quit           bool
-	startTime      time.Time
-	phaseStartTime time.Time
-	prog           *tea.Program
-	lastPhase      string
-	lastTotal      int
-	completedPhases []struct{ name string; count int }
-	symCount       int
-	fileCount      int
-	edgeCount      int
+	bar             progress.Model
+	state           *ingestState
+	quit            bool
+	startTime       time.Time
+	phaseStartTime  time.Time
+	prog            *tea.Program
+	lastPhase       string
+	lastTotal       int
+	completedPhases []struct {
+		name  string
+		count int
+	}
+	symCount  int
+	fileCount int
+	edgeCount int
 }
 
 func ingestTickCmd() tea.Cmd {
@@ -105,7 +108,10 @@ func (m *ingestModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		if m.state.phase != m.lastPhase && m.lastPhase != "" {
-			m.completedPhases = append(m.completedPhases, struct{ name string; count int }{
+			m.completedPhases = append(m.completedPhases, struct {
+				name  string
+				count int
+			}{
 				name:  m.lastPhase,
 				count: m.lastTotal,
 			})
@@ -122,7 +128,10 @@ func (m *ingestModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Batch(cmd, ingestTickCmd())
 	case ingestDoneMsg:
 		if m.lastPhase != "" {
-			m.completedPhases = append(m.completedPhases, struct{ name string; count int }{
+			m.completedPhases = append(m.completedPhases, struct {
+				name  string
+				count int
+			}{
 				name:  m.lastPhase,
 				count: m.lastTotal,
 			})
@@ -238,7 +247,7 @@ func runIngestWithProgress(projectRoot string, includeTests bool) (symCount, fil
 		}
 
 		// Save code edges
-		db := store.SemanticDB()
+		db := store.SemanticDBWritable()
 		if db != nil && len(edges) > 0 {
 			resolvedEdges := search.ResolveCodeEdges(syms, edges)
 			if dbErr := search.SaveCodeEdges(db, resolvedEdges); dbErr == nil {

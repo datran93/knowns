@@ -14,9 +14,13 @@ import { Check } from "lucide-react";
 import { useTheme } from "../../App";
 import { cn } from "../../lib/utils";
 
-import { transformMentions, toDocPath, getInlineMention } from "./mentionUtils";
-import { TaskMentionBadge } from "./TaskMentionBadge";
-import { DocMentionBadge } from "./DocMentionBadge";
+import {
+  transformMentions,
+  getInlineMention,
+  decodeSemanticRefHref,
+  canonicalizeSemanticReference,
+} from "./mentionUtils";
+import { SemanticReferenceBadge } from "./SemanticReferenceBadge";
 import { MarkdownErrorBoundary } from "./MarkdownErrorBoundary";
 import { parseHeadingMeta } from "./headingUtils";
 import { CopyablePre, CopyableTable, StableHeading, MermaidLoading } from "./mdComponents";
@@ -83,17 +87,16 @@ const MDRender = forwardRef<MDRenderRef, MDRenderProps>(
 
         a: ({ href, children }: { href?: string; children?: ReactNode }) => {
           const text = String(children);
+          const semanticRef = (href && decodeSemanticRefHref(href)) || canonicalizeSemanticReference(text) || (href ? canonicalizeSemanticReference(href) : null);
 
-          if (text.startsWith("@@task-")) {
-            return <TaskMentionBadge taskId={text.slice(2)} onTaskLinkClick={onTaskLinkClickRef.current} />;
-          }
-
-          if (text.startsWith("@@doc/")) {
-            return <DocMentionBadge docPath={text.slice(6)} onDocLinkClick={onDocLinkClickRef.current} />;
-          }
-
-          if (href && (href.startsWith("@doc/") || href.startsWith("@docs/") || href.startsWith(".knowns/docs/") || href.startsWith("/.knowns/docs/"))) {
-            return <DocMentionBadge docPath={toDocPath(href)} onDocLinkClick={onDocLinkClickRef.current} />;
+          if (semanticRef) {
+            return (
+              <SemanticReferenceBadge
+                rawRef={semanticRef}
+                onDocLinkClick={onDocLinkClickRef.current}
+                onTaskLinkClick={onTaskLinkClickRef.current}
+              />
+            );
           }
 
           return <a href={href} className="text-primary hover:underline">{children}</a>;
@@ -116,11 +119,14 @@ const MDRender = forwardRef<MDRenderRef, MDRenderProps>(
 
           if (isInline) {
             const inlineMention = getInlineMention(codeContent);
-            if (inlineMention?.type === "task") {
-              return <TaskMentionBadge taskId={inlineMention.taskId} onTaskLinkClick={onTaskLinkClickRef.current} />;
-            }
-            if (inlineMention?.type === "doc") {
-              return <DocMentionBadge docPath={inlineMention.docPath} onDocLinkClick={onDocLinkClickRef.current} />;
+            if (inlineMention?.type === "semantic") {
+              return (
+                <SemanticReferenceBadge
+                  rawRef={inlineMention.rawRef}
+                  onDocLinkClick={onDocLinkClickRef.current}
+                  onTaskLinkClick={onTaskLinkClickRef.current}
+                />
+              );
             }
             return (
               <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-sm whitespace-break-spaces break-words [overflow-wrap:anywhere]" {...props}>

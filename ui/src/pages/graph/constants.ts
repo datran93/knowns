@@ -54,7 +54,12 @@ export interface FilterState {
 	showEdges: boolean;
 	edgeParent: boolean;
 	edgeSpec: boolean;
-	edgeMention: boolean;
+	edgeReferences: boolean;
+	edgeImplements: boolean;
+	edgeBlockedBy: boolean;
+	edgeRelated: boolean;
+	edgeDepends: boolean;
+	edgeFollows: boolean;
 }
 
 export const KNOWLEDGE_FILTERS: FilterState = {
@@ -65,8 +70,55 @@ export const KNOWLEDGE_FILTERS: FilterState = {
 	showEdges: true,
 	edgeParent: true,
 	edgeSpec: true,
-	edgeMention: true,
+	edgeReferences: true,
+	edgeImplements: true,
+	edgeBlockedBy: true,
+	edgeRelated: true,
+	edgeDepends: true,
+	edgeFollows: true,
 };
+
+export const KNOWLEDGE_SEMANTIC_EDGE_ORDER = ["references", "implements", "blocked-by", "related", "depends", "follows"] as const;
+export type KnowledgeSemanticEdgeKind = (typeof KNOWLEDGE_SEMANTIC_EDGE_ORDER)[number];
+
+export const knowledgeSemanticEdgeLabels: Record<KnowledgeSemanticEdgeKind, string> = {
+	references: "References",
+	implements: "Implements",
+	"blocked-by": "Blocked By",
+	related: "Related",
+	depends: "Depends",
+	follows: "Follows",
+};
+
+export const knowledgeSemanticEdgeColors: Record<KnowledgeSemanticEdgeKind, string> = {
+	references: "#64748b",
+	implements: "#6366f1",
+	"blocked-by": "#ef4444",
+	related: "#8b5cf6",
+	depends: "#0ea5e9",
+	follows: "#22c55e",
+};
+
+export function isKnowledgeSemanticEdge(type: GraphEdge["type"]): type is KnowledgeSemanticEdgeKind {
+	return (KNOWLEDGE_SEMANTIC_EDGE_ORDER as readonly string[]).includes(type);
+}
+
+export function knowledgeSemanticEdgeFilterKey(kind: KnowledgeSemanticEdgeKind): keyof FilterState {
+	switch (kind) {
+	case "references":
+		return "edgeReferences";
+	case "implements":
+		return "edgeImplements";
+	case "blocked-by":
+		return "edgeBlockedBy";
+	case "related":
+		return "edgeRelated";
+	case "depends":
+		return "edgeDepends";
+	case "follows":
+		return "edgeFollows";
+	}
+}
 
 // CodeFilterState for code graph page
 export interface CodeFilterState {
@@ -263,7 +315,9 @@ export function buildElements(data: GraphData, filters: FilterState): cytoscape.
 	const visibleEdgeTypes = new Set<string>();
 	if (filters.edgeParent) visibleEdgeTypes.add("parent");
 	if (filters.edgeSpec) visibleEdgeTypes.add("spec");
-	if (filters.edgeMention) visibleEdgeTypes.add("mention");
+	for (const type of KNOWLEDGE_SEMANTIC_EDGE_ORDER) {
+		if (filters[knowledgeSemanticEdgeFilterKey(type)]) visibleEdgeTypes.add(type);
+	}
 
 	const validEdges = filters.showEdges
 		? data.edges.filter(

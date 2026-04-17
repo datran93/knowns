@@ -156,6 +156,82 @@ test.describe("Task → Doc Mentions", () => {
 	});
 });
 
+test.describe("Semantic Reference Badges", () => {
+	test("semantic task and doc refs show relation badges", async ({ page }) => {
+		let taskId = "";
+
+		await test.step("Create target task and doc", async () => {
+			const output = server.cli('task create "Runtime API" -d "Implement runtime API"');
+			const match = output.match(/Created task\s+([a-z0-9]+)/i);
+			taskId = match?.[1] || "";
+			expect(taskId).toBeTruthy();
+			server.cli('doc create "Semantic Runtime" -d "Semantic runtime guide" -t "guide"');
+		});
+
+		await test.step("Create task using semantic refs", async () => {
+			server.cli(`task create "Semantic UI" -d "Depends on @task-${taskId}{blocked-by} and @doc/semantic-runtime{implements}"`);
+		});
+
+		await test.step("Open task from kanban", async () => {
+			await page.goto(`${server.baseURL}/kanban`);
+			await page.getByText("Semantic UI").first().click();
+		});
+
+		await test.step("Semantic badges show labels and relations", async () => {
+			const taskBadge = page.locator(`[data-task-id="${taskId}"]`);
+			const docBadge = page.locator('[data-doc-path="semantic-runtime.md"]');
+			await expect(taskBadge).toBeVisible({ timeout: 5000 });
+			await expect(docBadge).toBeVisible({ timeout: 5000 });
+			await expect(taskBadge).toContainText("Runtime API");
+			await expect(taskBadge).toContainText("blocked-by");
+			await expect(docBadge).toContainText("Semantic Runtime");
+			await expect(docBadge).toContainText("implements");
+		});
+	});
+
+	test("semantic memory refs render as badges", async ({ page }) => {
+		await test.step("Create memory and referencing task", async () => {
+			server.cli('memory create "Security Pattern" --layer project --category pattern -c "Remember this pattern"');
+			server.cli('task create "Memory Consumer" -d "Follow @memory-security-pattern{follows} for details"');
+		});
+
+		await test.step("Open task from kanban", async () => {
+			await page.goto(`${server.baseURL}/kanban`);
+			await page.getByText("Memory Consumer").first().click();
+		});
+
+		await test.step("Memory badge is visible with relation", async () => {
+			const badge = page.locator('[data-memory-id="security-pattern"]');
+			await expect(badge).toBeVisible({ timeout: 5000 });
+			await expect(badge).toContainText("Security Pattern");
+			await expect(badge).toContainText("follows");
+			await expect(badge).toHaveAttribute("role", "link");
+		});
+	});
+
+	test("broken semantic refs remain visible as broken badges", async ({ page }) => {
+		await test.step("Create task with missing semantic refs", async () => {
+			server.cli('task create "Broken Semantic Ref" -d "See @doc/missing-guide{implements} and @memory-missing-note{related}"');
+		});
+
+		await test.step("Open task from kanban", async () => {
+			await page.goto(`${server.baseURL}/kanban`);
+			await page.getByText("Broken Semantic Ref").first().click();
+		});
+
+		await test.step("Broken semantic badges stay visible without link role", async () => {
+			const docBadge = page.locator('[data-doc-path="missing-guide.md"]');
+			const memoryBadge = page.locator('[data-memory-id="missing-note"]');
+			await expect(docBadge).toBeVisible({ timeout: 5000 });
+			await expect(memoryBadge).toBeVisible({ timeout: 5000 });
+			await expect(docBadge).toContainText("implements");
+			await expect(memoryBadge).toContainText("related");
+			await expect(docBadge).not.toHaveAttribute("role", "link");
+			await expect(memoryBadge).not.toHaveAttribute("role", "link");
+		});
+	});
+});
+
 test.describe("Doc → Task Mentions", () => {
 	test("doc content shows task mention badge", async ({ page }) => {
 		let taskId = "";

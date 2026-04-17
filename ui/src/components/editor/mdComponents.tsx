@@ -107,7 +107,7 @@ export function StableHeading({
       : "group relative scroll-mt-4 flex items-baseline gap-1.5";
 
   return (
-    <Tag id={id} className={headingClassName} {...props}>
+    <Tag id={id} data-heading-slug={slugifyHeading(text)} className={headingClassName} {...props}>
       {number && (
         <span className="inline-block text-[0.72em] font-semibold text-muted-foreground/50 select-none leading-none translate-y-[1px]">
           {number}

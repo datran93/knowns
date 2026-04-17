@@ -16,6 +16,7 @@ import (
 	"github.com/howznguyen/knowns/internal/mcp/handlers"
 	"github.com/howznguyen/knowns/internal/runtimequeue"
 	"github.com/howznguyen/knowns/internal/storage"
+	"github.com/howznguyen/knowns/internal/workingmemory"
 	"github.com/mark3labs/mcp-go/server"
 )
 
@@ -210,8 +211,8 @@ func NewMCPServer(projectHint string) *MCPServer {
 	handlers.RegisterMemoryTools(s.srv, getStore)
 
 	// Working memory is session-scoped (in-memory only).
-	workingMemory := handlers.NewWorkingMemoryStore()
-	handlers.RegisterWorkingMemoryTools(s.srv, getStore, func() *handlers.WorkingMemoryStore {
+	workingMemory := workingmemory.NewStore()
+	handlers.RegisterWorkingMemoryTools(s.srv, getStore, func() *workingmemory.Store {
 		return workingMemory
 	})
 

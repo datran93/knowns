@@ -1442,7 +1442,22 @@ export interface GraphNode {
 export interface GraphEdge {
 	source: string;
 	target: string;
-	type: "parent" | "spec" | "template-doc" | "mention" | "code-ref" | "calls" | "imports" | "contains" | "instantiates" | "implements";
+	type:
+		| "parent"
+		| "spec"
+		| "template-doc"
+		| "mention"
+		| "code-ref"
+		| "calls"
+		| "imports"
+		| "contains"
+		| "instantiates"
+		| "implements"
+		| "references"
+		| "blocked-by"
+		| "related"
+		| "depends"
+		| "follows";
 	data?: Record<string, unknown>;
 }
 
@@ -1463,13 +1478,62 @@ export async function getCodeGraph(): Promise<GraphData> {
 	return res.json();
 }
 
+export interface SemanticDocReferenceFragment {
+	raw?: string;
+	line?: number;
+	rangeStart?: number;
+	rangeEnd?: number;
+	heading?: string;
+}
+
+export interface SemanticReference {
+	raw: string;
+	type: string;
+	target: string;
+	relation: string;
+	explicitRelation?: boolean;
+	validRelation: boolean;
+	fragment?: SemanticDocReferenceFragment;
+}
+
+export interface ResolvedEntity {
+	type: string;
+	id: string;
+	path?: string;
+	title?: string;
+	status?: string;
+	priority?: string;
+	tags?: string[];
+	memoryLayer?: string;
+	category?: string;
+	imported?: boolean;
+	source?: string;
+}
+
+export interface SemanticResolution {
+	reference: SemanticReference;
+	entity?: ResolvedEntity;
+	found: boolean;
+}
+
+export async function resolveReference(ref: string): Promise<SemanticResolution> {
+	const params = new URLSearchParams({ ref });
+	const res = await fetch(`${API_BASE}/api/resolve?${params.toString()}`);
+	if (!res.ok) {
+		throw new Error(`Failed to resolve reference ${ref}`);
+	}
+	return res.json();
+}
+
 // --- Memory API ---
+
+export type PersistentMemoryLayer = "project" | "global";
 
 export interface MemoryEntry {
 	id: string;
 	title: string;
 	content: string;
-	layer: "working" | "project" | "global";
+	layer: "working" | PersistentMemoryLayer;
 	category?: string;
 	tags?: string[];
 	metadata?: Record<string, string>;
@@ -1478,7 +1542,7 @@ export interface MemoryEntry {
 }
 
 export const memoryApi = {
-	async list(layer?: string): Promise<MemoryEntry[]> {
+	async list(layer?: PersistentMemoryLayer): Promise<MemoryEntry[]> {
 		const params = new URLSearchParams();
 		if (layer) params.set("layer", layer);
 		const res = await fetch(`${API_BASE}/api/memories?${params.toString()}`);
@@ -1534,12 +1598,43 @@ export const memoryApi = {
 		if (!res.ok) throw new Error(`Failed to demote memory ${id}`);
 		return res.json();
 	},
+};
+
+export const workingMemoryApi = {
+	async list(): Promise<MemoryEntry[]> {
+		const res = await fetch(`${API_BASE}/api/working-memories`);
+		if (!res.ok) throw new Error("Failed to fetch working memory");
+		return res.json();
+	},
+
+	async get(id: string): Promise<MemoryEntry> {
+		const res = await fetch(`${API_BASE}/api/working-memories/${encodeURIComponent(id)}`);
+		if (!res.ok) throw new Error(`Failed to fetch working memory ${id}`);
+		return res.json();
+	},
+
+	async create(data: Partial<MemoryEntry>): Promise<MemoryEntry> {
+		const res = await fetch(`${API_BASE}/api/working-memories`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify(data),
+		});
+		if (!res.ok) throw new Error("Failed to create working memory");
+		return res.json();
+	},
+
+	async delete(id: string): Promise<void> {
+		const res = await fetch(`${API_BASE}/api/working-memories/${encodeURIComponent(id)}`, {
+			method: "DELETE",
+		});
+		if (!res.ok) throw new Error(`Failed to delete working memory ${id}`);
+	},
 
 	async clean(): Promise<{ cleaned: number }> {
-		const res = await fetch(`${API_BASE}/api/memories/clean`, {
+		const res = await fetch(`${API_BASE}/api/working-memories/clean`, {
 			method: "POST",
 		});
-		if (!res.ok) throw new Error("Failed to clean working memory");
+		if (!res.ok) throw new Error("Failed to clear working memory");
 		return res.json();
 	},
 };

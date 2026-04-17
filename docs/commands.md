@@ -477,7 +477,7 @@ knowns search <query> [options]
 | `--reindex`         | Rebuild the search index                     |
 | `--setup`           | Set up semantic search                       |
 | `--status-check`    | Show semantic search status                  |
-| `--install-runtime` | Download and install ONNX Runtime            |
+| `--install-runtime` | Download and install ONNX Runtime (also run by installers) |
 | `--plain`           | Plain text output                            |
 | `--json`            | JSON output                                  |
 

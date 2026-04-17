@@ -71,7 +71,11 @@ export default function DocsPage() {
 		const container = scrollContainerRef.current;
 		if (!container) return false;
 		const viewport = container.querySelector<HTMLElement>("[data-radix-scroll-area-viewport]") || container;
-		const heading = viewport.querySelector<HTMLElement>(`#${CSS.escape(headingId)}`);
+		const escapedHeadingId = CSS.escape(headingId);
+		const heading =
+			viewport.querySelector<HTMLElement>(`#${escapedHeadingId}`) ||
+			viewport.querySelector<HTMLElement>(`[data-heading-slug="${escapedHeadingId}"]`) ||
+			viewport.querySelector<HTMLElement>(`[id$="-${escapedHeadingId}"]`);
 		if (!heading) return false;
 
 		const viewportRect = viewport.getBoundingClientRect();
@@ -157,9 +161,13 @@ export default function DocsPage() {
 	}, [(location.search as Record<string, unknown>).create]);
 
 	useEffect(() => {
-		const params = new URLSearchParams(window.location.search);
+		const rawSearch = String(location.searchStr || "");
+		const params = new URLSearchParams(rawSearch.startsWith("?") ? rawSearch : `?${rawSearch}`);
 		const lParam = params.get("L");
-		if (!lParam) { setLineHighlight(null); return; }
+		if (!lParam) {
+			setLineHighlight(null);
+			return;
+		}
 		const rangeMatch = lParam.match(/^(\d+)-(\d+)$/);
 		if (rangeMatch && rangeMatch[1] && rangeMatch[2]) {
 			setLineHighlight({ start: +rangeMatch[1], end: +rangeMatch[2] });
@@ -167,7 +175,7 @@ export default function DocsPage() {
 			const line = parseInt(lParam, 10);
 			setLineHighlight(!isNaN(line) ? { start: line, end: line } : null);
 		}
-	}, [location.href]);
+	}, [location.searchStr]);
 
 	useEffect(() => {
 		if (lineHighlight && lineHighlightRef.current) {
@@ -179,22 +187,30 @@ export default function DocsPage() {
 	useEffect(() => {
 		if (selectedDoc && scrollContainerRef.current) {
 			const activeHash = decodeURIComponent(window.location.hash.replace(/^#/, ""));
-			if (activeHash) return;
+			const rawSearch = String(location.searchStr || "");
+			const params = new URLSearchParams(rawSearch.startsWith("?") ? rawSearch : `?${rawSearch}`);
+			if (activeHash || params.has("L")) return;
 			const saved = scrollPositions.current.get(selectedDoc.path) || 0;
 			requestAnimationFrame(() => { if (scrollContainerRef.current) scrollContainerRef.current.scrollTop = saved; });
 		}
-	}, [selectedDoc?.path]);
+	}, [location.searchStr, selectedDoc?.path]);
 
 	useEffect(() => {
 		if (!selectedDoc) return;
+		const id = decodeURIComponent(String(location.hash || "").replace(/^#/, ""));
+		if (id) {
+			window.setTimeout(() => scrollToHeading(id, "auto"), 80);
+		}
+	}, [location.hash, scrollToHeading, selectedDoc?.path]);
+
+	useEffect(() => {
 		const applyHash = () => {
 			const id = decodeURIComponent(window.location.hash.replace(/^#/, ""));
 			if (id) window.setTimeout(() => scrollToHeading(id, "auto"), 80);
 		};
-		applyHash();
 		window.addEventListener("hashchange", applyHash);
 		return () => window.removeEventListener("hashchange", applyHash);
-	}, [scrollToHeading, selectedDoc?.path]);
+	}, [scrollToHeading]);
 
 	useEffect(() => () => { if (scrollAnimationRef.current !== null) window.cancelAnimationFrame(scrollAnimationRef.current); }, []);
 

@@ -143,12 +143,14 @@ jobs:
             npm_pkg: knowns-win-x64
             ext: ".exe"
             cgo_enabled: "1"
+            msvc_arch: x64
           - runner: windows-11-arm
             goos: windows
             goarch: arm64
             npm_pkg: knowns-win-arm64
             ext: ".exe"
             cgo_enabled: "1"
+            msvc_arch: arm64
     runs-on: ${{ matrix.runner }}
     defaults:
       run:
@@ -161,6 +163,20 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: "1.26"
+
+      - name: Setup MSVC toolchain
+        if: matrix.goos == 'windows'
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.msvc_arch }}
+
+      - name: Prefer clang for Windows cgo builds
+        if: matrix.goos == 'windows'
+        run: |
+          {
+            echo "CC=clang"
+            echo "CXX=clang++"
+          } >> "$GITHUB_ENV"
 
       - name: Setup Bun
         if: matrix.goos == 'windows'

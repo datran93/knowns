@@ -367,8 +367,14 @@ func TestProxyOpenCodeInjectsRuntimeMemoryInAutoMode(t *testing.T) {
 	if gotHeader != projectRoot {
 		t.Fatalf("x-opencode-directory = %q, want %q", gotHeader, projectRoot)
 	}
-	if !strings.Contains(gotBody, "Knowns Memory Pack") || !strings.Contains(gotBody, "Runtime queue pattern") {
-		t.Fatalf("expected injected memory in body, got %s", gotBody)
+	if !strings.Contains(gotBody, "Knowns Guidance") || !strings.Contains(gotBody, "list_memories") || !strings.Contains(gotBody, "KNOWNS.md") {
+		t.Fatalf("expected lightweight injected memory guidance in body, got %s", gotBody)
+	}
+	if strings.Contains(gotBody, "Runtime queue pattern") {
+		t.Fatalf("did not expect individual memory titles in body, got %s", gotBody)
+	}
+	if strings.Contains(gotBody, "Keep runtime prompt hooks small and ranked by relevance.") {
+		t.Fatalf("did not expect full memory content in body, got %s", gotBody)
 	}
 	if rr.Header().Get(runtimememory.HeaderStatus) != runtimememory.StatusInjected {
 		t.Fatalf("status header = %q, want %q", rr.Header().Get(runtimememory.HeaderStatus), runtimememory.StatusInjected)
@@ -430,7 +436,7 @@ func TestProxyOpenCodeSkipsInjectionWhenNoRelevantMemoryExists(t *testing.T) {
 	if rr.Code != http.StatusOK {
 		t.Fatalf("status = %d, want %d", rr.Code, http.StatusOK)
 	}
-	if strings.Contains(gotBody, "Knowns Memory Pack") {
+	if strings.Contains(gotBody, "Knowns Guidance") {
 		t.Fatalf("expected no injection, got body %s", gotBody)
 	}
 	if rr.Header().Get(runtimememory.HeaderStatus) != runtimememory.StatusNone {
@@ -474,7 +480,7 @@ func TestProxyOpenCodeSupportsManualAndDebugModes(t *testing.T) {
 	manualReq.Header.Set(runtimememory.HeaderMode, runtimememory.ModeManual)
 	manualRR := httptest.NewRecorder()
 	s.proxyOpenCode(manualRR, manualReq)
-	if strings.Contains(gotBody, "Knowns Memory Pack") {
+	if strings.Contains(gotBody, "Knowns Guidance") {
 		t.Fatalf("manual mode should not inject without opt-in, got %s", gotBody)
 	}
 	if manualRR.Header().Get(runtimememory.HeaderStatus) != runtimememory.StatusCandidate {
@@ -486,7 +492,7 @@ func TestProxyOpenCodeSupportsManualAndDebugModes(t *testing.T) {
 	debugReq.Header.Set(runtimememory.HeaderMode, runtimememory.ModeDebug)
 	debugRR := httptest.NewRecorder()
 	s.proxyOpenCode(debugRR, debugReq)
-	if strings.Contains(gotBody, "Knowns Memory Pack") {
+	if strings.Contains(gotBody, "Knowns Guidance") {
 		t.Fatalf("debug mode should not inject, got %s", gotBody)
 	}
 	if debugRR.Header().Get(runtimememory.HeaderStatus) != runtimememory.StatusCandidate {
@@ -502,8 +508,8 @@ func TestProxyOpenCodeSupportsManualAndDebugModes(t *testing.T) {
 	manualInjectReq.Header.Set(runtimememory.HeaderInject, "true")
 	manualInjectRR := httptest.NewRecorder()
 	s.proxyOpenCode(manualInjectRR, manualInjectReq)
-	if !strings.Contains(gotBody, "Knowns Memory Pack") {
-		t.Fatalf("manual mode with inject should modify body, got %s", gotBody)
+	if !strings.Contains(gotBody, "Knowns Guidance") || !strings.Contains(gotBody, "list_memories") {
+		t.Fatalf("manual mode with inject should add lightweight memory guidance, got %s", gotBody)
 	}
 	if manualInjectRR.Header().Get(runtimememory.HeaderStatus) != runtimememory.StatusInjected {
 		t.Fatalf("manual inject status header = %q, want %q", manualInjectRR.Header().Get(runtimememory.HeaderStatus), runtimememory.StatusInjected)

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -222,7 +223,7 @@ func BestEffortIndexAll(store *storage.Store, projectRoot string) {
 			if len(edges) == 0 {
 				return nil
 			}
-			db := store.SemanticDB()
+			db := store.SemanticDBWritable()
 			if db == nil {
 				return nil
 			}
@@ -264,7 +265,7 @@ func BestEffortIndexAll(store *storage.Store, projectRoot string) {
 		if len(edges) == 0 {
 			return nil
 		}
-		db := store.SemanticDB()
+		db := store.SemanticDBWritable()
 		if db == nil {
 			return nil
 		}
@@ -280,6 +281,7 @@ func BestEffortIndexAll(store *storage.Store, projectRoot string) {
 func BestEffortIndexFile(store *storage.Store, docPath, absPath string) {
 	if enqueueRuntimeJob(store, runtimequeue.JobIndexFile, docPath, func() {
 		scheduleBestEffortCode(store, "index-file", docPath, func(embedder *Embedder, vecStore VectorStore) error {
+			projectRoot := filepath.Dir(store.Root)
 			syms, _, err := IndexFile(docPath, absPath)
 			if err != nil || len(syms) == 0 {
 				return err
@@ -297,12 +299,26 @@ func BestEffortIndexFile(store *storage.Store, docPath, absPath string) {
 				chunks = append(chunks, chunk)
 			}
 			vecStore.AddChunks(chunks)
-			return vecStore.Save()
+			if err := vecStore.Save(); err != nil {
+				return err
+			}
+
+			allSyms, allEdges, err := IndexAllFiles(projectRoot, false)
+			if err != nil || len(allSyms) == 0 {
+				return err
+			}
+			db := store.SemanticDBWritable()
+			if db == nil {
+				return nil
+			}
+			defer db.Close()
+			return SaveCodeEdges(db, ResolveCodeEdges(allSyms, allEdges))
 		})
 	}) {
 		return
 	}
 	scheduleBestEffortCode(store, "index-file", docPath, func(embedder *Embedder, vecStore VectorStore) error {
+		projectRoot := filepath.Dir(store.Root)
 		syms, _, err := IndexFile(docPath, absPath)
 		if err != nil || len(syms) == 0 {
 			return err
@@ -322,7 +338,20 @@ func BestEffortIndexFile(store *storage.Store, docPath, absPath string) {
 			chunks = append(chunks, chunk)
 		}
 		vecStore.AddChunks(chunks)
-		return vecStore.Save()
+		if err := vecStore.Save(); err != nil {
+			return err
+		}
+
+		allSyms, allEdges, err := IndexAllFiles(projectRoot, false)
+		if err != nil || len(allSyms) == 0 {
+			return err
+		}
+		db := store.SemanticDBWritable()
+		if db == nil {
+			return nil
+		}
+		defer db.Close()
+		return SaveCodeEdges(db, ResolveCodeEdges(allSyms, allEdges))
 	})
 }
 
@@ -330,17 +359,45 @@ func BestEffortIndexFile(store *storage.Store, docPath, absPath string) {
 func BestEffortRemoveFile(store *storage.Store, docPath string) {
 	if enqueueRuntimeJob(store, runtimequeue.JobRemoveFile, docPath, func() {
 		scheduleBestEffortCode(store, "remove-file", docPath, func(embedder *Embedder, vecStore VectorStore) error {
+			projectRoot := filepath.Dir(store.Root)
 			prefix := fmt.Sprintf("code::%s::", docPath)
 			vecStore.RemoveByPrefix(prefix)
-			return vecStore.Save()
+			if err := vecStore.Save(); err != nil {
+				return err
+			}
+
+			allSyms, allEdges, err := IndexAllFiles(projectRoot, false)
+			if err != nil {
+				return err
+			}
+			db := store.SemanticDBWritable()
+			if db == nil {
+				return nil
+			}
+			defer db.Close()
+			return SaveCodeEdges(db, ResolveCodeEdges(allSyms, allEdges))
 		})
 	}) {
 		return
 	}
 	scheduleBestEffortCode(store, "remove-file", docPath, func(embedder *Embedder, vecStore VectorStore) error {
+		projectRoot := filepath.Dir(store.Root)
 		prefix := fmt.Sprintf("code::%s::", docPath)
 		vecStore.RemoveByPrefix(prefix)
-		return vecStore.Save()
+		if err := vecStore.Save(); err != nil {
+			return err
+		}
+
+		allSyms, allEdges, err := IndexAllFiles(projectRoot, false)
+		if err != nil {
+			return err
+		}
+		db := store.SemanticDBWritable()
+		if db == nil {
+			return nil
+		}
+		defer db.Close()
+		return SaveCodeEdges(db, ResolveCodeEdges(allSyms, allEdges))
 	})
 }
 

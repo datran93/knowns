@@ -155,9 +155,9 @@ func RegisterDocTools(s *server.MCPServer, getStore func() *storage.Store) {
 					return errResult(err.Error())
 				}
 				result := map[string]any{
-					"path":  doc.Path,
-					"title": doc.Title,
-					"lines": lineLabel,
+					"path":    doc.Path,
+					"title":   doc.Title,
+					"lines":   lineLabel,
 					"content": lineContent,
 				}
 				out, _ := json.MarshalIndent(result, "", "  ")
@@ -302,6 +302,13 @@ func RegisterDocTools(s *server.MCPServer, getStore func() *storage.Store) {
 			mcp.WithString("section",
 				mcp.Description("Target section to replace by heading title or number (use with 'content')"),
 			),
+			mcp.WithString("newPath",
+				mcp.Description("Rename the document to a new path"),
+			),
+			mcp.WithArray("clear",
+				mcp.Description("Explicitly clear string fields like title, description, or content"),
+				mcp.WithStringItems(),
+			),
 		),
 		func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			store := getStore()
@@ -320,13 +327,18 @@ func RegisterDocTools(s *server.MCPServer, getStore func() *storage.Store) {
 			}
 
 			oldDoc := *doc // snapshot before changes
-
 			args := req.GetArguments()
+			clearFields := stringSetArg(args, "clear")
+			oldPath := doc.Path
 
-			if v, ok := stringArg(args, "title"); ok {
+			if clearFields["title"] {
+				doc.Title = ""
+			} else if v, ok := stringArg(args, "title"); ok && v != "" {
 				doc.Title = v
 			}
-			if v, ok := stringArg(args, "description"); ok {
+			if clearFields["description"] {
+				doc.Description = ""
+			} else if v, ok := stringArg(args, "description"); ok && v != "" {
 				doc.Description = v
 			}
 			if _, ok := args["tags"]; ok {
@@ -336,12 +348,17 @@ func RegisterDocTools(s *server.MCPServer, getStore func() *storage.Store) {
 					doc.Tags = []string{}
 				}
 			}
+			if v, ok := stringArg(args, "newPath"); ok && strings.TrimSpace(v) != "" {
+				doc.Path = strings.Trim(strings.TrimSuffix(v, ".md"), "/")
+			}
 
 			sectionTarget, hasSection := stringArg(args, "section")
 			newContent, hasContent := stringArg(args, "content")
 			appendContent, hasAppend := stringArg(args, "appendContent")
 
-			if hasSection && sectionTarget != "" && hasContent {
+			if clearFields["content"] {
+				doc.Content = ""
+			} else if hasSection && sectionTarget != "" && hasContent {
 				// Replace a specific section.
 				doc.Content = replaceSection(doc.Content, sectionTarget, newContent)
 			} else if hasContent && newContent != "" {
@@ -349,7 +366,6 @@ func RegisterDocTools(s *server.MCPServer, getStore func() *storage.Store) {
 				// Empty content update is ignored to preserve existing content.
 				doc.Content = newContent
 			}
-
 			if hasAppend && appendContent != "" {
 				if doc.Content == "" {
 					doc.Content = appendContent
@@ -363,7 +379,15 @@ func RegisterDocTools(s *server.MCPServer, getStore func() *storage.Store) {
 
 			doc.UpdatedAt = time.Now().UTC()
 
-			if err := store.Docs.Update(doc); err != nil {
+			if oldPath != doc.Path {
+				if err := store.Docs.Rename(oldPath, doc); err != nil {
+					return errFailed("rename doc", err)
+				}
+				if err := store.Docs.RewriteDocReferences(oldPath, doc.Path, store.Tasks, store.Memory); err != nil {
+					return errFailed("rewrite doc references", err)
+				}
+				search.BestEffortRemoveDoc(store, oldPath)
+			} else if err := store.Docs.Update(doc); err != nil {
 				return errFailed("update doc", err)
 			}
 
@@ -379,7 +403,11 @@ func RegisterDocTools(s *server.MCPServer, getStore func() *storage.Store) {
 			}
 
 			// Notify server for real-time UI updates.
-			go notifyDocUpdated(store, doc.Path)
+			if oldPath != doc.Path {
+				go notifyServer(store, "notify/refresh")
+			} else {
+				go notifyDocUpdated(store, doc.Path)
+			}
 
 			out, _ := json.MarshalIndent(doc, "", "  ")
 			return mcp.NewToolResultText(string(out)), nil

@@ -16,6 +16,34 @@ import (
 
 // RegisterSearchTools registers search and retrieval MCP tools.
 func RegisterSearchTools(s *server.MCPServer, getStore func() *storage.Store) {
+	// resolve
+	s.AddTool(
+		mcp.NewTool("resolve",
+			mcp.WithDescription("Resolve a semantic reference expression to a structured entity payload."),
+			mcp.WithString("ref",
+				mcp.Required(),
+				mcp.Description("Semantic reference expression, e.g. @doc/guides/setup{implements}"),
+			),
+		),
+		func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			store := getStore()
+			if store == nil {
+				return noProjectError()
+			}
+
+			raw, err := req.RequireString("ref")
+			if err != nil {
+				return errResult(err.Error())
+			}
+
+			out, err := resolveReferenceJSON(store, raw)
+			if err != nil {
+				return errResult(err.Error())
+			}
+			return mcp.NewToolResultText(out), nil
+		},
+	)
+
 	// search
 	s.AddTool(
 		mcp.NewTool("search",
@@ -295,6 +323,15 @@ func searchBoolArg(args map[string]interface{}, key string) bool {
 	}
 	b, ok := v.(bool)
 	return ok && b
+}
+
+func resolveReferenceJSON(store *storage.Store, raw string) (string, error) {
+	resolution, err := store.ResolveRawReference(raw)
+	if err != nil {
+		return "", err
+	}
+	out, _ := json.MarshalIndent(resolution, "", "  ")
+	return string(out), nil
 }
 
 func stringArrayArg(args map[string]interface{}, key string) []string {

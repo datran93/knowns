@@ -148,13 +148,23 @@ func TestValidateTask_BrokenInlineDocRef(t *testing.T) {
 func TestValidateTask_ValidInlineRefs(t *testing.T) {
 	task := &models.Task{
 		ID: "abc123", Title: "Test", Status: "todo", Priority: "medium",
-		Description: "See @task-xyz789 and @doc/guides/setup for details",
+		Description: "See @task-xyz789{blocked-by} and @doc/guides/setup{implements} for details",
 	}
 	taskIDs := map[string]bool{"abc123": true, "xyz789": true}
 	docPaths := map[string]bool{"guides/setup": true}
 	issues := validateTask(task, taskIDs, docPaths, nil, nil, Options{}, nil)
 	assertNoCode(t, issues, "BROKEN_TASK_REF")
 	assertNoCode(t, issues, "BROKEN_DOC_REF")
+}
+
+func TestValidateTask_InvalidSemanticRelation(t *testing.T) {
+	task := &models.Task{
+		ID: "abc123", Title: "Test", Status: "todo", Priority: "medium",
+		Description: "See @doc/guides/setup{owns} for details",
+	}
+	docPaths := map[string]bool{"guides/setup": true}
+	issues := validateTask(task, map[string]bool{"abc123": true}, docPaths, nil, nil, Options{}, nil)
+	assertHasCode(t, issues, "INVALID_SEMANTIC_REF_RELATION")
 }
 
 func TestValidateTask_SDD_NoAC(t *testing.T) {

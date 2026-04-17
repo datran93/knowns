@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/howznguyen/knowns/internal/models"
+	"github.com/howznguyen/knowns/internal/references"
 	"github.com/howznguyen/knowns/internal/storage"
 )
 
@@ -444,99 +445,88 @@ func (e *Engine) referenceContent(candidate models.RetrievalCandidate) string {
 
 func (e *Engine) extractReferenceCandidates(content string, source models.RetrievalCandidate, allowed map[string]bool) []models.RetrievalCandidate {
 	var expanded []models.RetrievalCandidate
-	for _, ref := range taskRefRE.FindAllStringSubmatch(content, -1) {
-		if !allowed["task"] {
+	for _, ref := range references.Extract(content) {
+		if !ref.ValidRelation || !allowed[ref.Type] {
 			continue
 		}
-		if task, err := e.store.Tasks.Get(ref[1]); err == nil {
-			expanded = append(expanded, models.RetrievalCandidate{
-				Type:             "task",
-				ID:               task.ID,
-				Title:            task.Title,
-				Score:            source.Score * 0.5,
-				Snippet:          truncateStr(task.Description, 150),
-				Citation:         models.Citation{Type: "task", ID: task.ID},
-				DirectMatch:      false,
-				ExpandedFrom:     []string{source.Type + ":" + source.ID},
-				Status:           task.Status,
-				Priority:         task.Priority,
-				SourcePreference: sourcePreference("task"),
-				Metadata: models.SourceRecord{
-					Type:      "task",
-					ID:        task.ID,
-					Status:    task.Status,
-					Priority:  task.Priority,
-					UpdatedAt: timePtr(task.UpdatedAt),
-				},
-			})
-		}
-	}
-	for _, ref := range docRefRE.FindAllStringSubmatch(content, -1) {
-		if !allowed["doc"] {
-			continue
-		}
-		if doc, err := e.store.Docs.Get(ref[1]); err == nil {
-			expanded = append(expanded, models.RetrievalCandidate{
-				Type:             "doc",
-				ID:               doc.Path,
-				Title:            doc.Title,
-				Path:             doc.Path,
-				Score:            source.Score * 0.5,
-				Snippet:          truncateStr(doc.Description, 150),
-				Citation:         models.Citation{Type: "doc", ID: doc.Path, Path: doc.Path},
-				DirectMatch:      false,
-				ExpandedFrom:     []string{source.Type + ":" + source.ID},
-				Tags:             doc.Tags,
-				SourcePreference: sourcePreference("doc"),
-				Metadata: models.SourceRecord{
-					Type:      "doc",
-					ID:        doc.Path,
-					Path:      doc.Path,
-					Tags:      doc.Tags,
-					UpdatedAt: timePtr(doc.UpdatedAt),
-					Imported:  doc.IsImported,
-					Source:    doc.ImportSource,
-				},
-			})
-		}
-	}
-	for _, ref := range memoryRefRE.FindAllStringSubmatch(content, -1) {
-		if !allowed["memory"] {
-			continue
-		}
-		if entry, err := e.store.Memory.Get(ref[1]); err == nil {
-			expanded = append(expanded, models.RetrievalCandidate{
-				Type:             "memory",
-				ID:               entry.ID,
-				Title:            entry.Title,
-				Score:            source.Score * 0.5,
-				Snippet:          truncateStr(entry.Content, 150),
-				Citation:         models.Citation{Type: "memory", ID: entry.ID},
-				DirectMatch:      false,
-				ExpandedFrom:     []string{source.Type + ":" + source.ID},
-				Tags:             entry.Tags,
-				MemoryLayer:      entry.Layer,
-				Category:         entry.Category,
-				SourcePreference: sourcePreference("memory"),
-				Metadata: models.SourceRecord{
-					Type:        "memory",
-					ID:          entry.ID,
-					Tags:        entry.Tags,
-					MemoryLayer: entry.Layer,
-					Category:    entry.Category,
-					UpdatedAt:   timePtr(entry.UpdatedAt),
-				},
-			})
+		switch ref.Type {
+		case "task":
+			if task, err := e.store.Tasks.Get(ref.Target); err == nil {
+				expanded = append(expanded, models.RetrievalCandidate{
+					Type:             "task",
+					ID:               task.ID,
+					Title:            task.Title,
+					Score:            source.Score * 0.5,
+					Snippet:          truncateStr(task.Description, 150),
+					Citation:         models.Citation{Type: "task", ID: task.ID},
+					DirectMatch:      false,
+					ExpandedFrom:     []string{source.Type + ":" + source.ID},
+					Status:           task.Status,
+					Priority:         task.Priority,
+					SourcePreference: sourcePreference("task"),
+					Metadata: models.SourceRecord{
+						Type:      "task",
+						ID:        task.ID,
+						Status:    task.Status,
+						Priority:  task.Priority,
+						UpdatedAt: timePtr(task.UpdatedAt),
+					},
+				})
+			}
+		case "doc":
+			if doc, err := e.store.Docs.Get(ref.Target); err == nil {
+				expanded = append(expanded, models.RetrievalCandidate{
+					Type:             "doc",
+					ID:               doc.Path,
+					Title:            doc.Title,
+					Path:             doc.Path,
+					Score:            source.Score * 0.5,
+					Snippet:          truncateStr(doc.Description, 150),
+					Citation:         models.Citation{Type: "doc", ID: doc.Path, Path: doc.Path},
+					DirectMatch:      false,
+					ExpandedFrom:     []string{source.Type + ":" + source.ID},
+					Tags:             doc.Tags,
+					SourcePreference: sourcePreference("doc"),
+					Metadata: models.SourceRecord{
+						Type:      "doc",
+						ID:        doc.Path,
+						Path:      doc.Path,
+						Tags:      doc.Tags,
+						UpdatedAt: timePtr(doc.UpdatedAt),
+						Imported:  doc.IsImported,
+						Source:    doc.ImportSource,
+					},
+				})
+			}
+		case "memory":
+			if entry, err := e.store.Memory.Get(ref.Target); err == nil {
+				expanded = append(expanded, models.RetrievalCandidate{
+					Type:             "memory",
+					ID:               entry.ID,
+					Title:            entry.Title,
+					Score:            source.Score * 0.5,
+					Snippet:          truncateStr(entry.Content, 150),
+					Citation:         models.Citation{Type: "memory", ID: entry.ID},
+					DirectMatch:      false,
+					ExpandedFrom:     []string{source.Type + ":" + source.ID},
+					Tags:             entry.Tags,
+					MemoryLayer:      entry.Layer,
+					Category:         entry.Category,
+					SourcePreference: sourcePreference("memory"),
+					Metadata: models.SourceRecord{
+						Type:        "memory",
+						ID:          entry.ID,
+						Tags:        entry.Tags,
+						MemoryLayer: entry.Layer,
+						Category:    entry.Category,
+						UpdatedAt:   timePtr(entry.UpdatedAt),
+					},
+				})
+			}
 		}
 	}
 	return expanded
 }
-
-var (
-	taskRefRE   = regexp.MustCompile(`@task-([a-z0-9\.]+)`)
-	docRefRE    = regexp.MustCompile(`@doc/([^\s\)]+)`)
-	memoryRefRE = regexp.MustCompile(`@memory-([a-z0-9]+)`)
-)
 
 // ─── keyword search (existing logic) ─────────────────────────────────
 

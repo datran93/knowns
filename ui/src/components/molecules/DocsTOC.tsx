@@ -68,7 +68,7 @@ function parseHeadings(markdown: string): TOCItem[] {
 				.trim();
 
 			const slug = slugifyHeading(rawText);
-			items.push({ id: slug ? `${number}-${slug}` : number, number, text: rawText, level });
+			items.push({ id: slug || number, number, text: rawText, level });
 		}
 	}
 

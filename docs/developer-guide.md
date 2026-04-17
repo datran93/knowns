@@ -70,7 +70,7 @@ tests/                   End-to-end and integration coverage
 - `knowns retrieve <query>` retrieves ranked context with citations
 - `knowns search --reindex` rebuilds the index (routes through runtime queue if daemon is running)
 - `knowns search --status-check` shows semantic-search status
-- `knowns search --install-runtime` downloads ONNX Runtime
+- `knowns search --install-runtime` downloads ONNX Runtime; install scripts invoke it automatically after binary install
 - `knowns search --setup` enables semantic search after ONNX and model are ready
 - Semantic search requires ONNX Runtime (`~/.knowns/lib/`) and an embedding model (`~/.knowns/models/`)
 - Search index is stored in `.knowns/.search/` as a SQLite database

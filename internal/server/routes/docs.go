@@ -205,6 +205,7 @@ func (dr *DocRoutes) update(w http.ResponseWriter, r *http.Request) {
 		Description *string   `json:"description"`
 		Content     *string   `json:"content"`
 		Tags        *[]string `json:"tags"`
+		Path        *string   `json:"path"`
 	}
 	if err := decodeJSON(r, &payload); err != nil {
 		respondError(w, http.StatusBadRequest, "invalid request body: "+err.Error())
@@ -214,6 +215,7 @@ func (dr *DocRoutes) update(w http.ResponseWriter, r *http.Request) {
 	doc := oldDoc
 	doc.Path = path
 	doc.UpdatedAt = time.Now().UTC()
+	oldPath := path
 
 	if payload.Title != nil {
 		doc.Title = *payload.Title
@@ -227,12 +229,25 @@ func (dr *DocRoutes) update(w http.ResponseWriter, r *http.Request) {
 	if payload.Tags != nil {
 		doc.Tags = *payload.Tags
 	}
+	if payload.Path != nil {
+		doc.Path = strings.Trim(strings.TrimSuffix(*payload.Path, ".md"), "/")
+	}
 
 	if doc.Tags == nil {
 		doc.Tags = []string{}
 	}
 
-	if err := dr.getStore().Docs.Update(&doc); err != nil {
+	if oldPath != doc.Path {
+		if err := dr.getStore().Docs.Rename(oldPath, &doc); err != nil {
+			respondError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		if err := dr.getStore().Docs.RewriteDocReferences(oldPath, doc.Path, dr.getStore().Tasks, dr.getStore().Memory); err != nil {
+			respondError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		search.BestEffortRemoveDoc(dr.getStore(), oldPath)
+	} else if err := dr.getStore().Docs.Update(&doc); err != nil {
 		respondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -248,7 +263,11 @@ func (dr *DocRoutes) update(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	dr.sse.Broadcast(SSEEvent{Type: "docs:updated", Data: map[string]string{"path": path}})
+	if oldPath != doc.Path {
+		dr.sse.Broadcast(SSEEvent{Type: "docs:updated", Data: map[string]string{"path": doc.Path, "oldPath": oldPath}})
+	} else {
+		dr.sse.Broadcast(SSEEvent{Type: "docs:updated", Data: map[string]string{"path": path}})
+	}
 	respondJSON(w, http.StatusOK, toDocResponse(&doc))
 }
 

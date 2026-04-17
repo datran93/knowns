@@ -12,6 +12,11 @@ import {
 	countCodeKinds,
 	getCodeKindColor,
 	getCodeKindLabel,
+	isKnowledgeSemanticEdge,
+	KNOWLEDGE_SEMANTIC_EDGE_ORDER,
+	knowledgeSemanticEdgeFilterKey,
+	knowledgeSemanticEdgeColors,
+	knowledgeSemanticEdgeLabels,
 	type CodeFilterState,
 } from "./constants";
 import type { GraphData } from "@/ui/api/client";
@@ -32,10 +37,12 @@ function countKnowledgeNodeTypes(data: GraphData | null) {
 }
 
 function countKnowledgeEdgeTypes(data: GraphData | null) {
-	const counts = { parent: 0, spec: 0, mention: 0 };
+	const counts: Record<string, number> = { parent: 0, spec: 0 };
+	for (const kind of KNOWLEDGE_SEMANTIC_EDGE_ORDER) counts[kind] = 0;
 	if (!data) return counts;
 	for (const edge of data.edges) {
-		if (edge.type === "parent" || edge.type === "spec" || edge.type === "mention") counts[edge.type] += 1;
+		if (edge.type === "parent" || edge.type === "spec") counts[edge.type] += 1;
+		else if (isKnowledgeSemanticEdge(edge.type)) counts[edge.type] += 1;
 	}
 	return counts;
 }
@@ -43,6 +50,21 @@ function countKnowledgeEdgeTypes(data: GraphData | null) {
 export function GraphLegend({ data, filters, onToggleFilter }: GraphLegendProps) {
 	const nodeCounts = countKnowledgeNodeTypes(data);
 	const edgeCounts = countKnowledgeEdgeTypes(data);
+	const semanticLegendItems = KNOWLEDGE_SEMANTIC_EDGE_ORDER
+		.map((kind, index) => ({
+			kind,
+			index,
+			count: edgeCounts[kind],
+			filterKey: knowledgeSemanticEdgeFilterKey(kind),
+		}))
+		.sort((a, b) => {
+			const aHasCount = a.count > 0 ? 1 : 0;
+			const bHasCount = b.count > 0 ? 1 : 0;
+			if (aHasCount !== bHasCount) return bHasCount - aHasCount;
+			if (a.count !== b.count) return b.count - a.count;
+			return a.index - b.index;
+		});
+
 	return (
 		<div className="absolute bottom-3 left-3 z-10 flex flex-col gap-1.5 rounded-lg border bg-background/90 backdrop-blur-sm p-2.5 text-xs shadow-sm">
 			<div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Node types</div>
@@ -75,7 +97,6 @@ export function GraphLegend({ data, filters, onToggleFilter }: GraphLegendProps)
 				{[
 					{ key: "edgeParent" as const, label: "Parent", active: filters.edgeParent, count: edgeCounts.parent, className: "border-gray-400" },
 					{ key: "edgeSpec" as const, label: "Spec", active: filters.edgeSpec, count: edgeCounts.spec, className: "border-indigo-500" },
-					{ key: "edgeMention" as const, label: "Mention", active: filters.edgeMention, count: edgeCounts.mention, className: "border-gray-400 border-dotted" },
 				].map((item) => (
 					<button
 						key={item.key}
@@ -93,6 +114,31 @@ export function GraphLegend({ data, filters, onToggleFilter }: GraphLegendProps)
 						<span className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">{item.count}</span>
 					</button>
 				))}
+			</div>
+			<div className="mt-1 space-y-1 border-t border-border pt-1.5">
+				<div className="px-2 pb-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80">
+					Semantic Relations
+				</div>
+				{semanticLegendItems.map(({ kind, count, filterKey }) => {
+					const active = filters[filterKey];
+					return (
+						<button
+							key={kind}
+							type="button"
+							onClick={() => onToggleFilter(filterKey)}
+							className={cn(
+								"flex w-full items-center justify-between gap-3 rounded-md border px-2 py-1 text-left transition-colors",
+								active ? "border-border bg-background/80" : "border-transparent opacity-45 hover:opacity-80",
+							)}
+						>
+							<span className="flex items-center gap-1.5">
+								<span className="w-4 border-t-2 border-dashed" style={{ borderColor: knowledgeSemanticEdgeColors[kind] }} />
+								<span className="text-muted-foreground">{knowledgeSemanticEdgeLabels[kind]}</span>
+							</span>
+							<span className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">{count}</span>
+						</button>
+					);
+				})}
 			</div>
 		</div>
 	);

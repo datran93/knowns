@@ -61,6 +61,18 @@ func TestBuildSelectsRelevantProjectAndGlobalMemories(t *testing.T) {
 	if pack.Serialized == "" {
 		t.Fatal("expected serialized payload")
 	}
+	if !strings.Contains(pack.Serialized, "Knowns Guidance") {
+		t.Fatalf("expected guidance header, got %q", pack.Serialized)
+	}
+	if !strings.Contains(pack.Serialized, "list_memories") {
+		t.Fatalf("expected list_memories hint, got %q", pack.Serialized)
+	}
+	if strings.Contains(pack.Serialized, entries[0].Title) || strings.Contains(pack.Serialized, entries[1].Title) {
+		t.Fatalf("did not expect memory titles in serialized payload, got %q", pack.Serialized)
+	}
+	if strings.Contains(pack.Serialized, entries[0].Content) || strings.Contains(pack.Serialized, entries[1].Content) {
+		t.Fatalf("did not expect full memory content in serialized payload, got %q", pack.Serialized)
+	}
 }
 
 func TestBuildReturnsNoneWhenNoRelevantMemoryExists(t *testing.T) {
@@ -178,8 +190,14 @@ func TestBuildSessionBaselineIncludesKNOWNSSummary(t *testing.T) {
 	if pack.Status != StatusCandidate {
 		t.Fatalf("status = %q, want %q", pack.Status, StatusCandidate)
 	}
-	if !strings.Contains(pack.Serialized, "Repo Guidance (KNOWNS.md summary)") {
-		t.Fatalf("expected KNOWNS summary in baseline pack, got %q", pack.Serialized)
+	if !strings.Contains(pack.Serialized, "Read `KNOWNS.md` in the repository root") {
+		t.Fatalf("expected KNOWNS instruction in baseline pack, got %q", pack.Serialized)
+	}
+	if !strings.Contains(pack.Serialized, "list_memories") {
+		t.Fatalf("expected MCP memory hint in baseline pack, got %q", pack.Serialized)
+	}
+	if strings.Contains(pack.Serialized, "Canonical guidance") {
+		t.Fatalf("did not expect inlined KNOWNS contents, got %q", pack.Serialized)
 	}
 }
 
@@ -291,6 +309,7 @@ func TestBuildUsesHybridCandidatesWhenAvailable(t *testing.T) {
 }
 
 func TestBuildFallsBackWhenHybridUnavailable(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
 	t.Cleanup(func() {
 		lookupHybridCandidates = defaultHybridCandidates
 	})
@@ -383,7 +402,7 @@ func TestBuildKeepsEmptyPackCleanWhenHybridReturnsNoUsableCandidates(t *testing.
 	if pack.Serialized != "" {
 		t.Fatalf("expected empty serialized payload, got %q", pack.Serialized)
 	}
-	if strings.Contains(pack.Serialized, "Knowns Memory Pack") {
+	if strings.Contains(pack.Serialized, "Knowns Guidance") {
 		t.Fatalf("expected no serialized memory pack for empty result")
 	}
 }

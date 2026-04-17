@@ -237,6 +237,143 @@ func TestMCP_DocumentWorkflow(t *testing.T) {
 	})
 }
 
+func TestMCP_UpdateIgnoresEmptyStringsAndSupportsClear(t *testing.T) {
+	client, _ := setupMCPTest(t)
+	assertCleared := func(t *testing.T, result map[string]any, key string) {
+		t.Helper()
+		if value, ok := result[key]; ok && value != "" {
+			t.Fatalf("expected %s to be cleared, got: %#v", key, value)
+		}
+	}
+
+	t.Run("task", func(t *testing.T) {
+		created := client.CallTool("create_task", map[string]any{
+			"title":       "Task title",
+			"description": "Task description",
+			"assignee":    "@me",
+		})
+		taskID, _ := created["id"].(string)
+		if taskID == "" {
+			t.Fatalf("missing task id: %v", created)
+		}
+
+		seeded := client.CallTool("update_task", map[string]any{
+			"taskId": taskID,
+			"plan":   "Initial plan",
+			"notes":  "Initial notes",
+		})
+		if seeded["implementationPlan"] != "Initial plan" || seeded["implementationNotes"] != "Initial notes" {
+			t.Fatalf("failed to seed task plan/notes: %+v", seeded)
+		}
+
+		unchanged := client.CallTool("update_task", map[string]any{
+			"taskId":      taskID,
+			"title":       "",
+			"description": "",
+			"assignee":    "",
+			"plan":        "",
+			"notes":       "",
+		})
+		if unchanged["title"] != "Task title" {
+			t.Fatalf("title changed on empty string update: %v", unchanged["title"])
+		}
+		if unchanged["description"] != "Task description" {
+			t.Fatalf("description changed on empty string update: %v", unchanged["description"])
+		}
+		if unchanged["assignee"] != "@me" {
+			t.Fatalf("assignee changed on empty string update: %v", unchanged["assignee"])
+		}
+		if unchanged["implementationPlan"] != "Initial plan" {
+			t.Fatalf("plan changed on empty string update: %v", unchanged["implementationPlan"])
+		}
+		if unchanged["implementationNotes"] != "Initial notes" {
+			t.Fatalf("notes changed on empty string update: %v", unchanged["implementationNotes"])
+		}
+
+		cleared := client.CallTool("update_task", map[string]any{
+			"taskId": taskID,
+			"clear":  []string{"title", "description", "assignee", "plan", "notes", "spec"},
+		})
+		assertCleared(t, cleared, "title")
+		assertCleared(t, cleared, "description")
+		assertCleared(t, cleared, "assignee")
+		assertCleared(t, cleared, "implementationPlan")
+		assertCleared(t, cleared, "implementationNotes")
+	})
+
+	t.Run("doc", func(t *testing.T) {
+		created := client.CallTool("create_doc", map[string]any{
+			"title":       "Doc keep values",
+			"description": "Doc description",
+			"content":     "Original content",
+		})
+		docPath, _ := created["path"].(string)
+		if docPath == "" {
+			t.Fatalf("missing doc path: %v", created)
+		}
+
+		unchanged := client.CallTool("update_doc", map[string]any{
+			"path":        docPath,
+			"title":       "",
+			"description": "",
+			"content":     "",
+		})
+		if unchanged["title"] != "Doc keep values" {
+			t.Fatalf("title changed on empty string update: %v", unchanged["title"])
+		}
+		if unchanged["description"] != "Doc description" {
+			t.Fatalf("description changed on empty string update: %v", unchanged["description"])
+		}
+		if unchanged["content"] != "Original content" {
+			t.Fatalf("content changed on empty string update: %v", unchanged["content"])
+		}
+
+		cleared := client.CallTool("update_doc", map[string]any{
+			"path":  docPath,
+			"clear": []string{"title", "description", "content"},
+		})
+		assertCleared(t, cleared, "title")
+		assertCleared(t, cleared, "description")
+		assertCleared(t, cleared, "content")
+	})
+
+	t.Run("memory", func(t *testing.T) {
+		created := client.CallTool("add_memory", map[string]any{
+			"title":    "Memory title",
+			"content":  "Memory content",
+			"category": "pattern",
+		})
+		memoryID, _ := created["id"].(string)
+		if memoryID == "" {
+			t.Fatalf("missing memory id: %v", created)
+		}
+
+		unchanged := client.CallTool("update_memory", map[string]any{
+			"id":       memoryID,
+			"title":    "",
+			"content":  "",
+			"category": "",
+		})
+		if unchanged["title"] != "Memory title" {
+			t.Fatalf("title changed on empty string update: %v", unchanged["title"])
+		}
+		if unchanged["content"] != "Memory content" {
+			t.Fatalf("content changed on empty string update: %v", unchanged["content"])
+		}
+		if unchanged["category"] != "pattern" {
+			t.Fatalf("category changed on empty string update: %v", unchanged["category"])
+		}
+
+		cleared := client.CallTool("update_memory", map[string]any{
+			"id":    memoryID,
+			"clear": []string{"title", "content", "category"},
+		})
+		assertCleared(t, cleared, "title")
+		assertCleared(t, cleared, "content")
+		assertCleared(t, cleared, "category")
+	})
+}
+
 // TestMCP_SearchWorkflow tests keyword search and list_tasks by label.
 func TestMCP_SearchWorkflow(t *testing.T) {
 	client, _ := setupMCPTest(t)

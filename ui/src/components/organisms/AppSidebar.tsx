@@ -84,7 +84,7 @@ const topNavItems = [
 	},
 	{
 		id: "memory",
-		label: "Memory",
+		label: "Memories",
 		icon: Brain,
 		to: "/memory",
 	},

@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/howznguyen/knowns/internal/references"
 	"github.com/howznguyen/knowns/internal/storage"
 )
 
@@ -49,10 +50,7 @@ type GraphEdge struct {
 
 // Reference-detection regexes (same as validate package).
 var (
-	graphTaskRefRE   = regexp.MustCompile(`@task-([a-z0-9]+)`)
-	graphDocRefRE    = regexp.MustCompile(`@doc/([^\s\)]+)`)
-	graphMemoryRefRE = regexp.MustCompile(`@memory-([a-z0-9]+)`)
-	graphCodeRefRE   = regexp.MustCompile(`@code/([^\s\)]+)`)
+	graphCodeRefRE = regexp.MustCompile(`@code/([^\s\)]+)`)
 )
 
 // graph returns the knowledge graph of tasks, docs, and memories.
@@ -71,13 +69,12 @@ func (gr *GraphRoutes) graph(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Build lookup sets for validating references.
+	// Build lookup sets for fixed graph nodes.
 	taskIDs := make(map[string]bool, len(tasks))
 	docPaths := make(map[string]bool, len(docs))
 
 	// Load memory entries.
 	memories, _ := gr.getStore().Memory.List("")
-	memoryIDs := make(map[string]bool, len(memories))
 
 	var nodes []GraphNode
 	var edges []GraphEdge
@@ -114,7 +111,6 @@ func (gr *GraphRoutes) graph(w http.ResponseWriter, r *http.Request) {
 
 	// --- Memory nodes ---
 	for _, m := range memories {
-		memoryIDs[m.ID] = true
 		nodes = append(nodes, GraphNode{
 			ID:    "memory:" + m.ID,
 			Type:  "memory",
@@ -143,19 +139,19 @@ func (gr *GraphRoutes) graph(w http.ResponseWriter, r *http.Request) {
 
 		// Cross-references in content
 		content := strings.Join([]string{t.Description, t.ImplementationPlan, t.ImplementationNotes}, "\n")
-		edges = append(edges, extractMentions(src, content, taskIDs, docPaths, memoryIDs)...)
+		edges = append(edges, gr.extractMentions(src, content)...)
 	}
 
 	// --- Edges from doc content ---
 	for _, d := range docs {
 		src := "doc:" + d.Path
-		edges = append(edges, extractMentions(src, d.Content, taskIDs, docPaths, memoryIDs)...)
+		edges = append(edges, gr.extractMentions(src, d.Content)...)
 	}
 
 	// --- Edges from memory content ---
 	for _, m := range memories {
 		src := "memory:" + m.ID
-		edges = append(edges, extractMentions(src, m.Content, taskIDs, docPaths, memoryIDs)...)
+		edges = append(edges, gr.extractMentions(src, m.Content)...)
 	}
 
 	// Ensure non-nil slices for JSON.
@@ -194,33 +190,42 @@ func (gr *GraphRoutes) codeGraph(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// extractMentions scans content for @task-<id> and @doc/<path> references and
-// returns edges from src to each valid target.
-func extractMentions(src, content string, taskIDs map[string]bool, docPaths map[string]bool, memoryIDs map[string]bool) []GraphEdge {
+// extractMentions scans content for semantic refs and returns edges from src to each resolved target.
+func (gr *GraphRoutes) extractMentions(src, content string) []GraphEdge {
 	var edges []GraphEdge
 
-	for _, m := range graphTaskRefRE.FindAllStringSubmatch(content, -1) {
-		id := m[1]
-		target := "task:" + id
-		if taskIDs[id] && target != src {
-			edges = append(edges, GraphEdge{Source: src, Target: target, Type: "mention"})
+	for _, ref := range references.Extract(content) {
+		if !ref.ValidRelation {
+			continue
 		}
-	}
+		resolution := gr.getStore().ResolveReference(ref)
+		if !resolution.Found || resolution.Entity == nil {
+			continue
+		}
 
-	for _, m := range graphDocRefRE.FindAllStringSubmatch(content, -1) {
-		path := m[1]
-		target := "doc:" + path
-		if docPaths[path] && target != src {
-			edges = append(edges, GraphEdge{Source: src, Target: target, Type: "mention"})
+		var target string
+		switch resolution.Entity.Type {
+		case "task":
+			target = "task:" + resolution.Entity.ID
+		case "doc":
+			target = "doc:" + resolution.Entity.Path
+		case "memory":
+			target = "memory:" + resolution.Entity.ID
+		default:
+			continue
 		}
-	}
-
-	for _, m := range graphMemoryRefRE.FindAllStringSubmatch(content, -1) {
-		id := m[1]
-		target := "memory:" + id
-		if memoryIDs[id] && target != src {
-			edges = append(edges, GraphEdge{Source: src, Target: target, Type: "mention"})
+		if target == src {
+			continue
 		}
+		edges = append(edges, GraphEdge{
+			Source: src,
+			Target: target,
+			Type:   ref.Relation,
+			Data: map[string]interface{}{
+				"raw":              ref.Raw,
+				"explicitRelation": ref.ExplicitRelation,
+			},
+		})
 	}
 
 	return edges

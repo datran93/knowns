@@ -141,6 +141,21 @@ try {
         Write-Host "  + Added $InstallDir to PATH" -ForegroundColor Green
     }
 
+    # Install ONNX Runtime for semantic search
+    Write-Host ""
+    Write-Host "  . Installing ONNX Runtime for semantic search..." -NoNewline -ForegroundColor DarkGray
+    try {
+        & (Join-Path $InstallDir $Binary) search --install-runtime
+        if ($LASTEXITCODE -ne 0) {
+            throw "knowns search --install-runtime exited with code $LASTEXITCODE"
+        }
+        Write-Host "`r  + Installed ONNX Runtime          " -ForegroundColor Green
+    } catch {
+        Write-Host "`r  - ONNX Runtime install failed     " -ForegroundColor Yellow
+        Write-Host "    Semantic search will stay unavailable until you run:" -ForegroundColor Yellow
+        Write-Host "    knowns search --install-runtime" -ForegroundColor Yellow
+    }
+
     # Verify
     Write-Host ""
     try {

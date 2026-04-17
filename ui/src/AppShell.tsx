@@ -114,7 +114,7 @@ export default function AppShell() {
 			docs: "Docs",
 			graph: "Graph",
 			"code-graph": "Code Graph",
-			memory: "Memory",
+			memory: "Memories",
 			imports: "Imports",
 			chat: "Chat",
 			config: "Settings",

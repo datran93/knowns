@@ -58,7 +58,7 @@ func RegisterMemoryTools(s *server.MCPServer, getStore func() *storage.Store) {
 			if layer == "" {
 				layer = models.MemoryLayerProject
 			}
-			if !models.ValidMemoryLayer(layer) || layer == models.MemoryLayerWorking {
+			if !models.ValidPersistentMemoryLayer(layer) {
 				return errResult("layer must be 'project' or 'global' (use add_working_memory for working layer)")
 			}
 
@@ -91,7 +91,7 @@ func RegisterMemoryTools(s *server.MCPServer, getStore func() *storage.Store) {
 	// ── get_memory ──────────────────────────────────────────────────────
 	s.AddTool(
 		mcp.NewTool("get_memory",
-			mcp.WithDescription("Get a memory entry by ID."),
+			mcp.WithDescription("Get a persistent memory entry by ID."),
 			mcp.WithString("id",
 				mcp.Required(),
 				mcp.Description("Memory entry ID"),
@@ -109,8 +109,8 @@ func RegisterMemoryTools(s *server.MCPServer, getStore func() *storage.Store) {
 			}
 
 			entry, err := store.Memory.Get(id)
-			if err != nil {
-				return errNotFound("memory", err)
+			if err != nil || !models.ValidPersistentMemoryLayer(entry.Layer) {
+				return errNotFound("memory", fmt.Errorf("memory %q not found", id))
 			}
 
 			out, _ := json.MarshalIndent(entry, "", "  ")
@@ -121,9 +121,9 @@ func RegisterMemoryTools(s *server.MCPServer, getStore func() *storage.Store) {
 	// ── list_memories ───────────────────────────────────────────────────
 	s.AddTool(
 		mcp.NewTool("list_memories",
-			mcp.WithDescription("List memory entries with optional filters."),
+			mcp.WithDescription("List persistent memory entries with optional filters."),
 			mcp.WithString("layer",
-				mcp.Description("Filter by layer: working, project, global"),
+				mcp.Description("Filter by layer: project, global"),
 			),
 			mcp.WithString("category",
 				mcp.Description("Filter by category"),
@@ -143,12 +143,15 @@ func RegisterMemoryTools(s *server.MCPServer, getStore func() *storage.Store) {
 			category, _ := stringArg(args, "category")
 			tag, _ := stringArg(args, "tag")
 
-			entries, err := store.Memory.List(layer)
+			if layer != "" && !models.ValidPersistentMemoryLayer(layer) {
+				return errResult("layer must be 'project' or 'global' (use list_working_memories for working layer)")
+			}
+
+			entries, err := store.Memory.ListPersistent(layer)
 			if err != nil {
 				return errFailed("list memories", err)
 			}
 
-			// Apply filters.
 			if category != "" {
 				filtered := entries[:0]
 				for _, e := range entries {
@@ -171,7 +174,6 @@ func RegisterMemoryTools(s *server.MCPServer, getStore func() *storage.Store) {
 				entries = filtered
 			}
 
-			// Build summary (don't include full content in list).
 			type memorySummary struct {
 				ID        string   `json:"id"`
 				Title     string   `json:"title"`
@@ -202,7 +204,7 @@ func RegisterMemoryTools(s *server.MCPServer, getStore func() *storage.Store) {
 	// ── update_memory ───────────────────────────────────────────────────
 	s.AddTool(
 		mcp.NewTool("update_memory",
-			mcp.WithDescription("Update a memory entry."),
+			mcp.WithDescription("Update a persistent memory entry."),
 			mcp.WithString("id",
 				mcp.Required(),
 				mcp.Description("Memory entry ID"),
@@ -220,6 +222,10 @@ func RegisterMemoryTools(s *server.MCPServer, getStore func() *storage.Store) {
 				mcp.Description("New tags (replaces existing)"),
 				mcp.WithStringItems(),
 			),
+			mcp.WithArray("clear",
+				mcp.Description("Explicitly clear string fields like title, content, or category"),
+				mcp.WithStringItems(),
+			),
 		),
 		func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			store := getStore()
@@ -233,18 +239,25 @@ func RegisterMemoryTools(s *server.MCPServer, getStore func() *storage.Store) {
 			}
 
 			entry, err := store.Memory.Get(id)
-			if err != nil {
-				return errNotFound("memory", err)
+			if err != nil || !models.ValidPersistentMemoryLayer(entry.Layer) {
+				return errNotFound("memory", fmt.Errorf("memory %q not found", id))
 			}
 
 			args := req.GetArguments()
-			if v, ok := stringArg(args, "title"); ok {
+			clearFields := stringSetArg(args, "clear")
+			if clearFields["title"] {
+				entry.Title = ""
+			} else if v, ok := stringArg(args, "title"); ok && v != "" {
 				entry.Title = v
 			}
-			if v, ok := stringArg(args, "content"); ok {
+			if clearFields["content"] {
+				entry.Content = ""
+			} else if v, ok := stringArg(args, "content"); ok && v != "" {
 				entry.Content = v
 			}
-			if v, ok := stringArg(args, "category"); ok {
+			if clearFields["category"] {
+				entry.Category = ""
+			} else if v, ok := stringArg(args, "category"); ok && v != "" {
 				entry.Category = v
 			}
 			if v, ok := stringSliceArg(args, "tags"); ok {
@@ -268,7 +281,7 @@ func RegisterMemoryTools(s *server.MCPServer, getStore func() *storage.Store) {
 	// ── delete_memory ───────────────────────────────────────────────────
 	s.AddTool(
 		mcp.NewTool("delete_memory",
-			mcp.WithDescription("Delete a memory entry. Runs in dry-run mode by default."),
+			mcp.WithDescription("Delete a persistent memory entry. Runs in dry-run mode by default."),
 			mcp.WithString("id",
 				mcp.Required(),
 				mcp.Description("Memory entry ID"),
@@ -289,8 +302,8 @@ func RegisterMemoryTools(s *server.MCPServer, getStore func() *storage.Store) {
 			}
 
 			entry, err := store.Memory.Get(id)
-			if err != nil {
-				return errNotFound("memory", err)
+			if err != nil || !models.ValidPersistentMemoryLayer(entry.Layer) {
+				return errNotFound("memory", fmt.Errorf("memory %q not found", id))
 			}
 
 			args := req.GetArguments()
@@ -329,7 +342,7 @@ func RegisterMemoryTools(s *server.MCPServer, getStore func() *storage.Store) {
 	// ── promote_memory ──────────────────────────────────────────────────
 	s.AddTool(
 		mcp.NewTool("promote_memory",
-			mcp.WithDescription("Promote a memory entry up one layer (working→project→global)."),
+			mcp.WithDescription("Promote a persistent memory entry up one layer (project→global)."),
 			mcp.WithString("id",
 				mcp.Required(),
 				mcp.Description("Memory entry ID"),
@@ -346,7 +359,7 @@ func RegisterMemoryTools(s *server.MCPServer, getStore func() *storage.Store) {
 				return errResult("id is required")
 			}
 
-			entry, err := store.Memory.Promote(id)
+			entry, err := store.Memory.PromotePersistent(id)
 			if err != nil {
 				return errResult(err.Error())
 			}
@@ -362,7 +375,7 @@ func RegisterMemoryTools(s *server.MCPServer, getStore func() *storage.Store) {
 	// ── demote_memory ───────────────────────────────────────────────────
 	s.AddTool(
 		mcp.NewTool("demote_memory",
-			mcp.WithDescription("Demote a memory entry down one layer (global→project→working)."),
+			mcp.WithDescription("Demote a persistent memory entry down one layer (global→project)."),
 			mcp.WithString("id",
 				mcp.Required(),
 				mcp.Description("Memory entry ID"),
@@ -379,7 +392,7 @@ func RegisterMemoryTools(s *server.MCPServer, getStore func() *storage.Store) {
 				return errResult("id is required")
 			}
 
-			entry, err := store.Memory.Demote(id)
+			entry, err := store.Memory.DemotePersistent(id)
 			if err != nil {
 				return errResult(err.Error())
 			}

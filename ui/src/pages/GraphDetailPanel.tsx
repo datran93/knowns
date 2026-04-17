@@ -39,6 +39,12 @@ const edgeTypeLabels: Record<GraphEdge["type"], string> = {
 	imports: "Imports",
 	contains: "Contains",
 	instantiates: "Creates",
+	implements: "Implements",
+	references: "References",
+	"blocked-by": "Blocked By",
+	related: "Related",
+	depends: "Depends",
+	follows: "Follows",
 };
 
 const nodeTypeBadgeStyles: Record<GraphNode["type"] | "external", string> = {

@@ -11,6 +11,7 @@ import (
 
 	"github.com/howznguyen/knowns/internal/codegen"
 	"github.com/howznguyen/knowns/internal/models"
+	"github.com/howznguyen/knowns/internal/references"
 	"github.com/howznguyen/knowns/internal/storage"
 )
 
@@ -42,10 +43,7 @@ type Options struct {
 
 // Reference-detection regexes.
 var (
-	taskRefRE   = regexp.MustCompile(`@task-([a-z0-9]+)`)
-	docRefRE    = regexp.MustCompile(`@doc/([^\s\)]+)`)
-	memoryRefRE = regexp.MustCompile(`@memory-([a-z0-9]+)`)
-	codeRefRE   = regexp.MustCompile(`@code/([^\s\)]+)`)
+	codeRefRE = regexp.MustCompile(`@code/([^\s\)]+)`)
 )
 
 // Valid status and priority values.
@@ -282,7 +280,7 @@ func validateTask(t *models.Task, taskIDs, docPaths, memoryIDs map[string]bool, 
 				issues = append(issues, Issue{
 					Level: "warning", Code: "TASK_DONE_UNCHECKED_AC",
 					Message: fmt.Sprintf("Task is done but AC #%d is not checked: %s", i+1, ac.Text),
-					Entity: t.ID,
+					Entity:  t.ID,
 				})
 			}
 		}
@@ -290,33 +288,7 @@ func validateTask(t *models.Task, taskIDs, docPaths, memoryIDs map[string]bool, 
 
 	// Inline refs in description, plan, notes.
 	checkText := t.Description + " " + t.ImplementationPlan + " " + t.ImplementationNotes
-	for _, match := range taskRefRE.FindAllStringSubmatch(checkText, -1) {
-		refID := match[1]
-		if !taskIDs[refID] {
-			issues = append(issues, Issue{
-				Level: "warning", Code: "BROKEN_TASK_REF",
-				Message: fmt.Sprintf("Referenced task @task-%s not found", refID), Entity: t.ID,
-			})
-		}
-	}
-	for _, match := range docRefRE.FindAllStringSubmatch(checkText, -1) {
-		refPath := strings.TrimRight(match[1], ".,;)")
-		if !docPaths[refPath] {
-			issues = append(issues, Issue{
-				Level: "warning", Code: "BROKEN_DOC_REF",
-				Message: fmt.Sprintf("Referenced doc @doc/%s not found", refPath), Entity: t.ID,
-			})
-		}
-	}
-	for _, match := range memoryRefRE.FindAllStringSubmatch(checkText, -1) {
-		refID := match[1]
-		if !memoryIDs[refID] {
-			issues = append(issues, Issue{
-				Level: "warning", Code: "BROKEN_MEMORY_REF",
-				Message: fmt.Sprintf("Referenced memory @memory-%s not found", refID), Entity: t.ID,
-			})
-		}
-	}
+	issues = append(issues, validateSemanticRefs(checkText, t.ID, "warning", taskIDs, docPaths, memoryIDs)...)
 
 	// @code/ references — check against AST index when it exists.
 	issues = append(issues, validateCodeRefs(checkText, t.ID, store)...)
@@ -375,33 +347,7 @@ func validateDoc(d *models.Doc, taskIDs, docPaths, memoryIDs map[string]bool, st
 	}
 
 	// Inline refs in doc content.
-	for _, match := range taskRefRE.FindAllStringSubmatch(d.Content, -1) {
-		refID := match[1]
-		if !taskIDs[refID] {
-			issues = append(issues, Issue{
-				Level: "info", Code: "BROKEN_TASK_REF",
-				Message: fmt.Sprintf("Referenced task @task-%s not found", refID), Entity: d.Path,
-			})
-		}
-	}
-	for _, match := range docRefRE.FindAllStringSubmatch(d.Content, -1) {
-		refPath := strings.TrimRight(match[1], ".,;)")
-		if !docPaths[refPath] {
-			issues = append(issues, Issue{
-				Level: "info", Code: "BROKEN_DOC_REF",
-				Message: fmt.Sprintf("Referenced doc @doc/%s not found", refPath), Entity: d.Path,
-			})
-		}
-	}
-	for _, match := range memoryRefRE.FindAllStringSubmatch(d.Content, -1) {
-		refID := match[1]
-		if !memoryIDs[refID] {
-			issues = append(issues, Issue{
-				Level: "info", Code: "BROKEN_MEMORY_REF",
-				Message: fmt.Sprintf("Referenced memory @memory-%s not found", refID), Entity: d.Path,
-			})
-		}
-	}
+	issues = append(issues, validateSemanticRefs(d.Content, d.Path, "info", taskIDs, docPaths, memoryIDs)...)
 
 	// @code/ references — check against AST index when it exists.
 	issues = append(issues, validateCodeRefs(d.Content, d.Path, store)...)
@@ -436,33 +382,7 @@ func validateMemory(m *models.MemoryEntry, taskIDs, docPaths, memoryIDs map[stri
 	}
 
 	// Inline refs in memory content.
-	for _, match := range taskRefRE.FindAllStringSubmatch(m.Content, -1) {
-		refID := match[1]
-		if !taskIDs[refID] {
-			issues = append(issues, Issue{
-				Level: "info", Code: "BROKEN_TASK_REF",
-				Message: fmt.Sprintf("Referenced task @task-%s not found", refID), Entity: m.ID,
-			})
-		}
-	}
-	for _, match := range docRefRE.FindAllStringSubmatch(m.Content, -1) {
-		refPath := strings.TrimRight(match[1], ".,;)")
-		if !docPaths[refPath] {
-			issues = append(issues, Issue{
-				Level: "info", Code: "BROKEN_DOC_REF",
-				Message: fmt.Sprintf("Referenced doc @doc/%s not found", refPath), Entity: m.ID,
-			})
-		}
-	}
-	for _, match := range memoryRefRE.FindAllStringSubmatch(m.Content, -1) {
-		refID := match[1]
-		if refID != m.ID && !memoryIDs[refID] {
-			issues = append(issues, Issue{
-				Level: "info", Code: "BROKEN_MEMORY_REF",
-				Message: fmt.Sprintf("Referenced memory @memory-%s not found", refID), Entity: m.ID,
-			})
-		}
-	}
+	issues = append(issues, validateSemanticRefs(m.Content, m.ID, "info", taskIDs, docPaths, memoryIDs)...)
 
 	// @code/ references — check against AST index when it exists.
 	issues = append(issues, validateCodeRefs(m.Content, m.ID, store)...)
@@ -497,7 +417,7 @@ func validateTemplate(tmpl *models.Template, engine *codegen.Engine, docPaths ma
 				issues = append(issues, Issue{
 					Level: "error", Code: "TEMPLATE_FILE_MISSING",
 					Message: fmt.Sprintf("action[%d] template file %q not found", i+1, action.Template),
-					Entity: tmpl.Name,
+					Entity:  tmpl.Name,
 				})
 			} else {
 				content, err := os.ReadFile(tplFile)
@@ -506,7 +426,7 @@ func validateTemplate(tmpl *models.Template, engine *codegen.Engine, docPaths ma
 						issues = append(issues, Issue{
 							Level: "error", Code: "TEMPLATE_PARSE_ERROR",
 							Message: fmt.Sprintf("action[%d] %q parse error: %s", i+1, action.Template, err),
-							Entity: tmpl.Name,
+							Entity:  tmpl.Name,
 						})
 					}
 				}
@@ -517,7 +437,7 @@ func validateTemplate(tmpl *models.Template, engine *codegen.Engine, docPaths ma
 				issues = append(issues, Issue{
 					Level: "error", Code: "TEMPLATE_PATH_ERROR",
 					Message: fmt.Sprintf("action[%d] path %q parse error: %s", i+1, action.Path, err),
-					Entity: tmpl.Name,
+					Entity:  tmpl.Name,
 				})
 			}
 		}
@@ -571,6 +491,45 @@ func validateCodeRefs(content, entityID string, store *storage.Store) []Issue {
 		}
 	}
 
+	return issues
+}
+
+func validateSemanticRefs(content, entityID, level string, taskIDs, docPaths, memoryIDs map[string]bool) []Issue {
+	var issues []Issue
+	for _, ref := range references.Extract(content) {
+		if !ref.ValidRelation {
+			issues = append(issues, Issue{
+				Level:   level,
+				Code:    "INVALID_SEMANTIC_REF_RELATION",
+				Message: fmt.Sprintf("Reference %s uses unsupported relation %q", ref.Raw, ref.Relation),
+				Entity:  entityID,
+			})
+			continue
+		}
+		switch ref.Type {
+		case "task":
+			if !taskIDs[ref.Target] {
+				issues = append(issues, Issue{
+					Level: level, Code: "BROKEN_TASK_REF",
+					Message: fmt.Sprintf("Referenced task @task-%s not found", ref.Target), Entity: entityID,
+				})
+			}
+		case "doc":
+			if !docPaths[ref.Target] {
+				issues = append(issues, Issue{
+					Level: level, Code: "BROKEN_DOC_REF",
+					Message: fmt.Sprintf("Referenced doc @doc/%s not found", ref.Target), Entity: entityID,
+				})
+			}
+		case "memory":
+			if ref.Target != entityID && !memoryIDs[ref.Target] {
+				issues = append(issues, Issue{
+					Level: level, Code: "BROKEN_MEMORY_REF",
+					Message: fmt.Sprintf("Referenced memory @memory-%s not found", ref.Target), Entity: entityID,
+				})
+			}
+		}
+	}
 	return issues
 }
 

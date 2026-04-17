@@ -28,6 +28,7 @@ func (sr *SearchRoutes) getStore() *storage.Store {
 func (sr *SearchRoutes) Register(r chi.Router) {
 	r.Get("/search", sr.searchHandler)
 	r.Get("/retrieve", sr.retrieveHandler)
+	r.Get("/resolve", sr.resolveHandler)
 }
 
 // searchHandler executes a search across tasks and docs.
@@ -87,6 +88,22 @@ func (sr *SearchRoutes) searchHandler(w http.ResponseWriter, r *http.Request) {
 // plus an assembled context pack for agents and internal APIs.
 //
 // GET /api/retrieve?q={query}&mode={keyword|semantic|hybrid}&sourceType={doc|task|memory}&expandReferences={true|false}
+func (sr *SearchRoutes) resolveHandler(w http.ResponseWriter, r *http.Request) {
+	raw := r.URL.Query().Get("ref")
+	if strings.TrimSpace(raw) == "" {
+		respondError(w, http.StatusBadRequest, "missing ref query parameter")
+		return
+	}
+
+	resolution, err := sr.getStore().ResolveRawReference(raw)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	respondJSON(w, http.StatusOK, resolution)
+}
+
 func (sr *SearchRoutes) retrieveHandler(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 

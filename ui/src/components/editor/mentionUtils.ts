@@ -1,15 +1,34 @@
 import { normalizeKnownsTaskReferences } from "../../lib/knownsReferences";
 
-// Regex patterns for mentions
-// Task: supports both numeric IDs (task-42, task-42.1) and alphanumeric IDs (task-pdyd2e, task-4sv3rh)
-const TASK_MENTION_REGEX = /@(task-[a-zA-Z0-9]+(?:\.[a-zA-Z0-9]+)?)/g;
-// Doc: excludes trailing punctuation (comma, semicolon, etc.) but allows colons for line numbers
-const DOC_MENTION_REGEX = /@docs?\/([^\s,;!?"'()]+)/g;
+const TASK_MENTION_REGEX = /@(task-[a-zA-Z0-9]+(?:\.[a-zA-Z0-9]+)?(?:\{[a-z-]+\})?)/g;
+const MEMORY_MENTION_REGEX = /@(memory-[a-zA-Z0-9-]+(?:\{[a-z-]+\})?)/g;
+const DOC_MENTION_REGEX = /@docs?\/([^\s,;!?"'(){}]+(?:\{[a-z-]+\})?)/g;
 const KNOWNS_DOC_PATH_REGEX = /(^|[\s(])(\.knowns\/docs\/[^\s,;!?"'()]+\.md)\b/g;
+const SEMANTIC_LINK_PREFIX = "knowns-ref:";
 
-/**
- * Normalize doc path - ensure .md extension
- */
+function stripDocExtension(path: string): string {
+  return path.endsWith(".md") ? path.slice(0, -3) : path;
+}
+
+function splitRelationSuffix(value: string): { body: string; relationSuffix: string } {
+  const match = value.match(/(\{[a-z-]+\})$/);
+  if (!match || !match[1]) {
+    return { body: value, relationSuffix: "" };
+  }
+  return {
+    body: value.slice(0, -match[1].length),
+    relationSuffix: match[1],
+  };
+}
+
+function trimTrailingDocPunctuation(value: string): string {
+  let trimmed = value.replace(/[:]+$/, "");
+  if (trimmed.endsWith(".") && !/\.[A-Za-z0-9_-]+$/.test(trimmed)) {
+    trimmed = trimmed.slice(0, -1);
+  }
+  return trimmed;
+}
+
 export function normalizeDocPath(path: string): string {
   return path.endsWith(".md") ? path : `${path}.md`;
 }
@@ -17,7 +36,6 @@ export function normalizeDocPath(path: string): string {
 export function toDocPath(path: string): string {
   let normalized = path.trim();
 
-  // Strip query params and hash before normalizing
   const queryIndex = normalized.indexOf("?");
   const hashIndex = normalized.indexOf("#");
   const splitIndex = queryIndex >= 0 ? queryIndex : hashIndex >= 0 ? hashIndex : -1;
@@ -43,7 +61,6 @@ export function toDocPath(path: string): string {
     normalized = normalized.slice(1);
   }
 
-  // Convert URL-style ?L= suffix back to mention-style :line suffix
   if (suffix) {
     const rangeMatch = suffix.match(/^\?L=(\d+)-(\d+)/);
     const lineMatch = !rangeMatch && suffix.match(/^\?L=(\d+)/);
@@ -65,33 +82,88 @@ export function toDocPath(path: string): string {
   return normalizeDocPath(normalized);
 }
 
-export function getInlineMention(raw: string): { type: "task"; taskId: string } | { type: "doc"; docPath: string } | null {
-  const value = raw.trim();
+export function normalizeSemanticDocTarget(rawTarget: string): string {
+  let normalized = rawTarget.trim();
 
-  // Skip placeholder/example text containing angle brackets (e.g. @doc/<path>)
-  if (value.includes("<") || value.includes(">")) return null;
-
-  if (/^@task-[a-zA-Z0-9]+(?:\.[a-zA-Z0-9]+)?$/.test(value)) {
-    return { type: "task", taskId: value.slice(1) };
+  if (normalized.startsWith("@doc/")) {
+    normalized = normalized.slice(5);
+  } else if (normalized.startsWith("@docs/")) {
+    normalized = normalized.slice(6);
+  } else if (normalized.startsWith(".knowns/docs/")) {
+    normalized = normalized.slice(".knowns/docs/".length);
+  } else if (normalized.startsWith("/.knowns/docs/")) {
+    normalized = normalized.slice("/.knowns/docs/".length);
   }
 
-  if (
-    value.startsWith("@doc/") ||
-    value.startsWith("@docs/") ||
-    value.startsWith(".knowns/docs/") ||
-    value.startsWith("/.knowns/docs/")
-  ) {
-    return { type: "doc", docPath: toDocPath(value) };
+  const { body, relationSuffix } = splitRelationSuffix(normalized);
+  let cleanPath = trimTrailingDocPunctuation(body);
+  let fragment = "";
+
+  const rangeMatch = cleanPath.match(/:(\d+)-(\d+)$/);
+  const lineMatch = !rangeMatch && cleanPath.match(/:(\d+)$/);
+  const headingMatch = !rangeMatch && !lineMatch && cleanPath.match(/#([a-zA-Z0-9_-]+(?:[a-zA-Z0-9_. -]*)?)$/);
+
+  if (rangeMatch) {
+    fragment = `:${rangeMatch[1]}-${rangeMatch[2]}`;
+    cleanPath = cleanPath.slice(0, -rangeMatch[0].length);
+  } else if (lineMatch) {
+    fragment = `:${lineMatch[1]}`;
+    cleanPath = cleanPath.slice(0, -lineMatch[0].length);
+  } else if (headingMatch) {
+    fragment = `#${headingMatch[1]}`;
+    cleanPath = cleanPath.slice(0, -headingMatch[0].length);
+  }
+
+  return `${stripDocExtension(cleanPath)}${fragment}${relationSuffix}`;
+}
+
+export function canonicalizeSemanticReference(raw: string): string | null {
+  const value = raw.trim();
+
+  if (!value || value.includes("<") || value.includes(">")) return null;
+
+  if (/^@task-[a-zA-Z0-9]+(?:\.[a-zA-Z0-9]+)?(?:\{[a-z-]+\})?$/.test(value)) {
+    return value;
+  }
+
+  if (/^@memory-[a-zA-Z0-9-]+(?:\{[a-z-]+\})?$/.test(value)) {
+    return value;
+  }
+
+  if (value.startsWith("@doc/") || value.startsWith("@docs/")) {
+    return `@doc/${normalizeSemanticDocTarget(value)}`;
+  }
+
+  if (value.startsWith(".knowns/docs/") || value.startsWith("/.knowns/docs/")) {
+    return `@doc/${normalizeSemanticDocTarget(value)}`;
   }
 
   return null;
 }
 
-/**
- * Transform mention patterns into markdown links
- * These will then be styled via the custom link component
- * IMPORTANT: Skip code blocks to avoid breaking mermaid/code syntax
- */
+export function encodeSemanticRefHref(raw: string): string {
+  return `${SEMANTIC_LINK_PREFIX}${encodeURIComponent(raw)}`;
+}
+
+export function decodeSemanticRefHref(href: string): string | null {
+  if (!href.startsWith(SEMANTIC_LINK_PREFIX)) return null;
+  try {
+    return decodeURIComponent(href.slice(SEMANTIC_LINK_PREFIX.length));
+  } catch {
+    return null;
+  }
+}
+
+function semanticMarkdownLink(raw: string): string {
+  return `[${raw}](${encodeSemanticRefHref(raw)})`;
+}
+
+export function getInlineMention(raw: string): { type: "semantic"; rawRef: string } | null {
+  const normalized = canonicalizeSemanticReference(raw);
+  if (!normalized) return null;
+  return { type: "semantic", rawRef: normalized };
+}
+
 export function transformMentions(content: string): string {
   const parts: string[] = [];
   let lastIndex = 0;
@@ -114,62 +186,32 @@ export function transformMentions(content: string): string {
   return parts.join("");
 }
 
-/**
- * Transform mentions in regular text (not code)
- */
 function transformMentionsInText(text: string): string {
   let transformed = normalizeKnownsTaskReferences(text);
 
-  // Transform @task-123 to [@@task-123](/tasks/task-123)
-  // Skip placeholder/example IDs with angle brackets (e.g. @task-<id>)
-  transformed = transformed.replace(TASK_MENTION_REGEX, (_match, taskRef) => {
-    if (taskRef.includes("<") || taskRef.includes(">")) return _match;
-    return `[@@${taskRef}](/tasks/${taskRef})`;
+  transformed = transformed.replace(TASK_MENTION_REGEX, (match, taskRef) => {
+    const canonical = canonicalizeSemanticReference(`@${taskRef}`);
+    return canonical ? semanticMarkdownLink(canonical) : match;
   });
 
-  // Transform @doc/path or @docs/path to [@@doc/path.md](/docs/path.md)
-  // Supports @doc/path:line, @doc/path:start-end, @doc/path#heading
-  transformed = transformed.replace(DOC_MENTION_REGEX, (_match, docPath) => {
-    // Skip placeholder/example paths with angle brackets (e.g. <path>)
-    if (docPath.includes("<") || docPath.includes(">")) return _match;
+  transformed = transformed.replace(MEMORY_MENTION_REGEX, (match, memoryRef) => {
+    const canonical = canonicalizeSemanticReference(`@${memoryRef}`);
+    return canonical ? semanticMarkdownLink(canonical) : match;
+  });
 
-    let cleanPath = docPath;
-    cleanPath = cleanPath.replace(/[:]+$/, "");
-    if (cleanPath.endsWith(".") && !cleanPath.match(/\.\w+$/)) {
-      cleanPath = cleanPath.slice(0, -1);
-    }
-    let fragment = "";
-    let displaySuffix = "";
-    const rangeMatch = cleanPath.match(/:(\d+)-(\d+)$/);
-    const lineMatch = !rangeMatch && cleanPath.match(/:(\d+)$/);
-    const headingMatch = !rangeMatch && !lineMatch && cleanPath.match(/#([a-zA-Z0-9_-]+(?:[a-zA-Z0-9_. -]*)?)$/);
-
-    if (rangeMatch) {
-      fragment = `?L=${rangeMatch[1]}-${rangeMatch[2]}`;
-      displaySuffix = `:${rangeMatch[1]}-${rangeMatch[2]}`;
-      cleanPath = cleanPath.slice(0, -rangeMatch[0].length);
-    } else if (lineMatch) {
-      fragment = `?L=${lineMatch[1]}`;
-      displaySuffix = `:${lineMatch[1]}`;
-      cleanPath = cleanPath.slice(0, -lineMatch[0].length);
-    } else if (headingMatch) {
-      fragment = `#${headingMatch[1]}`;
-      displaySuffix = `#${headingMatch[1]}`;
-      cleanPath = cleanPath.slice(0, -headingMatch[0].length);
-    }
-    const normalizedPath = toDocPath(cleanPath);
-    return `[@@doc/${normalizedPath}${displaySuffix}](/docs/${normalizedPath}${fragment})`;
+  transformed = transformed.replace(DOC_MENTION_REGEX, (match, docPath) => {
+    const canonical = canonicalizeSemanticReference(`@doc/${docPath}`);
+    return canonical ? semanticMarkdownLink(canonical) : match;
   });
 
   transformed = transformed.replace(KNOWNS_DOC_PATH_REGEX, (_match, prefix, docPath) => {
-    const normalizedPath = toDocPath(docPath);
-    return `${prefix}[@@doc/${normalizedPath}](/docs/${normalizedPath})`;
+    const canonical = canonicalizeSemanticReference(docPath);
+    return canonical ? `${prefix}${semanticMarkdownLink(canonical)}` : `${prefix}${docPath}`;
   });
 
   return transformed;
 }
 
-// Notion-like mention styles
 const mentionBase =
   "inline-flex items-center gap-1 px-1 py-px rounded text-[0.9em] font-medium cursor-pointer select-none transition-all no-underline";
 
@@ -185,7 +227,15 @@ export const docMentionClass =
 export const docMentionBrokenClass =
   `${mentionBase} bg-red-500/8 text-red-600 line-through opacity-70 cursor-not-allowed dark:text-red-400`;
 
-// Status colors for task badges
+export const memoryMentionClass =
+  `${mentionBase} bg-purple-500/8 text-purple-700 hover:bg-purple-500/15 hover:underline decoration-purple-500/40 dark:text-purple-400`;
+
+export const semanticRelationClass =
+  "ml-1 rounded-sm bg-black/5 px-1 py-0 text-[0.8em] font-semibold uppercase tracking-wide dark:bg-white/10";
+
+export const semanticFragmentClass =
+  "ml-1 rounded-sm border border-current/15 bg-current/5 px-1 py-0 text-[0.8em] font-medium tracking-normal opacity-80";
+
 export const STATUS_STYLES: Record<string, string> = {
   todo: "bg-muted-foreground/50",
   "in-progress": "bg-yellow-500",

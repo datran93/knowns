@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { FileText } from "lucide-react";
 import { getDoc } from "../../api/client";
 import { navigateTo } from "../../lib/navigation";
-import { docMentionClass, docMentionBrokenClass } from "./mentionUtils";
+import { docMentionClass, docMentionBrokenClass, semanticFragmentClass } from "./mentionUtils";
 
 /**
  * Parse doc mention suffix — extracts line, range, or heading from docPath.
@@ -121,14 +121,20 @@ export function DocMentionBadge({
     >
       <FileText className="w-3 h-3 shrink-0 opacity-60" />
       {loading ? (
-        <span className="opacity-60">{shortPath}{suffix}</span>
+        <>
+          <span className="max-w-[220px] truncate opacity-60">{shortPath}</span>
+          {suffix && <span className={semanticFragmentClass}>{suffix}</span>}
+        </>
       ) : title ? (
         <>
-          <span className="max-w-[250px] truncate">{title}</span>
-          {suffix && <span className="opacity-50 text-[0.85em]">{suffix}</span>}
+          <span className="max-w-[220px] truncate">{title}</span>
+          {suffix && <span className={semanticFragmentClass}>{suffix}</span>}
         </>
       ) : (
-        <span className="max-w-[250px] truncate">{shortPath}{suffix}</span>
+        <>
+          <span className="max-w-[220px] truncate">{shortPath}</span>
+          {suffix && <span className={semanticFragmentClass}>{suffix}</span>}
+        </>
       )}
     </span>
   );

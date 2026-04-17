@@ -342,6 +342,11 @@ func runDocEdit(cmd *cobra.Command, args []string) error {
 		v, _ := cmd.Flags().GetString("tags")
 		doc.Tags = splitCSV(v)
 	}
+	oldPath := path
+	if cmd.Flags().Changed("path") {
+		v, _ := cmd.Flags().GetString("path")
+		doc.Path = strings.Trim(strings.TrimSuffix(v, ".md"), "/")
+	}
 
 	targetSection, _ := cmd.Flags().GetString("section")
 
@@ -369,7 +374,15 @@ func runDocEdit(cmd *cobra.Command, args []string) error {
 
 	doc.UpdatedAt = time.Now()
 
-	if err := store.Docs.Update(doc); err != nil {
+	if oldPath != doc.Path {
+		if err := store.Docs.Rename(oldPath, doc); err != nil {
+			return fmt.Errorf("rename doc: %w", err)
+		}
+		if err := store.Docs.RewriteDocReferences(oldPath, doc.Path, store.Tasks, store.Memory); err != nil {
+			return fmt.Errorf("rewrite doc refs: %w", err)
+		}
+		search.BestEffortRemoveDoc(store, oldPath)
+	} else if err := store.Docs.Update(doc); err != nil {
 		return fmt.Errorf("update doc: %w", err)
 	}
 
@@ -903,6 +916,7 @@ func init() {
 	docEditCmd.Flags().StringP("title", "t", "", "New title")
 	docEditCmd.Flags().StringP("description", "d", "", "New description")
 	docEditCmd.Flags().String("tags", "", "New tags (comma-separated)")
+	docEditCmd.Flags().String("path", "", "Rename doc to a new path")
 	docEditCmd.Flags().StringP("content", "c", "", "Replace content")
 	docEditCmd.Flags().StringP("append", "a", "", "Append to content")
 	docEditCmd.Flags().String("section", "", "Target section to replace (used with --content)")

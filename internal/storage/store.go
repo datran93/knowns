@@ -83,6 +83,20 @@ func (s *Store) SemanticDB() *sql.DB {
 	return db
 }
 
+// SemanticDBWritable returns a writable connection to the semantic search database.
+// Returns nil if the database does not exist.
+func (s *Store) SemanticDBWritable() *sql.DB {
+	dbPath := filepath.Join(s.Root, ".search", "index.db")
+	if _, err := os.Stat(dbPath); err != nil {
+		return nil
+	}
+	db, err := sql.Open("sqlite", dbPath+"?_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)")
+	if err != nil {
+		return nil
+	}
+	return db
+}
+
 // CodeRefIndexExists returns true if the code_edges table has any rows.
 func (s *Store) CodeRefIndexExists() bool {
 	db := s.SemanticDB()

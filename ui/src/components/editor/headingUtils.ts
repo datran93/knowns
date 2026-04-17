@@ -73,7 +73,7 @@ export function parseHeadingMeta(markdown: string): HeadingMeta[] {
       level,
       text,
       number,
-      id: slug ? `${number}-${slug}` : number,
+      id: slug || number,
     });
   }
 

@@ -9,13 +9,15 @@ import (
 	"github.com/howznguyen/knowns/internal/models"
 	"github.com/howznguyen/knowns/internal/search"
 	"github.com/howznguyen/knowns/internal/storage"
+	"github.com/howznguyen/knowns/internal/workingmemory"
 )
 
-// MemoryRoutes handles /api/memories endpoints.
+// MemoryRoutes handles persistent memories and session-scoped working memory endpoints.
 type MemoryRoutes struct {
-	store *storage.Store
-	mgr   *storage.Manager
-	sse   Broadcaster
+	store   *storage.Store
+	mgr     *storage.Manager
+	sse     Broadcaster
+	working *workingmemory.Store
 }
 
 func (mr *MemoryRoutes) getStore() *storage.Store {
@@ -34,7 +36,12 @@ func (mr *MemoryRoutes) Register(r chi.Router) {
 	r.Delete("/memories/{id}", mr.delete)
 	r.Post("/memories/{id}/promote", mr.promote)
 	r.Post("/memories/{id}/demote", mr.demote)
-	r.Post("/memories/clean", mr.clean)
+
+	r.Get("/working-memories", mr.listWorking)
+	r.Post("/working-memories", mr.createWorking)
+	r.Get("/working-memories/{id}", mr.getWorking)
+	r.Delete("/working-memories/{id}", mr.deleteWorking)
+	r.Post("/working-memories/clean", mr.cleanWorking)
 }
 
 func (mr *MemoryRoutes) list(w http.ResponseWriter, r *http.Request) {
@@ -42,13 +49,17 @@ func (mr *MemoryRoutes) list(w http.ResponseWriter, r *http.Request) {
 	category := r.URL.Query().Get("category")
 	tag := r.URL.Query().Get("tag")
 
-	entries, err := mr.getStore().Memory.List(layer)
+	if layer != "" && !models.ValidPersistentMemoryLayer(layer) {
+		respondError(w, http.StatusBadRequest, "invalid layer: must be project or global")
+		return
+	}
+
+	entries, err := mr.getStore().Memory.ListPersistent(layer)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	// Apply filters.
 	if category != "" {
 		filtered := entries[:0]
 		for _, e := range entries {
@@ -81,8 +92,8 @@ func (mr *MemoryRoutes) list(w http.ResponseWriter, r *http.Request) {
 func (mr *MemoryRoutes) get(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	entry, err := mr.getStore().Memory.Get(id)
-	if err != nil {
-		respondError(w, http.StatusNotFound, err.Error())
+	if err != nil || !models.ValidPersistentMemoryLayer(entry.Layer) {
+		respondError(w, http.StatusNotFound, "memory not found")
 		return
 	}
 	respondJSON(w, http.StatusOK, entry)
@@ -107,8 +118,8 @@ func (mr *MemoryRoutes) create(w http.ResponseWriter, r *http.Request) {
 	if req.Layer == "" {
 		req.Layer = models.MemoryLayerProject
 	}
-	if !models.ValidMemoryLayer(req.Layer) {
-		respondError(w, http.StatusBadRequest, "invalid layer: must be working, project, or global")
+	if !models.ValidPersistentMemoryLayer(req.Layer) {
+		respondError(w, http.StatusBadRequest, "invalid layer: must be project or global")
 		return
 	}
 
@@ -133,7 +144,6 @@ func (mr *MemoryRoutes) create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	search.BestEffortIndexMemory(mr.getStore(), entry.ID)
-
 	respondJSON(w, http.StatusCreated, entry)
 }
 
@@ -147,8 +157,8 @@ type updateMemoryRequest struct {
 func (mr *MemoryRoutes) update(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	entry, err := mr.getStore().Memory.Get(id)
-	if err != nil {
-		respondError(w, http.StatusNotFound, err.Error())
+	if err != nil || !models.ValidPersistentMemoryLayer(entry.Layer) {
+		respondError(w, http.StatusNotFound, "memory not found")
 		return
 	}
 
@@ -179,12 +189,16 @@ func (mr *MemoryRoutes) update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	search.BestEffortIndexMemory(mr.getStore(), entry.ID)
-
 	respondJSON(w, http.StatusOK, entry)
 }
 
 func (mr *MemoryRoutes) delete(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
+	entry, err := mr.getStore().Memory.Get(id)
+	if err != nil || !models.ValidPersistentMemoryLayer(entry.Layer) {
+		respondError(w, http.StatusNotFound, "memory not found")
+		return
+	}
 
 	if err := mr.getStore().Memory.Delete(id); err != nil {
 		respondError(w, http.StatusNotFound, err.Error())
@@ -192,44 +206,81 @@ func (mr *MemoryRoutes) delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	search.BestEffortRemoveMemory(mr.getStore(), id)
-
 	respondJSON(w, http.StatusOK, map[string]any{"deleted": true, "id": id})
 }
 
 func (mr *MemoryRoutes) promote(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
-	entry, err := mr.getStore().Memory.Promote(id)
+	entry, err := mr.getStore().Memory.PromotePersistent(id)
 	if err != nil {
 		respondError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	search.BestEffortIndexMemory(mr.getStore(), entry.ID)
-
 	respondJSON(w, http.StatusOK, entry)
 }
 
 func (mr *MemoryRoutes) demote(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
-	entry, err := mr.getStore().Memory.Demote(id)
+	entry, err := mr.getStore().Memory.DemotePersistent(id)
 	if err != nil {
 		respondError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	search.BestEffortIndexMemory(mr.getStore(), entry.ID)
-
 	respondJSON(w, http.StatusOK, entry)
 }
 
-func (mr *MemoryRoutes) clean(w http.ResponseWriter, r *http.Request) {
-	count, err := mr.getStore().Memory.Clean()
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, err.Error())
+func (mr *MemoryRoutes) listWorking(w http.ResponseWriter, r *http.Request) {
+	entries := mr.working.List()
+	if entries == nil {
+		entries = []*models.MemoryEntry{}
+	}
+	respondJSON(w, http.StatusOK, entries)
+}
+
+func (mr *MemoryRoutes) createWorking(w http.ResponseWriter, r *http.Request) {
+	var req createMemoryRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
 
+	entry := mr.working.Add(&models.MemoryEntry{
+		Title:    req.Title,
+		Content:  req.Content,
+		Layer:    models.MemoryLayerWorking,
+		Category: req.Category,
+		Tags:     req.Tags,
+		Metadata: req.Metadata,
+	})
+	respondJSON(w, http.StatusCreated, entry)
+}
+
+func (mr *MemoryRoutes) getWorking(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	entry, ok := mr.working.Get(id)
+	if !ok {
+		respondError(w, http.StatusNotFound, "working memory not found")
+		return
+	}
+	respondJSON(w, http.StatusOK, entry)
+}
+
+func (mr *MemoryRoutes) deleteWorking(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	if !mr.working.Delete(id) {
+		respondError(w, http.StatusNotFound, "working memory not found")
+		return
+	}
+	respondJSON(w, http.StatusOK, map[string]any{"deleted": true, "id": id})
+}
+
+func (mr *MemoryRoutes) cleanWorking(w http.ResponseWriter, r *http.Request) {
+	count := mr.working.Clear()
 	respondJSON(w, http.StatusOK, map[string]any{"cleaned": count})
 }

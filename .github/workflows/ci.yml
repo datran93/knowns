@@ -56,7 +56,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - runner: macos-13
+          - runner: macos-15-intel
             target: bun-darwin-x64
             bundle: knowns-embed-darwin-x64
             sidecar_bin: knowns-embed

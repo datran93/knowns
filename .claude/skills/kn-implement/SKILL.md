@@ -27,17 +27,16 @@ Execute the implementation plan, track progress, and complete the task.
 ## Step 1: Review Task
 
 ```json
-mcp__knowns__get_task({ "taskId": "$ARGUMENTS" })
+mcp_knowns_tasks({ "action": "get", "taskId": "$ARGUMENTS" })
 ```
 
 **If task status is "done"** (reopening):
 ```json
-mcp__knowns__update_task({
-  "taskId": "$ARGUMENTS",
+mcp_knowns_tasks({ "action": "update", "taskId": "$ARGUMENTS",
   "status": "in-progress",
   "appendNotes": "Reopened: <reason>"
 })
-mcp__knowns__start_time({ "taskId": "$ARGUMENTS" })
+mcp_knowns_time({ "action": "start", "taskId": "$ARGUMENTS" })
 ```
 
 Verify: plan exists, timer running, which ACs pending.
@@ -45,7 +44,7 @@ Verify: plan exists, timer running, which ACs pending.
 ## Step 2: Check Templates
 
 ```json
-mcp__knowns__list_templates({})
+mcp_knowns_templates({ "action": "list" })
 ```
 
 If template exists → use it to generate boilerplate.
@@ -58,8 +57,7 @@ For each step:
 3. Append note
 
 ```json
-mcp__knowns__update_task({
-  "taskId": "$ARGUMENTS",
+mcp_knowns_tasks({ "action": "update", "taskId": "$ARGUMENTS",
   "checkAc": [1],
   "appendNotes": "Done: brief description"
 })
@@ -71,14 +69,13 @@ Working rules:
 - If a step reveals missing context, pause implementation and gather it before continuing
 - If the task needs docs or template changes, do them as part of completion, not as an afterthought
 - Use `search` to discover relevant sources; use `retrieve` when implementation needs assembled context with citations for docs, tasks, and memories.
-- Prefer MCP `mcp__knowns__retrieve({ "query": "<keywords>" })` for retrieval; fall back to CLI `knowns retrieve "<keywords>" --json` if MCP is unavailable.
+- Prefer MCP `mcp_knowns_search({ "action": "retrieve", "query": "<keywords>" })` for retrieval; fall back to CLI `knowns retrieve "<keywords>" --json` if MCP is unavailable.
 
 ## Step 4: Handle Scope Changes
 
 **Small:** Add AC + note
 ```json
-mcp__knowns__update_task({
-  "taskId": "$ARGUMENTS",
+mcp_knowns_tasks({ "action": "update", "taskId": "$ARGUMENTS",
   "addAc": ["New requirement"],
   "appendNotes": "Scope: added per user"
 })
@@ -92,16 +89,15 @@ mcp__knowns__update_task({
 2. **Validate task** to catch broken refs (uses entity filter to save tokens):
 
 ```json
-mcp__knowns__validate({ "entity": "$ARGUMENTS" })
+mcp_knowns_validate({ "entity": "$ARGUMENTS" })
 ```
 
 3. Add implementation notes (use `appendNotes`, NOT `notes`!)
 4. Stop timer + mark done
 
 ```json
-mcp__knowns__stop_time({ "taskId": "$ARGUMENTS" })
-mcp__knowns__update_task({
-  "taskId": "$ARGUMENTS",
+mcp_knowns_time({ "action": "stop", "taskId": "$ARGUMENTS" })
+mcp_knowns_tasks({ "action": "update", "taskId": "$ARGUMENTS",
   "status": "done"
 })
 ```
@@ -115,7 +111,7 @@ mcp__knowns__update_task({
 ### 1. Get Sibling Tasks
 
 ```json
-mcp__knowns__list_tasks({ "spec": "<spec-path-from-task>" })
+mcp_knowns_tasks({ "action": "list", "spec": "<spec-path-from-task>" })
 ```
 
 ### 2. Analyze Status
@@ -146,7 +142,7 @@ Running SDD verification...
 
 Then auto-run:
 ```json
-mcp__knowns__validate({ "scope": "sdd" })
+mcp_knowns_validate({ "scope": "sdd" })
 ```
 
 Display SDD Coverage Report:
@@ -166,8 +162,7 @@ If patterns discovered: `/kn-extract`
 
 If a quick insight is worth remembering but doesn't warrant a full doc:
 ```json
-mcp__knowns__add_memory({
-  "title": "<insight>",
+mcp_knowns_memory({ "action": "add", "title": "<insight>",
   "content": "<2-3 sentence summary>",
   "layer": "project",
   "category": "<pattern|decision|convention>",
@@ -205,7 +200,7 @@ After task completion, check for:
 
 1. **More tasks from same spec?**
    ```json
-   mcp__knowns__list_tasks({ "spec": "<spec-path>", "status": "todo" })
+   mcp_knowns_tasks({ "action": "list", "spec": "<spec-path>", "status": "todo" })
    ```
 
 2. **Suggest based on context:**

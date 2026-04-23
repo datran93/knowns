@@ -6,8 +6,8 @@
 ## Session Init (Required)
 
 ```json
-mcp__knowns__detect_projects({})
-mcp__knowns__set_project({ "projectRoot": "/path/to/project" })
+mcp__knowns__project({ "action": "detect" })
+mcp__knowns__project({ "action": "set", "projectRoot": "/path/to/project" })
 ```
 
 **Skip this = tools fail or work on wrong project.**

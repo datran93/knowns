@@ -48,17 +48,17 @@ Classify before investigating. Misclassifying wastes time.
 Before deep investigation, search for known solutions (unified search includes docs, learnings, and memories):
 
 ```json
-mcp__knowns__search({ "query": "<keywords from classification>", "type": "doc" })
+mcp_knowns_search({ "action": "search", "query": "<keywords from classification>", "type": "doc" })
 ```
 
 Also check learnings docs:
 ```json
-mcp__knowns__search({ "query": "<error pattern>", "type": "doc", "tag": "learning" })
+mcp_knowns_search({ "action": "search", "query": "<error pattern>", "type": "doc", "tag": "learning" })
 ```
 
 Search memories for past debug patterns:
 ```json
-mcp__knowns__search({ "query": "<error pattern>", "type": "memory" })
+mcp_knowns_search({ "action": "search", "query": "<error pattern>", "type": "memory" })
 ```
 
 If a known pattern matches → jump to Step 4 (Fix) using the documented resolution.
@@ -95,7 +95,7 @@ If a recent commit introduced the failure → fix is likely adjusting that chang
 ### 3d. Check task context (if task ID provided)
 
 ```json
-mcp__knowns__get_task({ "taskId": "<id>" })
+mcp_knowns_tasks({ "action": "get", "taskId": "<id>" })
 ```
 
 Does the failure indicate the task was implemented against the wrong spec, or correctly but the spec was wrong?
@@ -125,16 +125,14 @@ If you cannot write this sentence, you do not have the root cause yet. Do NOT pr
 
 - If within a task, append notes about the issue:
 ```json
-mcp__knowns__update_task({
-  "taskId": "<id>",
+mcp_knowns_tasks({ "action": "update", "taskId": "<id>",
   "appendNotes": "🐛 Debug: <root cause summary>. Fix: <what was changed>"
 })
 ```
 
 - If standalone, consider creating a task:
 ```json
-mcp__knowns__create_task({
-  "title": "Fix: <root cause summary>",
+mcp_knowns_tasks({ "action": "create", "title": "Fix: <root cause summary>",
   "description": "Root cause: <detail>\nFix approach: <approach>",
   "priority": "high",
   "labels": ["bugfix"]
@@ -167,8 +165,7 @@ Ask: would this save ≥15 minutes if a future agent knew it?
 
 **Quick pattern (< 5 min to describe):** save to memory for fast recall:
 ```json
-mcp__knowns__add_memory({
-  "title": "<error pattern>",
+mcp_knowns_memory({ "action": "add", "title": "<error pattern>",
   "content": "Root cause: <sentence>. Fix: <what resolves it>",
   "layer": "project",
   "category": "failure",
@@ -179,21 +176,19 @@ mcp__knowns__add_memory({
 **Detailed pattern (worth a full writeup):** create or update a learning doc:
 
 ```json
-mcp__knowns__search({ "query": "<failure domain>", "type": "doc", "tag": "learning" })
+mcp_knowns_search({ "action": "search", "query": "<failure domain>", "type": "doc", "tag": "learning" })
 ```
 
 **If existing learning doc found — update it:**
 ```json
-mcp__knowns__update_doc({
-  "path": "<existing-path>",
+mcp_knowns_docs({ "action": "update", "path": "<existing-path>",
   "appendContent": "\n\n## <Date> — <Classification>\n\n**Root cause:** <sentence>\n**Signal:** <how to recognize>\n**Fix:** <what resolves it>"
 })
 ```
 
 **If no existing doc — create new:**
 ```json
-mcp__knowns__create_doc({
-  "title": "Learning: <domain> — <pattern>",
+mcp_knowns_docs({ "action": "create", "title": "Learning: <domain> — <pattern>",
   "description": "Debugging pattern for <issue type>",
   "folder": "learnings",
   "tags": ["learning", "<domain>"],
@@ -205,8 +200,7 @@ mcp__knowns__create_doc({
 
 If the documented resolution failed or is outdated:
 ```json
-mcp__knowns__update_doc({
-  "path": "<learning-path>",
+mcp_knowns_docs({ "action": "update", "path": "<learning-path>",
   "appendContent": "\n\n⚠️ **Update <date>:** Resolution no longer accurate — <what changed>"
 })
 ```

@@ -24,22 +24,22 @@ description: Use at the start of a new session to read project docs, understand 
 ## Step 1: List Docs
 
 ```json
-mcp__knowns__list_docs({})
+mcp_knowns_docs({ "action": "list" })
 ```
 
 ## Step 2: Read Core Docs
 
 ```json
-mcp__knowns__get_doc({ "path": "README", "smart": true })
-mcp__knowns__get_doc({ "path": "ARCHITECTURE", "smart": true })
-mcp__knowns__get_doc({ "path": "CONVENTIONS", "smart": true })
+mcp_knowns_docs({ "action": "get", "path": "README", "smart": true })
+mcp_knowns_docs({ "action": "get", "path": "ARCHITECTURE", "smart": true })
+mcp_knowns_docs({ "action": "get", "path": "CONVENTIONS", "smart": true })
 ```
 
 ## Step 3: Check Current State
 
 ```json
-mcp__knowns__list_tasks({ "status": "in-progress" })
-mcp__knowns__get_board({})
+mcp_knowns_tasks({ "action": "list", "status": "in-progress" })
+mcp_knowns_tasks({ "action": "board" })
 ```
 
 ## Step 3.5: Load Critical Learnings
@@ -47,12 +47,12 @@ mcp__knowns__get_board({})
 Check for accumulated critical learnings from past work:
 
 ```json
-mcp__knowns__search({ "query": "critical patterns", "type": "doc", "tag": "critical" })
+mcp_knowns_search({ "action": "search", "query": "critical patterns", "type": "doc", "tag": "critical" })
 ```
 
 If `learnings/critical-patterns` exists:
 ```json
-mcp__knowns__get_doc({ "path": "learnings/critical-patterns", "smart": true })
+mcp_knowns_docs({ "action": "get", "path": "learnings/critical-patterns", "smart": true })
 ```
 
 These are promoted learnings that cost the most to discover and save the most by knowing. Include a brief summary in the session context if any exist.
@@ -60,7 +60,7 @@ These are promoted learnings that cost the most to discover and save the most by
 ## Step 3.6: Load Project Memory
 
 ```json
-mcp__knowns__list_memories({ "layer": "project" })
+mcp_knowns_memory({ "action": "list", "layer": "project" })
 ```
 
 Project memories contain accumulated patterns, decisions, and conventions from past work. Include key entries in the session context summary. If there are many entries, prioritize by recency and relevance to the user's stated focus.

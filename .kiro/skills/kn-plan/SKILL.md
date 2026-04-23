@@ -34,35 +34,39 @@ Check if `$ARGUMENTS` contains `--from`:
 ## Step 1: Take Ownership
 
 ```json
-mcp__knowns__get_task({ "taskId": "$ARGUMENTS" })
-mcp__knowns__update_task({
-  "taskId": "$ARGUMENTS",
+mcp_knowns_tasks({ "action": "get", "taskId": "$ARGUMENTS" })
+mcp_knowns_tasks({ "action": "update", "taskId": "$ARGUMENTS",
   "status": "in-progress",
   "assignee": "@me"
 })
-mcp__knowns__start_time({ "taskId": "$ARGUMENTS" })
+mcp_knowns_time({ "action": "start", "taskId": "$ARGUMENTS" })
 ```
 
 ## Step 2: Gather Context
 
 Follow refs in task:
 ```json
-mcp__knowns__get_doc({ "path": "<path>", "smart": true })
-mcp__knowns__get_task({ "taskId": "<id>" })
+mcp_knowns_docs({ "action": "get", "path": "<path>", "smart": true })
+mcp_knowns_tasks({ "action": "get", "taskId": "<id>" })
+```
+
+If the task links to a spec, use structural resolve to find related tasks and dependencies:
+```json
+mcp_knowns_search({ "action": "resolve", "ref": "@doc/specs/<name>{implements}", "direction": "inbound", "entityTypes": "task" })
 ```
 
 Search related (unified search includes docs and memories):
 ```json
-mcp__knowns__search({ "query": "<keywords>", "type": "doc" })
-mcp__knowns__search({ "query": "<keywords>", "type": "memory" })
-mcp__knowns__list_templates({})
+mcp_knowns_search({ "action": "search", "query": "<keywords>", "type": "doc" })
+mcp_knowns_search({ "action": "search", "query": "<keywords>", "type": "memory" })
+mcp_knowns_templates({ "action": "list" })
 ```
 
 If relevant memories appear, factor them into the plan (past patterns, decisions, conventions).
 
 If the plan needs assembled execution context rather than raw search hits, use retrieval after discovery:
 ```json
-mcp__knowns__retrieve({ "query": "<keywords>" })
+mcp_knowns_search({ "action": "retrieve", "query": "<keywords>" })
 ```
 If MCP is unavailable, fall back to CLI: `knowns retrieve "<keywords>" --json`
 
@@ -97,8 +101,7 @@ Plan quality rules:
 ## Step 4: Save Plan
 
 ```json
-mcp__knowns__update_task({
-  "taskId": "$ARGUMENTS",
+mcp_knowns_tasks({ "action": "update", "taskId": "$ARGUMENTS",
   "plan": "1. Step one\n2. Step two\n3. Tests"
 })
 ```
@@ -108,7 +111,7 @@ mcp__knowns__update_task({
 **CRITICAL:** After saving plan with refs, validate to catch broken refs:
 
 ```json
-mcp__knowns__validate({ "entity": "$ARGUMENTS" })
+mcp_knowns_validate({ "entity": "$ARGUMENTS" })
 ```
 
 If errors found (broken `@doc/...` or `@task-...`), fix before asking approval.
@@ -233,7 +236,7 @@ When `$ARGUMENTS` contains `--from @doc/specs/<name>`:
 Extract spec path from arguments (e.g., `--from @doc/specs/user-auth` → `specs/user-auth`).
 
 ```json
-mcp__knowns__get_doc({ "path": "specs/<name>", "smart": true })
+mcp_knowns_docs({ "action": "get", "path": "specs/<name>", "smart": true })
 ```
 
 ## Step 2: Parse Requirements
@@ -290,8 +293,7 @@ Total: X tasks to create
 When approved, create tasks with `fulfills` to link Task → Spec ACs:
 
 ```json
-mcp__knowns__create_task({
-  "title": "<requirement title>",
+mcp_knowns_tasks({ "action": "create", "title": "<requirement title>",
   "description": "<from spec>",
   "spec": "specs/<name>",
   "fulfills": ["AC-1", "AC-2"],
@@ -302,8 +304,7 @@ mcp__knowns__create_task({
 
 Then add implementation ACs (task-level criteria, different from spec ACs):
 ```json
-mcp__knowns__update_task({
-  "taskId": "<new-id>",
+mcp_knowns_tasks({ "action": "update", "taskId": "<new-id>",
   "addAc": ["Implementation step 1", "Implementation step 2", "Tests added"]
 })
 ```

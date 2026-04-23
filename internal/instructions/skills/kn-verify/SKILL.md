@@ -30,7 +30,7 @@ knowns validate --sdd --plain
 
 ### Via MCP (if available)
 ```json
-mcp__knowns__validate({ "scope": "sdd" })
+mcp_knowns_validate({ "scope": "sdd" })
 ```
 
 ## Step 2: Present SDD Status
@@ -78,8 +78,7 @@ Based on warnings, add the most relevant fixes inside the key-details section, t
 **For tasks without spec:**
 > Link task to spec:
 > ```json
-> mcp__knowns__update_task({
->   "taskId": "<id>",
+> mcp_knowns_tasks({ "action": "update", >   "taskId": "<id>",
 >   "spec": "specs/<name>"
 > })
 > ```
@@ -102,10 +101,10 @@ To validate a single task or doc (saves tokens):
 
 ```json
 // Validate single task
-mcp__knowns__validate({ "entity": "abc123" })
+mcp_knowns_validate({ "entity": "abc123" })
 
 // Validate single doc
-mcp__knowns__validate({ "entity": "specs/user-auth" })
+mcp_knowns_validate({ "entity": "specs/user-auth" })
 ```
 
 ## Shared Output Contract

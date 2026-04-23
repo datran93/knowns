@@ -33,7 +33,7 @@ Check `$ARGUMENTS`:
 ## Step 1: Identify Source
 
 ```json
-mcp__knowns__get_task({ "taskId": "$ARGUMENTS" })
+mcp_knowns_tasks({ "action": "get", "taskId": "$ARGUMENTS" })
 ```
 
 Look for three categories:
@@ -47,7 +47,7 @@ Look for three categories:
 ## Step 2: Search for Existing Docs
 
 ```json
-mcp__knowns__search({ "query": "<pattern/topic>", "type": "doc" })
+mcp_knowns_search({ "action": "search", "query": "<pattern/topic>", "type": "doc" })
 ```
 
 **Don't duplicate.** Update existing docs when possible.
@@ -84,8 +84,7 @@ Identify failures and wasted effort:
 ### For patterns → pattern doc (same as before)
 
 ```json
-mcp__knowns__create_doc({
-  "title": "Pattern: <Name>",
+mcp_knowns_docs({ "action": "create", "title": "Pattern: <Name>",
   "description": "Reusable pattern for <purpose>",
   "tags": ["pattern", "<domain>"],
   "folder": "patterns"
@@ -95,8 +94,7 @@ mcp__knowns__create_doc({
 ### For decisions + failures → learning doc
 
 ```json
-mcp__knowns__create_doc({
-  "title": "Learning: <feature/domain>",
+mcp_knowns_docs({ "action": "create", "title": "Learning: <feature/domain>",
   "description": "Learnings from <task/feature>",
   "tags": ["learning", "<domain>"],
   "folder": "learnings",
@@ -137,8 +135,7 @@ mcp__knowns__create_doc({
 For each extracted pattern or decision worth quick recall, save a concise memory entry alongside the doc:
 
 ```json
-mcp__knowns__add_memory({
-  "title": "<pattern/decision name>",
+mcp_knowns_memory({ "action": "add", "title": "<pattern/decision name>",
   "content": "<2-3 sentence summary>. Full reference: @doc/<path>",
   "layer": "project",
   "category": "<pattern|decision|convention|failure>",
@@ -153,8 +150,7 @@ Skip this step if the extraction produced nothing generalizable.
 ## Step 6: Create Template (if code-generatable)
 
 ```json
-mcp__knowns__create_template({
-  "name": "<pattern-name>",
+mcp_knowns_templates({ "action": "create", "name": "<pattern-name>",
   "description": "Generate <what>",
   "doc": "patterns/<pattern-name>"
 })
@@ -169,21 +165,19 @@ For any finding that meets ALL criteria:
 
 Check if critical-patterns doc exists:
 ```json
-mcp__knowns__search({ "query": "critical patterns", "type": "doc", "tag": "learning" })
+mcp_knowns_search({ "action": "search", "query": "critical patterns", "type": "doc", "tag": "learning" })
 ```
 
 **If exists — append:**
 ```json
-mcp__knowns__update_doc({
-  "path": "learnings/critical-patterns",
+mcp_knowns_docs({ "action": "update", "path": "learnings/critical-patterns",
   "appendContent": "\n\n## [Date] <Learning Title>\n**Category:** pattern / decision / failure\n**Source:** @task-<id>\n**Tags:** [tag1, tag2]\n\n<2-4 sentence summary and what to do differently>\n\n**Full entry:** @doc/learnings/<slug>"
 })
 ```
 
 **If not exists — create:**
 ```json
-mcp__knowns__create_doc({
-  "title": "Critical Patterns",
+mcp_knowns_docs({ "action": "create", "title": "Critical Patterns",
   "description": "Promoted learnings that save the most time. Read at session start.",
   "folder": "learnings",
   "tags": ["learning", "critical"],
@@ -198,7 +192,7 @@ mcp__knowns__create_doc({
 **CRITICAL:** After creating doc/template, validate to catch broken refs:
 
 ```json
-mcp__knowns__validate({ "entity": "<doc-path>" })
+mcp_knowns_validate({ "entity": "<doc-path>" })
 ```
 
 If errors found, fix before continuing.
@@ -206,8 +200,7 @@ If errors found, fix before continuing.
 ## Step 9: Link Back to Task
 
 ```json
-mcp__knowns__update_task({
-  "taskId": "$ARGUMENTS",
+mcp_knowns_tasks({ "action": "update", "taskId": "$ARGUMENTS",
   "appendNotes": "📚 Extracted to @doc/<path>"
 })
 ```
@@ -225,12 +218,12 @@ Scan all existing learnings docs, merge duplicates, flag outdated entries, and p
 ## C-Step 1: Scan All Learnings
 
 ```json
-mcp__knowns__list_docs({ "tag": "learning" })
+mcp_knowns_docs({ "action": "list", "tag": "learning" })
 ```
 
 Read each learning doc:
 ```json
-mcp__knowns__get_doc({ "path": "<path>", "smart": true })
+mcp_knowns_docs({ "action": "get", "path": "<path>", "smart": true })
 ```
 
 ## C-Step 2: Identify Issues

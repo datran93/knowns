@@ -1638,3 +1638,61 @@ export const workingMemoryApi = {
 		return res.json();
 	},
 };
+
+// ─── Audit API ───────────────────────────────────────────────────────
+
+export interface AuditEvent {
+	timestamp: string;
+	toolName: string;
+	action?: string;
+	actionClass: string;
+	projectRoot?: string;
+	dryRun?: boolean;
+	result: string;
+	durationMs: number;
+	errorMessage?: string;
+	entityRefs?: string[];
+	argumentSummary?: Record<string, string>;
+}
+
+export interface AuditStats {
+	totalCalls: number;
+	byTool: Record<string, number>;
+	byActionClass: Record<string, number>;
+	byResult: Record<string, number>;
+	dryRunCount: number;
+	executeCount: number;
+	byToolResult: Record<string, Record<string, number>>;
+}
+
+export const auditApi = {
+	async recent(options?: {
+		limit?: number;
+		tool?: string;
+		result?: string;
+		project?: string;
+	}): Promise<{ events: AuditEvent[]; count: number }> {
+		const params = new URLSearchParams();
+		if (options?.limit) params.set("limit", String(options.limit));
+		if (options?.tool) params.set("tool", options.tool);
+		if (options?.result) params.set("result", options.result);
+		if (options?.project) params.set("project", options.project);
+
+		const res = await fetch(`${API_BASE}/api/audit/recent?${params.toString()}`);
+		if (!res.ok) throw new Error("Failed to fetch audit events");
+		return res.json();
+	},
+
+	async stats(options?: {
+		tool?: string;
+		project?: string;
+	}): Promise<AuditStats> {
+		const params = new URLSearchParams();
+		if (options?.tool) params.set("tool", options.tool);
+		if (options?.project) params.set("project", options.project);
+
+		const res = await fetch(`${API_BASE}/api/audit/stats?${params.toString()}`);
+		if (!res.ok) throw new Error("Failed to fetch audit stats");
+		return res.json();
+	},
+};

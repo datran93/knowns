@@ -67,7 +67,7 @@ Generate 2–4 gray areas for this feature. A gray area is a decision that:
 - Annotate options with what the codebase already has
 
 ```json
-mcp__knowns__search({ "query": "<feature keywords>", "type": "memory" })
+mcp_knowns_search({ "action": "search", "query": "<feature keywords>", "type": "memory" })
 ```
 
 **Filter OUT:**
@@ -138,8 +138,7 @@ If requirements depend on large domain or architecture context:
 ## Step 3: Create Spec Document
 
 ```json
-mcp__knowns__create_doc({
-  "title": "<Feature Name>",
+mcp_knowns_docs({ "action": "create", "title": "<Feature Name>",
   "description": "Specification for <feature>",
   "folder": "specs",
   "tags": ["spec", "draft"],
@@ -202,7 +201,7 @@ Optional implementation hints or constraints.
 **CRITICAL:** After creating spec, validate to catch issues:
 
 ```json
-mcp__knowns__validate({ "entity": "specs/<name>" })
+mcp_knowns_validate({ "entity": "specs/<name>" })
 ```
 
 ## Step 4: Ask for Review
@@ -217,8 +216,7 @@ Present the spec and ask:
 
 **If approved:**
 ```json
-mcp__knowns__update_doc({
-  "path": "specs/<name>",
+mcp_knowns_docs({ "action": "update", "path": "specs/<name>",
   "tags": ["spec", "approved"]
 })
 ```

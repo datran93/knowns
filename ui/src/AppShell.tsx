@@ -45,6 +45,7 @@ const ChatPage = lazyWithRetry(() => import("./pages/ChatPage"));
 const GraphPage = lazyWithRetry(() => import("./pages/GraphPage"));
 const CodeGraphPage = lazyWithRetry(() => import("./pages/CodeGraphPage"));
 const MemoryPage = lazyWithRetry(() => import("./pages/MemoryPage"));
+const AuditPage = lazyWithRetry(() => import("./pages/AuditPage"));
 
 function PageLoading() {
 	return (
@@ -65,6 +66,7 @@ function getCurrentPage(pathname: string) {
 	if (pathname.startsWith("/graph/code")) return "code-graph";
 	if (pathname.startsWith("/graph")) return "graph";
 	if (pathname.startsWith("/memory")) return "memory";
+	if (pathname.startsWith("/audit")) return "audit";
 	if (pathname.startsWith("/chat")) return "chat";
 	if (pathname.startsWith("/config")) return "config";
 	if (pathname.startsWith("/kanban")) return "kanban";
@@ -115,6 +117,7 @@ export default function AppShell() {
 			graph: "Graph",
 			"code-graph": "Code Graph",
 			memory: "Memories",
+			audit: "Audit Trail",
 			imports: "Imports",
 			chat: "Chat",
 			config: "Settings",
@@ -294,6 +297,8 @@ export default function AppShell() {
 				return <CodeGraphPage />;
 			case "memory":
 				return <MemoryPage />;
+			case "audit":
+				return <AuditPage />;
 			case "imports":
 				return <ImportsPage />;
 			case "chat":

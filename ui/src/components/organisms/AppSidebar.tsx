@@ -13,6 +13,7 @@ import {
 	Network,
 	Brain,
 	Code2,
+	Activity,
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import logoImage from "../../public/logo.png";
@@ -87,6 +88,12 @@ const topNavItems = [
 		label: "Memories",
 		icon: Brain,
 		to: "/memory",
+	},
+	{
+		id: "audit",
+		label: "Audit Trail",
+		icon: Activity,
+		to: "/audit",
 	},
 ];
 

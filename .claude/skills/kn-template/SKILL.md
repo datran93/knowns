@@ -24,13 +24,13 @@ description: Use when generating code from templates - list, run, or create temp
 ## Step 1: List Templates
 
 ```json
-mcp__knowns__list_templates({})
+mcp_knowns_templates({ "action": "list" })
 ```
 
 ## Step 2: Get Template Details
 
 ```json
-mcp__knowns__get_template({ "name": "<template-name>" })
+mcp_knowns_templates({ "action": "get", "name": "<template-name>" })
 ```
 
 Check: prompts, `doc:` link, files to generate.
@@ -38,22 +38,20 @@ Check: prompts, `doc:` link, files to generate.
 ## Step 3: Read Linked Documentation
 
 ```json
-mcp__knowns__get_doc({ "path": "<doc-path>", "smart": true })
+mcp_knowns_docs({ "action": "get", "path": "<doc-path>", "smart": true })
 ```
 
 ## Step 4: Run Template
 
 ```json
 // Dry run first
-mcp__knowns__run_template({
-  "name": "<template-name>",
+mcp_knowns_templates({ "action": "run", "name": "<template-name>",
   "variables": { "name": "MyComponent" },
   "dryRun": true
 })
 
 // Then run for real
-mcp__knowns__run_template({
-  "name": "<template-name>",
+mcp_knowns_templates({ "action": "run", "name": "<template-name>",
   "variables": { "name": "MyComponent" },
   "dryRun": false
 })
@@ -62,8 +60,7 @@ mcp__knowns__run_template({
 ## Step 5: Create New Template
 
 ```json
-mcp__knowns__create_template({
-  "name": "<template-name>",
+mcp_knowns_templates({ "action": "create", "name": "<template-name>",
   "description": "Description",
   "doc": "patterns/<related-doc>"
 })
@@ -100,7 +97,7 @@ ${ {{~camelCase name~}}}
 ## Step 6: Validate (after creating template)
 
 ```json
-mcp__knowns__validate({ "scope": "templates" })
+mcp_knowns_validate({ "scope": "templates" })
 ```
 
 ## Shared Output Contract

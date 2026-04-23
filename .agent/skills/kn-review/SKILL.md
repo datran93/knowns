@@ -31,17 +31,17 @@ git diff
 
 If task ID provided:
 ```json
-mcp__knowns__get_task({ "taskId": "$ARGUMENTS" })
+mcp_knowns_tasks({ "action": "get", "taskId": "$ARGUMENTS" })
 ```
 
 If task has spec:
 ```json
-mcp__knowns__get_doc({ "path": "<spec-path>", "smart": true })
+mcp_knowns_docs({ "action": "get", "path": "<spec-path>", "smart": true })
 ```
 
 Search for relevant conventions and past review patterns:
 ```json
-mcp__knowns__search({ "query": "<feature area>", "type": "memory" })
+mcp_knowns_search({ "action": "search", "query": "<feature area>", "type": "memory" })
 ```
 
 ---
@@ -153,8 +153,7 @@ Do NOT proceed to commit. Do NOT offer to skip P1.
 If P2 findings are deferred, create a follow-up task:
 
 ```json
-mcp__knowns__create_task({
-  "title": "Review follow-up: <summary>",
+mcp_knowns_tasks({ "action": "create", "title": "Review follow-up: <summary>",
   "description": "P2 findings from review of task-<id>:\n- Finding 1\n- Finding 2",
   "priority": "low",
   "labels": ["review-followup"]

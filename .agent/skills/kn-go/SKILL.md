@@ -37,7 +37,7 @@ Complete these phases in order. Do not skip phases.
 ### Phase 1: Validate Spec
 
 ```json
-mcp__knowns__get_doc({ "path": "specs/<name>", "smart": true })
+mcp_knowns_docs({ "action": "get", "path": "specs/<name>", "smart": true })
 ```
 
 **Check:**
@@ -46,7 +46,7 @@ mcp__knowns__get_doc({ "path": "specs/<name>", "smart": true })
 - No unresolved open questions marked as blocking
 
 ```json
-mcp__knowns__validate({ "entity": "specs/<name>" })
+mcp_knowns_validate({ "entity": "specs/<name>" })
 ```
 
 If validation errors → fix or report before continuing.
@@ -58,8 +58,7 @@ If validation errors → fix or report before continuing.
 Parse spec for requirements and generate tasks. Same logic as `kn-plan --from @doc/specs/<name>` but **skip the approval gate**.
 
 ```json
-mcp__knowns__create_task({
-  "title": "<requirement title>",
+mcp_knowns_tasks({ "action": "create", "title": "<requirement title>",
   "description": "<from spec>",
   "spec": "specs/<name>",
   "fulfills": ["AC-1", "AC-2"],
@@ -70,8 +69,7 @@ mcp__knowns__create_task({
 
 Add implementation ACs per task:
 ```json
-mcp__knowns__update_task({
-  "taskId": "<id>",
+mcp_knowns_tasks({ "action": "update", "taskId": "<id>",
   "addAc": ["Step 1", "Step 2", "Tests"]
 })
 ```
@@ -89,24 +87,22 @@ For each task:
 #### 3a. Take ownership + plan
 
 ```json
-mcp__knowns__update_task({
-  "taskId": "<id>",
+mcp_knowns_tasks({ "action": "update", "taskId": "<id>",
   "status": "in-progress"
 })
-mcp__knowns__start_time({ "taskId": "<id>" })
+mcp_knowns_time({ "action": "start", "taskId": "<id>" })
 ```
 
 - Research context: follow refs, search related docs/memories, check templates
-- Use `search` for discovery first. If a task/spec needs assembled execution context, use `mcp__knowns__retrieve({ "query": "<keywords>" })` before drafting or executing the plan. Fall back to CLI `knowns retrieve "<keywords>" --json` if MCP is unavailable.
+- Use `search` for discovery first. If a task/spec needs assembled execution context, use `mcp_knowns_search({ "action": "retrieve", "query": "<keywords>" })` before drafting or executing the plan. Fall back to CLI `knowns retrieve "<keywords>" --json` if MCP is unavailable.
 - Draft and save plan directly (no approval gate)
 
 ```json
-mcp__knowns__search({ "query": "<task keywords>", "type": "memory" })
+mcp_knowns_search({ "action": "search", "query": "<task keywords>", "type": "memory" })
 ```
 
 ```json
-mcp__knowns__update_task({
-  "taskId": "<id>",
+mcp_knowns_tasks({ "action": "update", "taskId": "<id>",
   "plan": "1. Step one\n2. Step two\n3. Tests"
 })
 ```
@@ -118,8 +114,7 @@ mcp__knowns__update_task({
 - Run tests/lint/build after each task
 
 ```json
-mcp__knowns__update_task({
-  "taskId": "<id>",
+mcp_knowns_tasks({ "action": "update", "taskId": "<id>",
   "checkAc": [1, 2, 3],
   "appendNotes": "Implemented: brief summary"
 })
@@ -128,9 +123,8 @@ mcp__knowns__update_task({
 #### 3c. Complete task
 
 ```json
-mcp__knowns__stop_time({ "taskId": "<id>" })
-mcp__knowns__update_task({
-  "taskId": "<id>",
+mcp_knowns_time({ "action": "stop", "taskId": "<id>" })
+mcp_knowns_tasks({ "action": "update", "taskId": "<id>",
   "status": "done"
 })
 ```
@@ -138,7 +132,7 @@ mcp__knowns__update_task({
 #### 3d. Quick validate
 
 ```json
-mcp__knowns__validate({ "entity": "<id>" })
+mcp_knowns_validate({ "entity": "<id>" })
 ```
 
 If errors → fix before moving to next task.
@@ -153,7 +147,7 @@ If errors → fix before moving to next task.
 After all tasks complete:
 
 ```json
-mcp__knowns__validate({ "scope": "sdd" })
+mcp_knowns_validate({ "scope": "sdd" })
 ```
 
 **Report SDD coverage:**
@@ -230,7 +224,7 @@ When invoked on a spec that already has tasks:
 4. Continue from where it left off
 
 ```json
-mcp__knowns__list_tasks({ "spec": "specs/<name>" })
+mcp_knowns_tasks({ "action": "list", "spec": "specs/<name>" })
 ```
 
 ---

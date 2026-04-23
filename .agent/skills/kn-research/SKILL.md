@@ -17,41 +17,58 @@ description: Use when you need to understand existing code, find patterns, or ex
 ## Search Order
 
 1. Project docs and memories (unified search)
-2. Completed or related tasks
-3. Existing code paths and implementations
-4. Adjacent tests, templates, and validation logic
+2. Expand context via structural relations (if spec/doc found)
+3. Completed or related tasks (keyword search for gaps)
+4. Existing code paths and implementations
+5. Adjacent tests, templates, and validation logic
 
 ## Step 1: Search Documentation and Memory
 
 ```json
-mcp__knowns__search({ "query": "<topic>", "type": "doc" })
-mcp__knowns__search({ "query": "<topic>", "type": "memory" })
-mcp__knowns__get_doc({ "path": "<path>", "smart": true })
+mcp_knowns_search({ "action": "search", "query": "<topic>", "type": "doc" })
+mcp_knowns_search({ "action": "search", "query": "<topic>", "type": "memory" })
+mcp_knowns_docs({ "action": "get", "path": "<path>", "smart": true })
 ```
 
 Unified search returns docs and memory entries. If relevant memories appear, include them in findings and note whether they're still current.
 
 Use `search` for discovery-first research. Only use `retrieve` when the next consumer needs assembled context with citations rather than raw hits:
 ```json
-mcp__knowns__retrieve({ "query": "<topic>" })
+mcp_knowns_search({ "action": "retrieve", "query": "<topic>" })
 ```
 If MCP is unavailable, fall back to CLI: `knowns retrieve "<topic>" --json`
 
-## Step 2: Search Completed Tasks
+## Step 2: Expand Context via Relations
+
+If Step 1 found a spec or doc relevant to the topic, use structural resolve to discover related tasks, dependencies, and implementation status **before** searching tasks by keyword. This gives a complete picture of what already exists.
 
 ```json
-mcp__knowns__search({ "query": "<keywords>", "type": "task" })
-mcp__knowns__get_task({ "taskId": "<id>" })
+// Found specs/ai-permission-model in Step 1 → find all tasks implementing it
+mcp_knowns_search({ "action": "resolve", "ref": "@doc/specs/<found-path>{implements}", "direction": "inbound", "entityTypes": "task" })
+
+// Found a doc that others depend on → find what depends on it
+mcp_knowns_search({ "action": "resolve", "ref": "@doc/<found-path>{depends}", "direction": "inbound", "depth": 2 })
 ```
 
-## Step 3: Search Codebase
+Skip this step only if Step 1 returned no relevant docs or specs.
+
+## Step 3: Search Completed Tasks
+
+```json
+mcp_knowns_search({ "action": "search", "query": "<keywords>", "type": "task" })
+mcp_knowns_tasks({ "action": "get", "taskId": "<id>" })
+```
+
+If Step 2 already found related tasks via structural resolve, focus keyword search on gaps — tasks that might be related but not formally linked.
+
+## Step 4: Search Codebase
 
 ```bash
 find . -name "*<pattern>*" -type f | grep -v node_modules | head -20
 grep -r "<pattern>" --include="*.ts" -l | head -20
 ```
 
-## Step 4: Document Findings
+## Step 5: Document Findings
 
 ```markdown
 ## Research: [Topic]
@@ -113,6 +130,7 @@ If the research uncovers a broad follow-up topic that should be tracked independ
 ## Checklist
 
 - [ ] Searched documentation
+- [ ] Expanded context via structural resolve (if spec/doc found)
 - [ ] Reviewed similar completed tasks
 - [ ] Found existing code patterns
 - [ ] Identified reusable components

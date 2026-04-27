@@ -6,7 +6,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/howznguyen/knowns/internal/registry"
+	"github.com/datran93/knowns/internal/registry"
 )
 
 // createFakeProject creates a temp dir with a .knowns/ subfolder.

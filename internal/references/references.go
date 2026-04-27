@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/howznguyen/knowns/internal/models"
+	"github.com/datran93/knowns/internal/models"
 )
 
 var referenceRE = regexp.MustCompile(`@(task-[A-Za-z0-9.-]+(?:\{[a-z-]+\})?|memory-[A-Za-z0-9-]+(?:\{[a-z-]+\})?|doc/[^\s\)]+)`)

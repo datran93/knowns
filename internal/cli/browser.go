@@ -16,12 +16,12 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/howznguyen/knowns/internal/registry"
-	"github.com/howznguyen/knowns/internal/search"
-	"github.com/howznguyen/knowns/internal/server"
-	"github.com/howznguyen/knowns/internal/storage"
-	"github.com/howznguyen/knowns/internal/tunnel/cloudflared"
-	"github.com/howznguyen/knowns/internal/util"
+	"github.com/datran93/knowns/internal/registry"
+	"github.com/datran93/knowns/internal/search"
+	"github.com/datran93/knowns/internal/server"
+	"github.com/datran93/knowns/internal/storage"
+	"github.com/datran93/knowns/internal/tunnel/cloudflared"
+	"github.com/datran93/knowns/internal/util"
 )
 
 var browserCmd = &cobra.Command{

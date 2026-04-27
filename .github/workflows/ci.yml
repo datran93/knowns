@@ -62,7 +62,7 @@ jobs:
         if: runner.os == 'Windows'
         env:
           CGO_ENABLED: '1'
-        run: go build -ldflags "-s -w -X github.com/howznguyen/knowns/internal/util.Version=${env:GITHUB_SHA}" -o bin/knowns.exe ./cmd/knowns
+        run: go build -ldflags "-s -w -X github.com/datran93/knowns/internal/util.Version=${env:GITHUB_SHA}" -o bin/knowns.exe ./cmd/knowns
 
       - name: Download ONNX Runtime (Unix)
         if: runner.os != 'Windows'

@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/howznguyen/knowns/internal/server/routes"
+	"github.com/datran93/knowns/internal/server/routes"
 )
 
 // SSEBroker manages SSE client connections and broadcasts events to all of them.

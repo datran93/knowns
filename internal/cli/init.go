@@ -11,11 +11,11 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 
-	"github.com/howznguyen/knowns/internal/codegen"
-	"github.com/howznguyen/knowns/internal/models"
-	"github.com/howznguyen/knowns/internal/runtimeinstall"
-	"github.com/howznguyen/knowns/internal/server"
-	"github.com/howznguyen/knowns/internal/storage"
+	"github.com/datran93/knowns/internal/codegen"
+	"github.com/datran93/knowns/internal/models"
+	"github.com/datran93/knowns/internal/runtimeinstall"
+	"github.com/datran93/knowns/internal/server"
+	"github.com/datran93/knowns/internal/storage"
 	"github.com/spf13/cobra"
 )
 
@@ -129,13 +129,13 @@ func platformLabel(id string) string {
 	case "gemini":
 		return "Google Gemini  (GEMINI.md)"
 	case "antigravity":
-		return "Antigravity  (.agent/rules/knowns.md, ~/.gemini/antigravity/mcp_config.json)"
+		return "Antigravity  (.agents/rules/knowns.md, ~/.gemini/antigravity/mcp_config.json)"
 	case "cursor":
 		return "Cursor  (.cursor/mcp.json)"
 	case "copilot":
 		return "GitHub Copilot  (.github/copilot-instructions.md)"
 	case "agents":
-		return "Generic Agents  (AGENTS.md, .agent/skills/)"
+		return "Generic Agents  (AGENTS.md, .agents/skills/)"
 	default:
 		return id
 	}
@@ -950,9 +950,9 @@ func createCodexMCPConfigQuiet(projectRoot string) error {
 }
 
 func createAntigravityRulesQuiet(projectRoot string, force bool) error {
-	rulesDir := filepath.Join(projectRoot, ".agent", "rules")
+	rulesDir := filepath.Join(projectRoot, ".agents", "rules")
 	if err := os.MkdirAll(rulesDir, 0755); err != nil {
-		return fmt.Errorf("create .agent/rules: %w", err)
+		return fmt.Errorf("create .agents/rules: %w", err)
 	}
 
 	rulePath := filepath.Join(rulesDir, "knowns.md")

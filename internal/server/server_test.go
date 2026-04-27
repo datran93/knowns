@@ -12,10 +12,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/howznguyen/knowns/internal/agents/opencode"
-	"github.com/howznguyen/knowns/internal/models"
-	"github.com/howznguyen/knowns/internal/runtimememory"
-	"github.com/howznguyen/knowns/internal/storage"
+	"github.com/datran93/knowns/internal/agents/opencode"
+	"github.com/datran93/knowns/internal/models"
+	"github.com/datran93/knowns/internal/runtimememory"
+	"github.com/datran93/knowns/internal/storage"
 )
 
 func TestDeriveOpenCodePortCandidates(t *testing.T) {

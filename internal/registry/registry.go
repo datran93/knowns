@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/howznguyen/knowns/internal/util"
+	"github.com/datran93/knowns/internal/util"
 )
 
 // Project represents a registered Knowns project.

@@ -3,7 +3,7 @@ package models
 import (
 	"time"
 
-	"github.com/howznguyen/knowns/internal/permissions"
+	"github.com/datran93/knowns/internal/permissions"
 )
 
 // Project is the root configuration stored in .knowns/config.json.

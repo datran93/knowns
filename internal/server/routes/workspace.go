@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/datran93/knowns/internal/storage"
 	"github.com/go-chi/chi/v5"
-	"github.com/howznguyen/knowns/internal/storage"
 )
 
 // WorkspaceRoutes handles /api/workspaces endpoints for multi-project management.
@@ -109,8 +109,6 @@ func (wr *WorkspaceRoutes) browse(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, result)
 }
 
-
-//
 // GET /api/workspaces
 func (wr *WorkspaceRoutes) list(w http.ResponseWriter, r *http.Request) {
 	reg := wr.manager.GetRegistry()

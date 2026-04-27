@@ -13,9 +13,9 @@ import (
 	"charm.land/bubbles/v2/spinner"
 	tea "charm.land/bubbletea/v2"
 
-	"github.com/howznguyen/knowns/internal/models"
-	"github.com/howznguyen/knowns/internal/search"
-	"github.com/howznguyen/knowns/internal/storage"
+	"github.com/datran93/knowns/internal/models"
+	"github.com/datran93/knowns/internal/search"
+	"github.com/datran93/knowns/internal/storage"
 )
 
 // ─── download step ───────────────────────────────────────────────────

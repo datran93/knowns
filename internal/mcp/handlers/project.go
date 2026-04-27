@@ -6,8 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/howznguyen/knowns/internal/readiness"
-	"github.com/howznguyen/knowns/internal/storage"
+	"github.com/datran93/knowns/internal/readiness"
+	"github.com/datran93/knowns/internal/storage"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 )

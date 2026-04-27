@@ -23,7 +23,7 @@ Complete guide for using Knowns - a CLI-first knowledge layer and task managemen
 npm install -g knowns
 
 # Install via Go
-go install github.com/howznguyen/knowns/cmd/knowns@latest
+go install github.com/datran93/knowns/cmd/knowns@latest
 
 # Install via curl (Linux/macOS)
 curl -fsSL https://raw.githubusercontent.com/howznguyen/knowns/main/install/install.sh | sh

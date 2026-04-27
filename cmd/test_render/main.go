@@ -2,7 +2,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/howznguyen/knowns/internal/instructions/guidelines"
+
+	"github.com/datran93/knowns/internal/instructions/guidelines"
 )
 
 func main() {

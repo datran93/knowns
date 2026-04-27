@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/howznguyen/knowns/internal/models"
+	"github.com/datran93/knowns/internal/models"
 )
 
 // newTestStoreWithData creates a temp store seeded with docs, tasks, and memories

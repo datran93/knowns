@@ -9,12 +9,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/datran93/knowns/internal/runtimequeue"
 	"github.com/fsnotify/fsnotify"
-	"github.com/howznguyen/knowns/internal/runtimequeue"
 	"github.com/spf13/cobra"
 
-	"github.com/howznguyen/knowns/internal/search"
-	"github.com/howznguyen/knowns/internal/storage"
+	"github.com/datran93/knowns/internal/search"
+	"github.com/datran93/knowns/internal/storage"
 )
 
 var watchCmd = &cobra.Command{

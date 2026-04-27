@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/howznguyen/knowns/internal/util"
+	"github.com/datran93/knowns/internal/util"
 )
 
 // MinOpenCodeVersion is the minimum required OpenCode version.

@@ -3,7 +3,7 @@
 // standalone binary still imports this package.
 package embedsidecar
 
-import "github.com/howznguyen/knowns/internal/search"
+import "github.com/datran93/knowns/internal/search"
 
 // ModelConfig is an alias for the ONNX model configuration.
 type ModelConfig = search.ORTModelConfig

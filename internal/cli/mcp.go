@@ -9,7 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/howznguyen/knowns/internal/mcp"
+	"github.com/datran93/knowns/internal/mcp"
 )
 
 var mcpCmd = &cobra.Command{

@@ -5,17 +5,17 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/datran93/knowns/internal/models"
+	"github.com/datran93/knowns/internal/search"
+	"github.com/datran93/knowns/internal/storage"
 	"github.com/go-chi/chi/v5"
-	"github.com/howznguyen/knowns/internal/models"
-	"github.com/howznguyen/knowns/internal/search"
-	"github.com/howznguyen/knowns/internal/storage"
 )
 
 // MemoryRoutes handles persistent memory endpoints.
 type MemoryRoutes struct {
-	store   *storage.Store
-	mgr     *storage.Manager
-	sse     Broadcaster
+	store *storage.Store
+	mgr   *storage.Manager
+	sse   Broadcaster
 }
 
 func (mr *MemoryRoutes) getStore() *storage.Store {
@@ -226,4 +226,3 @@ func (mr *MemoryRoutes) demote(w http.ResponseWriter, r *http.Request) {
 	search.BestEffortIndexMemory(mr.getStore(), entry.ID)
 	respondJSON(w, http.StatusOK, entry)
 }
-

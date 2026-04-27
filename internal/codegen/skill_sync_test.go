@@ -27,18 +27,18 @@ func TestSyncSkillsForPlatformsWritesAgentCompatiblePlatformsToRepoAgentsDir(t *
 	}
 }
 
-func TestSyncSkillsForPlatformsKeepsLegacyAgentDirForGenericAgents(t *testing.T) {
+func TestSyncSkillsForPlatformsWritesAgentsPlatformToRepoAgentsDir(t *testing.T) {
 	projectRoot := t.TempDir()
 
 	if err := SyncSkillsForPlatforms(projectRoot, []string{"agents"}); err != nil {
 		t.Fatalf("SyncSkillsForPlatforms returned error: %v", err)
 	}
 
-	if _, err := os.Stat(filepath.Join(projectRoot, ".agent", "skills")); err != nil {
-		t.Fatalf("expected .agent/skills to exist: %v", err)
+	if _, err := os.Stat(filepath.Join(projectRoot, ".agents", "skills")); err != nil {
+		t.Fatalf("expected .agents/skills to exist for agents platform: %v", err)
 	}
-	if _, err := os.Stat(filepath.Join(projectRoot, ".agents", "skills")); !os.IsNotExist(err) {
-		t.Fatalf("expected .agents/skills not to be created for generic agents, got err=%v", err)
+	if _, err := os.Stat(filepath.Join(projectRoot, ".agent", "skills")); !os.IsNotExist(err) {
+		t.Fatalf("expected .agent/skills not to be created for agents platform, got err=%v", err)
 	}
 }
 

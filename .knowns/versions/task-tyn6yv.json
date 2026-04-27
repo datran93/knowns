@@ -1,0 +1,68 @@
+{
+  "taskId": "tyn6yv",
+  "currentVersion": 3,
+  "versions": [
+    {
+      "id": "v1",
+      "taskId": "tyn6yv",
+      "version": 1,
+      "timestamp": "2026-04-27T10:23:13.584903Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": null,
+          "newValue": "todo"
+        },
+        {
+          "field": "priority",
+          "oldValue": null,
+          "newValue": "medium"
+        }
+      ],
+      "snapshot": {
+        "description": "Update Knowns to support .agents/ folder as the canonical location for skills and rules, replacing .agent/. The sync mechanism should detect .agents first, with .agent as legacy fallback for compatibility.",
+        "priority": "medium",
+        "status": "todo",
+        "title": "Update to use .agents instead of .agent folder"
+      }
+    },
+    {
+      "id": "v2",
+      "taskId": "tyn6yv",
+      "version": 2,
+      "timestamp": "2026-04-27T10:23:16.352223Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "todo",
+          "newValue": "in-progress"
+        }
+      ],
+      "snapshot": {
+        "description": "Update Knowns to support .agents/ folder as the canonical location for skills and rules, replacing .agent/. The sync mechanism should detect .agents first, with .agent as legacy fallback for compatibility.",
+        "priority": "medium",
+        "status": "in-progress",
+        "title": "Update to use .agents instead of .agent folder"
+      }
+    },
+    {
+      "id": "v3",
+      "taskId": "tyn6yv",
+      "version": 3,
+      "timestamp": "2026-04-27T10:26:16.672063Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "in-progress",
+          "newValue": "done"
+        }
+      ],
+      "snapshot": {
+        "description": "Update Knowns to support .agents/ folder as the canonical location for skills and rules, replacing .agent/. The sync mechanism should detect .agents first, with .agent as legacy fallback for compatibility.",
+        "priority": "medium",
+        "status": "done",
+        "title": "Update to use .agents instead of .agent folder"
+      }
+    }
+  ]
+}

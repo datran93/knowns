@@ -10,9 +10,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/howznguyen/knowns/internal/codegen"
-	"github.com/howznguyen/knowns/internal/storage"
-	"github.com/howznguyen/knowns/internal/util"
+	"github.com/datran93/knowns/internal/codegen"
+	"github.com/datran93/knowns/internal/storage"
+	"github.com/datran93/knowns/internal/util"
 )
 
 var bannerLines = []string{

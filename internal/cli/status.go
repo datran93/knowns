@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/howznguyen/knowns/internal/readiness"
+	"github.com/datran93/knowns/internal/readiness"
 	"github.com/spf13/cobra"
 )
 

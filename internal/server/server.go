@@ -28,14 +28,14 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/gorilla/websocket"
 
-	"github.com/howznguyen/knowns/internal/agents/opencode"
-	"github.com/howznguyen/knowns/internal/models"
-	serverreadiness "github.com/howznguyen/knowns/internal/readiness"
-	"github.com/howznguyen/knowns/internal/registry"
-	"github.com/howznguyen/knowns/internal/runtimememory"
-	"github.com/howznguyen/knowns/internal/server/routes"
-	"github.com/howznguyen/knowns/internal/storage"
-	ui "github.com/howznguyen/knowns/ui"
+	"github.com/datran93/knowns/internal/agents/opencode"
+	"github.com/datran93/knowns/internal/models"
+	serverreadiness "github.com/datran93/knowns/internal/readiness"
+	"github.com/datran93/knowns/internal/registry"
+	"github.com/datran93/knowns/internal/runtimememory"
+	"github.com/datran93/knowns/internal/server/routes"
+	"github.com/datran93/knowns/internal/storage"
+	ui "github.com/datran93/knowns/ui"
 	"github.com/rs/cors"
 )
 

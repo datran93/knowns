@@ -10,7 +10,7 @@ import (
 
 	_ "modernc.org/sqlite"
 
-	"github.com/howznguyen/knowns/internal/models"
+	"github.com/datran93/knowns/internal/models"
 )
 
 const globalSemanticStoreDir = "global"

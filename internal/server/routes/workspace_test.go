@@ -9,9 +9,9 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/datran93/knowns/internal/registry"
+	"github.com/datran93/knowns/internal/storage"
 	"github.com/go-chi/chi/v5"
-	"github.com/howznguyen/knowns/internal/registry"
-	"github.com/howznguyen/knowns/internal/storage"
 )
 
 // fakeBroadcaster records broadcast calls for assertions.

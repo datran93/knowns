@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/datran93/knowns/internal/storage"
 	"github.com/go-chi/chi/v5"
-	"github.com/howznguyen/knowns/internal/storage"
 )
 
 // TimeRoutes handles /api/time endpoints.

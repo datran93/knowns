@@ -8,9 +8,9 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/datran93/knowns/internal/references"
+	"github.com/datran93/knowns/internal/storage"
 	"github.com/go-chi/chi/v5"
-	"github.com/howznguyen/knowns/internal/references"
-	"github.com/howznguyen/knowns/internal/storage"
 )
 
 // GraphRoutes handles /api/graph endpoints.

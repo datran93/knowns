@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/howznguyen/knowns/internal/models"
+	"github.com/datran93/knowns/internal/models"
 	"gopkg.in/yaml.v3"
 )
 

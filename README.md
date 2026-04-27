@@ -392,7 +392,7 @@ npx knowns
 ### From source (Go 1.24.2+)
 
 ```bash
-go install github.com/howznguyen/knowns/cmd/knowns@latest
+go install github.com/datran93/knowns/cmd/knowns@latest
 
 # Or clone and build
 git clone https://github.com/knowns-dev/knowns.git

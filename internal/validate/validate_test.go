@@ -3,7 +3,7 @@ package validate
 import (
 	"testing"
 
-	"github.com/howznguyen/knowns/internal/models"
+	"github.com/datran93/knowns/internal/models"
 )
 
 func TestValidateTask_NoTitle(t *testing.T) {

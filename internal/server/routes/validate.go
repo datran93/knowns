@@ -4,8 +4,8 @@ import (
 	"math"
 	"net/http"
 
+	"github.com/datran93/knowns/internal/storage"
 	"github.com/go-chi/chi/v5"
-	"github.com/howznguyen/knowns/internal/storage"
 )
 
 // ValidateRoutes handles /api/validate endpoints.
@@ -153,7 +153,7 @@ func (vr *ValidateRoutes) sdd(w http.ResponseWriter, r *http.Request) {
 				"draft":       0,
 				"implemented": 0,
 			},
-			"tasks":        taskStatsMap,
+			"tasks": taskStatsMap,
 			"coverage": map[string]interface{}{
 				"linked":  withSpec,
 				"total":   len(tasks),

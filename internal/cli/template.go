@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/howznguyen/knowns/internal/codegen"
-	"github.com/howznguyen/knowns/internal/models"
+	"github.com/datran93/knowns/internal/codegen"
+	"github.com/datran93/knowns/internal/models"
 	"github.com/spf13/cobra"
 )
 

@@ -15,7 +15,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/howznguyen/knowns/internal/util"
+	"github.com/datran93/knowns/internal/util"
 )
 
 type JobKind string

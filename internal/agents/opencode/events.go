@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/howznguyen/knowns/internal/models"
+	"github.com/datran93/knowns/internal/models"
 )
 
 // EventType represents the type of an OpenCode event.
@@ -16,8 +16,8 @@ const (
 	EventTypeToolUse    EventType = "tool_use"
 	EventTypeToolResult EventType = "tool_result"
 	EventTypeError      EventType = "error"
-	EventTypeResult    EventType = "result"
-	EventTypeDone      EventType = "done"
+	EventTypeResult     EventType = "result"
+	EventTypeDone       EventType = "done"
 )
 
 // ProxyEvent converts an OpenCode API event to the internal ProxyEvent format.

@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/howznguyen/knowns/internal/storage"
+	"github.com/datran93/knowns/internal/storage"
 	"github.com/spf13/cobra"
 )
 

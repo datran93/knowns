@@ -5,7 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/howznguyen/knowns/internal/tunnel/cloudflared"
+	"github.com/datran93/knowns/internal/tunnel/cloudflared"
 )
 
 var tunnelCmd = &cobra.Command{

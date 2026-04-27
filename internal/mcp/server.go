@@ -16,10 +16,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/howznguyen/knowns/internal/mcp/handlers"
-	"github.com/howznguyen/knowns/internal/permissions"
-	"github.com/howznguyen/knowns/internal/runtimequeue"
-	"github.com/howznguyen/knowns/internal/storage"
+	"github.com/datran93/knowns/internal/mcp/handlers"
+	"github.com/datran93/knowns/internal/permissions"
+	"github.com/datran93/knowns/internal/runtimequeue"
+	"github.com/datran93/knowns/internal/storage"
 	"github.com/mark3labs/mcp-go/server"
 )
 

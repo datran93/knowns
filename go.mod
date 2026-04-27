@@ -1,4 +1,4 @@
-module github.com/howznguyen/knowns
+module github.com/datran93/knowns
 
 go 1.25.0
 

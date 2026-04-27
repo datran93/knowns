@@ -9,10 +9,10 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/howznguyen/knowns/internal/codegen"
-	"github.com/howznguyen/knowns/internal/models"
-	"github.com/howznguyen/knowns/internal/references"
-	"github.com/howznguyen/knowns/internal/storage"
+	"github.com/datran93/knowns/internal/codegen"
+	"github.com/datran93/knowns/internal/models"
+	"github.com/datran93/knowns/internal/references"
+	"github.com/datran93/knowns/internal/storage"
 )
 
 // Issue represents a single validation problem.

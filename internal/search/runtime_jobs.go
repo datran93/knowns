@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/howznguyen/knowns/internal/runtimequeue"
-	"github.com/howznguyen/knowns/internal/storage"
+	"github.com/datran93/knowns/internal/runtimequeue"
+	"github.com/datran93/knowns/internal/storage"
 )
 
 // ExecuteRuntimeJob runs a queued runtime job synchronously inside the shared runtime.

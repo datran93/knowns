@@ -8,7 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
-	instructionskills "github.com/howznguyen/knowns/internal/instructions/skills"
+	instructionskills "github.com/datran93/knowns/internal/instructions/skills"
 )
 
 // SkillsOutOfSync returns true if any embedded skill SKILL.md differs from the
@@ -75,19 +75,20 @@ func platformNeedsClaudeSkills(p string) bool {
 }
 
 // platformNeedsLegacyAgentSkills returns true if the platform writes to
-// .agent/skills/.
+// .agent/skills/. No current platforms use this - kept for backward compat detection.
 func platformNeedsLegacyAgentSkills(p string) bool {
-	return p == "agents"
+	return false
 }
 
 // platformNeedsRepoAgentSkills returns true if the platform writes to
 // .agents/skills/.
 func platformNeedsRepoAgentSkills(p string) bool {
-	return p == "opencode" || p == "antigravity" || p == "codex"
+	return p == "opencode" || p == "antigravity" || p == "codex" || p == "agents"
 }
 
 func platformSupportsLegacyAgentSkills(p string) bool {
-	return p == "opencode" || p == "antigravity" || p == "codex"
+	// Only used for backward compat detection when user already has .agent/skills
+	return p == "opencode" || p == "antigravity" || p == "codex" || p == "agents"
 }
 
 func legacyAgentSkillsDirExists(projectRoot string) bool {

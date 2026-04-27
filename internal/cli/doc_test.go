@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/howznguyen/knowns/internal/models"
+	"github.com/datran93/knowns/internal/models"
 )
 
 func TestRenderSmartDocSummary(t *testing.T) {

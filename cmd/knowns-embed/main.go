@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/howznguyen/knowns/internal/embedsidecar"
-	"github.com/howznguyen/knowns/internal/util"
+	"github.com/datran93/knowns/internal/embedsidecar"
+	"github.com/datran93/knowns/internal/util"
 )
 
 type rpcReq struct {

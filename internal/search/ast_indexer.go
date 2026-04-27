@@ -10,7 +10,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/howznguyen/knowns/internal/models"
+	"github.com/datran93/knowns/internal/models"
 )
 
 // CodeSymbol represents a parsed symbol from a code file.

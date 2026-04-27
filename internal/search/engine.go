@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/howznguyen/knowns/internal/models"
-	"github.com/howznguyen/knowns/internal/references"
-	"github.com/howznguyen/knowns/internal/storage"
+	"github.com/datran93/knowns/internal/models"
+	"github.com/datran93/knowns/internal/references"
+	"github.com/datran93/knowns/internal/storage"
 )
 
 const memoryStoreProject = "project-store"

@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/howznguyen/knowns/internal/codegen"
-	"github.com/howznguyen/knowns/internal/storage"
+	"github.com/datran93/knowns/internal/codegen"
+	"github.com/datran93/knowns/internal/storage"
 	"github.com/spf13/cobra"
 )
 
@@ -179,7 +179,7 @@ func runSyncPlatformConfigs(projectRoot string, force bool, platforms []string) 
 		if err := createAntigravityRulesQuiet(projectRoot, force); err != nil {
 			return err
 		}
-		fmt.Printf("  %s %s\n", StyleSuccess.Render("[antigravity]"), StyleDim.Render(".agent/rules/knowns.md synced."))
+		fmt.Printf("  %s %s\n", StyleSuccess.Render("[antigravity]"), StyleDim.Render(".agents/rules/knowns.md synced."))
 
 		if err := createAntigravityMCPConfigQuiet(projectRoot); err != nil {
 			return err
@@ -228,6 +228,8 @@ func runSyncSkillsForPlatforms(projectRoot string, force bool, platforms []strin
 	fmt.Printf("%s\n", RenderInfo(fmt.Sprintf("Syncing %s skill(s)...", StyleBold.Render(fmt.Sprintf("%d", count)))))
 	if codegen.UsesLegacyAgentSkillsDir(projectRoot, platforms) {
 		fmt.Printf("  %s\n", StyleWarning.Render("Legacy .agent/skills detected. Knowns will continue syncing it for compatibility, but new projects should use .agents/skills."))
+	} else {
+		fmt.Printf("  %s\n", StyleInfo.Render("Skills synced to .agents/skills/ (canonical) and .claude/skills/."))
 	}
 
 	if err := codegen.SyncSkillsForPlatforms(projectRoot, platforms); err != nil {

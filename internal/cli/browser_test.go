@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/howznguyen/knowns/internal/registry"
+	"github.com/datran93/knowns/internal/registry"
 	"github.com/spf13/cobra"
 )
 

@@ -5,8 +5,8 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"github.com/howznguyen/knowns/internal/models"
-	"github.com/howznguyen/knowns/internal/storage"
+	"github.com/datran93/knowns/internal/models"
+	"github.com/datran93/knowns/internal/storage"
 )
 
 // IndexService orchestrates chunking, embedding, and storage of vectors.

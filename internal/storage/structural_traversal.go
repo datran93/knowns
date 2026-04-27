@@ -1,8 +1,8 @@
 package storage
 
 import (
-	"github.com/howznguyen/knowns/internal/models"
-	"github.com/howznguyen/knowns/internal/references"
+	"github.com/datran93/knowns/internal/models"
+	"github.com/datran93/knowns/internal/references"
 )
 
 // StructuralResolve performs structural traversal from a semantic reference.

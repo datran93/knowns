@@ -3,7 +3,7 @@ package search
 import (
 	"testing"
 
-	"github.com/howznguyen/knowns/internal/models"
+	"github.com/datran93/knowns/internal/models"
 )
 
 func TestSelectRankedNeighborCandidates_PrioritizesEdgeTypeAndDedupe(t *testing.T) {

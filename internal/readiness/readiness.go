@@ -8,10 +8,10 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/howznguyen/knowns/internal/permissions"
-	"github.com/howznguyen/knowns/internal/search"
-	"github.com/howznguyen/knowns/internal/storage"
-	"github.com/howznguyen/knowns/internal/util"
+	"github.com/datran93/knowns/internal/permissions"
+	"github.com/datran93/knowns/internal/search"
+	"github.com/datran93/knowns/internal/storage"
+	"github.com/datran93/knowns/internal/util"
 )
 
 // Payload is the canonical readiness response.
@@ -23,21 +23,21 @@ type Payload struct {
 	ProjectPath string `json:"projectPath"`
 	Version     string `json:"version"`
 
-	Knowledge    *KnowledgeStatus    `json:"knowledge,omitempty"`
-	Search       *SearchStatus       `json:"search,omitempty"`
-	Runtime      *RuntimeStatus      `json:"runtime,omitempty"`
-	Permissions  *PermissionStatus   `json:"permissions,omitempty"`
-	Capabilities []string            `json:"capabilities,omitempty"`
+	Knowledge    *KnowledgeStatus  `json:"knowledge,omitempty"`
+	Search       *SearchStatus     `json:"search,omitempty"`
+	Runtime      *RuntimeStatus    `json:"runtime,omitempty"`
+	Permissions  *PermissionStatus `json:"permissions,omitempty"`
+	Capabilities []string          `json:"capabilities,omitempty"`
 }
 
 // KnowledgeStatus reports entity counts.
 type KnowledgeStatus struct {
-	Docs      int            `json:"docs"`
-	Tasks     int            `json:"tasks"`
-	Templates int            `json:"templates"`
-	Memories  MemoryCounts   `json:"memories"`
-	Relations int            `json:"relations"`
-	Imports   int            `json:"imports"`
+	Docs      int          `json:"docs"`
+	Tasks     int          `json:"tasks"`
+	Templates int          `json:"templates"`
+	Memories  MemoryCounts `json:"memories"`
+	Relations int          `json:"relations"`
+	Imports   int          `json:"imports"`
 }
 
 // MemoryCounts breaks memory count by layer.
@@ -48,12 +48,12 @@ type MemoryCounts struct {
 
 // SearchStatus reports semantic search readiness.
 type SearchStatus struct {
-	SemanticEnabled  bool       `json:"semanticEnabled"`
-	ModelConfigured  bool       `json:"modelConfigured"`
-	ModelInstalled   bool       `json:"modelInstalled"`
-	ProjectIndexReady bool      `json:"projectIndexReady"`
-	GlobalIndexReady  bool      `json:"globalIndexReady"`
-	LastReindex      *time.Time `json:"lastReindex,omitempty"`
+	SemanticEnabled   bool       `json:"semanticEnabled"`
+	ModelConfigured   bool       `json:"modelConfigured"`
+	ModelInstalled    bool       `json:"modelInstalled"`
+	ProjectIndexReady bool       `json:"projectIndexReady"`
+	GlobalIndexReady  bool       `json:"globalIndexReady"`
+	LastReindex       *time.Time `json:"lastReindex,omitempty"`
 }
 
 // RuntimeStatus reports runtime health. This is typically injected from a

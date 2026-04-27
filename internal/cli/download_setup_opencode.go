@@ -7,7 +7,7 @@ import (
 	"runtime"
 
 	"github.com/charmbracelet/huh"
-	"github.com/howznguyen/knowns/internal/agents/opencode"
+	"github.com/datran93/knowns/internal/agents/opencode"
 )
 
 // openCodeInstallURL is the manual install reference.

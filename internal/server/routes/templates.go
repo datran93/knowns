@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/datran93/knowns/internal/models"
+	"github.com/datran93/knowns/internal/storage"
 	"github.com/go-chi/chi/v5"
-	"github.com/howznguyen/knowns/internal/models"
-	"github.com/howznguyen/knowns/internal/storage"
 )
 
 // Case conversion helpers for template variable substitution.
@@ -107,23 +107,23 @@ type templateListItem struct {
 
 // templateFile is the UI-friendly shape for template actions/files.
 type templateFile struct {
-	Type        string `json:"type"`
-	Template    string `json:"template,omitempty"`
-	Destination string `json:"destination,omitempty"`
-	Path        string `json:"path,omitempty"`
-	Source      string `json:"source,omitempty"`
-	GlobPattern string `json:"globPattern,omitempty"`
-	SkipIfExists bool  `json:"skipIfExists,omitempty"`
-	When        string `json:"when,omitempty"`
+	Type         string `json:"type"`
+	Template     string `json:"template,omitempty"`
+	Destination  string `json:"destination,omitempty"`
+	Path         string `json:"path,omitempty"`
+	Source       string `json:"source,omitempty"`
+	GlobPattern  string `json:"globPattern,omitempty"`
+	SkipIfExists bool   `json:"skipIfExists,omitempty"`
+	When         string `json:"when,omitempty"`
 }
 
 // uiPrompt is the UI-friendly shape for template prompts.
 type uiPrompt struct {
-	Name     string          `json:"name"`
-	Message  string          `json:"message"`
-	Type     string          `json:"type"`
-	Required bool            `json:"required"`
-	Default  string          `json:"default,omitempty"`
+	Name     string           `json:"name"`
+	Message  string           `json:"message"`
+	Type     string           `json:"type"`
+	Required bool             `json:"required"`
+	Default  string           `json:"default,omitempty"`
 	Choices  []uiPromptChoice `json:"choices,omitempty"`
 }
 

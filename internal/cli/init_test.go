@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/howznguyen/knowns/internal/runtimeinstall"
+	"github.com/datran93/knowns/internal/runtimeinstall"
 )
 
 func TestCreateOpenCodeConfigQuietCreatesConfig(t *testing.T) {
@@ -275,7 +275,7 @@ func TestCreateAntigravityRulesQuietCreatesRuleFile(t *testing.T) {
 		t.Fatalf("createAntigravityRulesQuiet returned error: %v", err)
 	}
 
-	content := readTextFile(t, filepath.Join(projectRoot, ".agent", "rules", "knowns.md"))
+	content := readTextFile(t, filepath.Join(projectRoot, ".agents", "rules", "knowns.md"))
 	assertContains(t, content, "trigger: always_on")
 	assertContains(t, content, "Read `KNOWNS.md` first")
 	assertContains(t, content, "Prefer Knowns MCP tools")
@@ -361,7 +361,7 @@ func TestRunSyncPlatformConfigsCreatesCursorAndAntigravityArtifacts(t *testing.T
 	}
 
 	_ = readJSONFile(t, filepath.Join(projectRoot, ".cursor", "mcp.json"))
-	assertContains(t, readTextFile(t, filepath.Join(projectRoot, ".agent", "rules", "knowns.md")), "trigger: always_on")
+	assertContains(t, readTextFile(t, filepath.Join(projectRoot, ".agents", "rules", "knowns.md")), "trigger: always_on")
 	config := readJSONFile(t, filepath.Join(home, ".gemini", "antigravity", "mcp_config.json"))
 	mcpServers := getMap(t, config, "mcpServers")
 	knowns := getMap(t, mcpServers, "knowns")

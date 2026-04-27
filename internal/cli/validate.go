@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/howznguyen/knowns/internal/validate"
+	"github.com/datran93/knowns/internal/validate"
 	"github.com/spf13/cobra"
 )
 

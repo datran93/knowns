@@ -3,7 +3,7 @@
   "id": "knowns-go",
   "createdAt": "2026-03-08T17:15:18.432Z",
   "settings": {
-    "defaultAssignee": "howznguyen",
+    "defaultAssignee": "datran93",
     "defaultPriority": "medium",
     "timeFormat": "24h",
     "gitTrackingMode": "none",
@@ -30,7 +30,8 @@
       "in-progress",
       "blocked",
       "done",
-      "in-review"
+      "in-review",
+      "on-hold"
     ],
     "semanticSearch": {
       "enabled": true,
@@ -64,7 +65,9 @@
       },
       "activeModels": [
         "anthropic:claude-sonnet-4-5",
-        "knowns-hub:cx/gpt-5.4"
+        "knowns-hub:cx/gpt-5.4",
+        "opencode:minimax-m2.5-free",
+        "openrouter:minimax/minimax-m2.5:free"
       ]
     }
   }

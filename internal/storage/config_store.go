@@ -29,6 +29,10 @@ func (cs *ConfigStore) Load() (*models.Project, error) {
 	if err := json.Unmarshal(data, &p); err != nil {
 		return nil, fmt.Errorf("parse config: %w", err)
 	}
+	// Apply defaults for AgentEfficiency if not set.
+	if p.Settings.AgentEfficiency == nil {
+		p.Settings.AgentEfficiency = models.DefaultAgentEfficiencySettings()
+	}
 	return &p, nil
 }
 

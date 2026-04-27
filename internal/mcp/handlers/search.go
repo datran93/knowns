@@ -127,28 +127,58 @@ func handleSearch(getStore func() *storage.Store, req mcp.CallToolRequest) (*mcp
 		limit = v
 	}
 
-	opts := search.SearchOptions{
-		Query:    query,
-		Type:     searchType,
-		Mode:     mode,
-		Status:   statusFilter,
-		Priority: priorityFilter,
-		Assignee: assigneeFilter,
-		Label:    labelFilter,
-		Tag:      tagFilter,
-		Limit:    limit,
+	// Check if modelRouter is enabled for automatic query-based routing.
+	useRouter := shouldUseModelRouter(store, mode)
+
+	var results []models.SearchResult
+
+	if useRouter {
+		embedder, vecStore, _ := search.InitSemantic(store)
+		if embedder != nil {
+			defer embedder.Close()
+		}
+		if vecStore != nil {
+			defer vecStore.Close()
+		}
+
+		router := search.NewSearchRouter(store, embedder, vecStore)
+		routerOpts := search.SearchOptions{
+			Query:    query,
+			Type:     searchType,
+			Mode:     mode,
+			Status:   statusFilter,
+			Priority: priorityFilter,
+			Assignee: assigneeFilter,
+			Label:    labelFilter,
+			Tag:      tagFilter,
+			Limit:    limit,
+		}
+		results, err = router.RouteAndSearchWithOptions(query, routerOpts)
+	} else {
+		opts := search.SearchOptions{
+			Query:    query,
+			Type:     searchType,
+			Mode:     mode,
+			Status:   statusFilter,
+			Priority: priorityFilter,
+			Assignee: assigneeFilter,
+			Label:    labelFilter,
+			Tag:      tagFilter,
+			Limit:    limit,
+		}
+
+		embedder, vecStore, _ := search.InitSemantic(store)
+		if embedder != nil {
+			defer embedder.Close()
+		}
+		if vecStore != nil {
+			defer vecStore.Close()
+		}
+
+		engine := search.NewEngine(store, embedder, vecStore)
+		results, err = engine.Search(opts)
 	}
 
-	embedder, vecStore, _ := search.InitSemantic(store)
-	if embedder != nil {
-		defer embedder.Close()
-	}
-	if vecStore != nil {
-		defer vecStore.Close()
-	}
-
-	engine := search.NewEngine(store, embedder, vecStore)
-	results, err := engine.Search(opts)
 	if err != nil {
 		return errResult(err.Error())
 	}
@@ -310,4 +340,27 @@ func stringArrayArg(args map[string]interface{}, key string) []string {
 		}
 	}
 	return values
+}
+
+// shouldUseModelRouter returns true when modelRouter is enabled in config
+// and the search mode is "hybrid" (the mode where query classification matters most).
+func shouldUseModelRouter(store *storage.Store, mode string) bool {
+	if store == nil {
+		return false
+	}
+	cfg, err := store.Config.Load()
+	if err != nil || cfg == nil {
+		return false
+	}
+	ae := cfg.Settings.AgentEfficiency
+	if ae == nil {
+		// Default: all features enabled including modelRouter.
+		return true
+	}
+	if !ae.IsEnabled("modelRouter") {
+		return false
+	}
+	// Use router when mode is "hybrid" (auto) or when mode is empty (defaults to hybrid).
+	// For explicit "keyword" or "semantic" modes, skip routing.
+	return mode == "" || mode == "hybrid"
 }

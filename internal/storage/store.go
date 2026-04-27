@@ -28,6 +28,8 @@ type Store struct {
 	Workspaces *WorkspaceStore
 	Chats      *ChatStore
 	Memory     *MemoryStore
+	Checkpoints *SessionCheckpointStore
+	Agents     *AgentRegistryStore
 }
 
 // NewStore creates a Store rooted at the given .knowns/ directory path.
@@ -45,6 +47,8 @@ func NewStore(root string) *Store {
 	s.Workspaces = &WorkspaceStore{root: root}
 	s.Chats = &ChatStore{root: root}
 	s.Memory = &MemoryStore{root: root, globalRoot: globalRoot}
+	s.Checkpoints = NewSessionCheckpointStore(root, 24) // default 24h TTL
+	s.Agents = NewAgentRegistryStore(root)
 	return s
 }
 
@@ -171,6 +175,8 @@ func (s *Store) Init(name string) error {
 		filepath.Join(s.Root, "imports"),
 		filepath.Join(s.Root, ".search"),
 		filepath.Join(s.Root, "memory"),
+		filepath.Join(s.Root, "sessions"),
+		filepath.Join(s.Root, "agents"),
 	}
 	for _, d := range dirs {
 		if err := os.MkdirAll(d, 0755); err != nil {

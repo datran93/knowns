@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -19,11 +20,14 @@ import (
 func RegisterCodeTool(s *server.MCPServer, getStore func() *storage.Store) {
 	s.AddTool(
 		mcp.NewTool("code",
-			mcp.WithDescription("Code intelligence operations. Use 'action' to specify: search, symbols, deps, graph."),
+			mcp.WithDescription("Code intelligence operations. Use 'action' to specify: search, symbols, deps, graph, trace, impact, callers."),
 			mcp.WithString("action",
 				mcp.Required(),
 				mcp.Description("Action to perform"),
-				mcp.Enum("search", "symbols", "deps", "graph"),
+				mcp.Enum("search", "symbols", "deps", "graph", "trace", "impact", "callers"),
+			),
+			mcp.WithString("symbol",
+				mcp.Description("Symbol name (required for trace, impact, callers)"),
 			),
 			mcp.WithString("query",
 				mcp.Description("Search query (required for search)"),
@@ -42,13 +46,16 @@ func RegisterCodeTool(s *server.MCPServer, getStore func() *storage.Store) {
 				mcp.Description("Optional comma-separated edge types to expand (search)"),
 			),
 			mcp.WithString("path",
-				mcp.Description("Optional doc path filter (symbols)"),
+				mcp.Description("Optional file path filter (symbols, trace, impact)"),
 			),
 			mcp.WithString("kind",
 				mcp.Description("Optional symbol kind filter (symbols)"),
 			),
 			mcp.WithString("type",
 				mcp.Description("Optional edge type filter: calls, contains, has_method, imports, instantiates, implements, extends (deps)"),
+			),
+			mcp.WithNumber("depth",
+				mcp.Description("Max trace depth (default: 10) (trace)"),
 			),
 		),
 		func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -65,6 +72,12 @@ func RegisterCodeTool(s *server.MCPServer, getStore func() *storage.Store) {
 				return handleCodeDeps(getStore, req)
 			case "graph":
 				return handleCodeGraph(getStore, req)
+			case "trace":
+				return handleCodeTrace(getStore, req)
+			case "impact":
+				return handleCodeImpact(getStore, req)
+			case "callers":
+				return handleCodeCallers(getStore, req)
 			default:
 				return errResultf("unknown code action: %s", action)
 			}
@@ -240,4 +253,310 @@ func splitCSV(s string) []string {
 		}
 	}
 	return out
+}
+
+// codeTraceNode represents a node in the call graph trace.
+type codeTraceNode struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	Type string `json:"type"`
+	Path string `json:"path"`
+	Line int    `json:"line,omitempty"`
+}
+
+// codeTraceEdge represents an edge in the call graph trace.
+type codeTraceEdge struct {
+	From string `json:"from"`
+	To   string `json:"to"`
+	Type string `json:"type"`
+}
+
+func handleCodeTrace(getStore func() *storage.Store, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	store := getStore()
+	if store == nil {
+		return noProjectError()
+	}
+	db := store.SemanticDB()
+	if db == nil {
+		return mcp.NewToolResultText(`{"nodes": [], "edges": [], "maxDepth": 0}`), nil
+	}
+	defer db.Close()
+
+	args := req.GetArguments()
+	symbol, err := req.RequireString("symbol")
+	if err != nil {
+		return errResult("symbol is required for trace")
+	}
+	depth := 10
+	if v, ok := intArg(args, "depth"); ok && v > 0 {
+		depth = v
+	}
+	pathFilter, _ := stringArg(args, "path")
+
+	// Find all edges related to this symbol (both as caller and callee)
+	pattern := "%" + symbol + "%"
+	rows, err := db.Query(`SELECT from_id, to_id, edge_type, from_path, to_path FROM code_edges WHERE from_id LIKE ? OR to_id LIKE ? OR raw_target LIKE ?`, pattern, pattern, pattern)
+	if err != nil {
+		return errFailed("trace code dependencies", err)
+	}
+	defer rows.Close()
+
+	// Build adjacency lists for BFS
+	type edgeInfo struct {
+		from, to   string
+		edgeType   string
+		fromPath   string
+		toPath     string
+	}
+	var allEdges []edgeInfo
+	nodeSet := make(map[string]bool)
+
+	for rows.Next() {
+		var fromID, toID, edgeType, fromPath, toPath string
+		if err := rows.Scan(&fromID, &toID, &edgeType, &fromPath, &toPath); err != nil {
+			continue
+		}
+		// Apply path filter if provided
+		if pathFilter != "" && fromPath != pathFilter && toPath != pathFilter {
+			continue
+		}
+		allEdges = append(allEdges, edgeInfo{from: fromID, to: toID, edgeType: edgeType, fromPath: fromPath, toPath: toPath})
+		nodeSet[fromID] = true
+		nodeSet[toID] = true
+	}
+
+	// BFS from any node containing the symbol to build the trace graph
+	visited := make(map[string]bool)
+	var traceNodes []codeTraceNode
+	var traceEdges []codeTraceEdge
+	queue := make([]string, 0)
+
+	// Find starting nodes - any node that matches the symbol pattern
+	for nodeID := range nodeSet {
+		if strings.Contains(nodeID, symbol) {
+			queue = append(queue, nodeID)
+			visited[nodeID] = true
+		}
+	}
+
+	currentDepth := 0
+	for len(queue) > 0 && currentDepth < depth {
+		nextQueue := make([]string, 0)
+		for _, nodeID := range queue {
+			// Add node
+			traceNodes = append(traceNodes, codeTraceNode{
+				ID:   nodeID,
+				Name: extractSymbolName(nodeID),
+				Type: "function",
+				Path: extractDocPath(nodeID),
+			})
+			// Find edges
+			for _, e := range allEdges {
+				if e.from == nodeID && !visited[e.to] {
+					visited[e.to] = true
+					nextQueue = append(nextQueue, e.to)
+					traceEdges = append(traceEdges, codeTraceEdge{
+						From: e.from,
+						To:   e.to,
+						Type: e.edgeType,
+					})
+				}
+				if e.to == nodeID && !visited[e.from] {
+					// Reverse direction for incoming calls
+					visited[e.from] = true
+					nextQueue = append(nextQueue, e.from)
+					traceEdges = append(traceEdges, codeTraceEdge{
+						From: e.from,
+						To:   e.to,
+						Type: e.edgeType,
+					})
+				}
+			}
+		}
+		queue = nextQueue
+		currentDepth++
+	}
+
+	// Deduplicate nodes
+	nodeMap := make(map[string]codeTraceNode)
+	for _, n := range traceNodes {
+		nodeMap[n.ID] = n
+	}
+	dedupedNodes := make([]codeTraceNode, 0, len(nodeMap))
+	for _, n := range nodeMap {
+		dedupedNodes = append(dedupedNodes, n)
+	}
+
+	out, _ := json.MarshalIndent(map[string]any{
+		"nodes":    dedupedNodes,
+		"edges":    traceEdges,
+		"maxDepth": depth,
+	}, "", "  ")
+	return mcp.NewToolResultText(string(out)), nil
+}
+
+func handleCodeImpact(getStore func() *storage.Store, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	store := getStore()
+	if store == nil {
+		return noProjectError()
+	}
+	db := store.SemanticDB()
+	if db == nil {
+		return mcp.NewToolResultText(`{"symbol": "", "files": [], "count": 0}`), nil
+	}
+	defer db.Close()
+
+	symbol, err := req.RequireString("symbol")
+	if err != nil {
+		return errResult("symbol is required for impact")
+	}
+	args := req.GetArguments()
+	pathFilter, _ := stringArg(args, "path")
+
+	// Find all edges where this symbol is the target (things that depend on it)
+	pattern := "%" + symbol + "%"
+	rows, err := db.Query(`SELECT from_id, to_id, edge_type, from_path, to_path FROM code_edges WHERE to_id LIKE ? OR raw_target LIKE ?`, pattern, pattern)
+	if err != nil {
+		return errFailed("analyze code impact", err)
+	}
+	defer rows.Close()
+
+	// BFS to find all reachable nodes from the symbol
+	visited := make(map[string]bool)
+	fileSet := make(map[string]bool)
+	var queue []string
+
+	// Seed with direct dependencies
+	for rows.Next() {
+		var fromID, toID, edgeType, fromPath, toPath string
+		if err := rows.Scan(&fromID, &toID, &edgeType, &fromPath, &toPath); err != nil {
+			continue
+		}
+		if pathFilter != "" && fromPath != pathFilter && toPath != pathFilter {
+			continue
+		}
+		if strings.Contains(toID, symbol) || strings.Contains(fromID, symbol) {
+			if !visited[fromID] {
+				visited[fromID] = true
+				queue = append(queue, fromID)
+				fileSet[fromPath] = true
+			}
+		}
+	}
+
+	// BFS for transitive dependencies
+	for len(queue) > 0 {
+		current := queue[0]
+		queue = queue[1:]
+		rows2, err := db.Query(`SELECT from_id, to_id, edge_type, from_path, to_path FROM code_edges WHERE from_id = ?`, current)
+		if err != nil {
+			continue
+		}
+		for rows2.Next() {
+			var fromID, toID, edgeType, fromPath, toPath string
+			if err := rows2.Scan(&fromID, &toID, &edgeType, &fromPath, &toPath); err != nil {
+				continue
+			}
+			if pathFilter != "" && fromPath != pathFilter && toPath != pathFilter {
+				continue
+			}
+			if !visited[toID] {
+				visited[toID] = true
+				queue = append(queue, toID)
+				fileSet[toPath] = true
+			}
+		}
+		rows2.Close()
+	}
+
+	files := make([]string, 0, len(fileSet))
+	for f := range fileSet {
+		files = append(files, f)
+	}
+	sort.Strings(files)
+
+	out, _ := json.MarshalIndent(map[string]any{
+		"symbol": symbol,
+		"files":  files,
+		"count":  len(files),
+	}, "", "  ")
+	return mcp.NewToolResultText(string(out)), nil
+}
+
+func handleCodeCallers(getStore func() *storage.Store, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	store := getStore()
+	if store == nil {
+		return noProjectError()
+	}
+	db := store.SemanticDB()
+	if db == nil {
+		return mcp.NewToolResultText(`{"symbol": "", "callers": []}`), nil
+	}
+	defer db.Close()
+
+	symbol, err := req.RequireString("symbol")
+	if err != nil {
+		return errResult("symbol is required for callers")
+	}
+
+	// Find all edges where this symbol is the target (incoming calls)
+	pattern := "%" + symbol + "%"
+	rows, err := db.Query(`SELECT from_id, to_id, edge_type, from_path, to_path FROM code_edges WHERE to_id LIKE ? OR raw_target LIKE ?`, pattern, pattern)
+	if err != nil {
+		return errFailed("find code callers", err)
+	}
+	defer rows.Close()
+
+	type caller struct {
+		ID   string `json:"id"`
+		Name string `json:"name"`
+		Path string `json:"path"`
+		Line int    `json:"line,omitempty"`
+		Type string `json:"type"`
+	}
+	var callers []caller
+
+	for rows.Next() {
+		var fromID, toID, edgeType, fromPath, toPath string
+		if err := rows.Scan(&fromID, &toID, &edgeType, &fromPath, &toPath); err != nil {
+			continue
+		}
+		// Only include if to_id actually matches the symbol (not just raw_target)
+		if !strings.Contains(toID, symbol) {
+			continue
+		}
+		callers = append(callers, caller{
+			ID:   fromID,
+			Name: extractSymbolName(fromID),
+			Path: fromPath,
+			Type: edgeType,
+		})
+	}
+
+	out, _ := json.MarshalIndent(map[string]any{
+		"symbol":  symbol,
+		"callers": callers,
+	}, "", "  ")
+	return mcp.NewToolResultText(string(out)), nil
+}
+
+// extractSymbolName extracts symbol name from a code chunk ID like "code::path/file.go::funcName".
+func extractSymbolName(id string) string {
+	parts := strings.SplitN(id, "::", 3)
+	if len(parts) != 3 {
+		return id
+	}
+	if parts[2] == "__file__" {
+		return filepath.Base(parts[1])
+	}
+	return parts[2]
+}
+
+// extractDocPath extracts the doc path from a code chunk ID.
+func extractDocPath(id string) string {
+	parts := strings.SplitN(id, "::", 3)
+	if len(parts) >= 2 {
+		return parts[1]
+	}
+	return id
 }

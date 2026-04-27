@@ -65,6 +65,10 @@ type ProjectSettings struct {
 	// Permissions configures the AI permission policy for this project.
 	// When nil, the implicit default preset (read-write-no-delete) is used.
 	Permissions *permissions.PermissionConfig `json:"permissions,omitempty"`
+
+	// AgentEfficiency configures 8 agent efficiency feature flags. When nil,
+	// defaults are applied (all features enabled with recommended sub-configs).
+	AgentEfficiency *AgentEfficiencySettings `json:"agentEfficiency,omitempty"`
 }
 
 // RuntimeMemorySettings configures runtime-level memory injection.
@@ -109,6 +113,69 @@ type OpenCodeModelSettings struct {
 type OpenCodeModelRef struct {
 	ProviderID string `json:"providerID"`
 	ModelID    string `json:"modelID"`
+}
+
+// FeatureFlag is a simple enabled/disabled flag with optional sub-config.
+type FeatureFlag struct {
+	Enabled bool `json:"enabled"`
+	// Sub-fields per feature (only set the ones that apply):
+	MaxMemories       int `json:"maxMemories,omitempty"`        // persistentContext: default 5
+	CheckpointTTLHours int `json:"checkpointTTLHours,omitempty"` // sessionResume: default 24
+	MaxTraceDepth      int `json:"maxTraceDepth,omitempty"`     // codeNavigation: default 10
+	CacheTTLSeconds    int `json:"cacheTTLSeconds,omitempty"`    // autoValidation: default 300 (5min)
+	FTS5Threshold     int `json:"fts5Threshold,omitempty"`     // modelRouter: default 0 (use default routing)
+	DebounceSeconds    int `json:"debounceSeconds,omitempty"`   // backgroundIndexing: default 5
+	LockTTLSeconds     int `json:"lockTTLSeconds,omitempty"`    // multiAgent: default 300 (5min)
+}
+
+// AgentEfficiencySettings holds 8 agent efficiency feature flags (all ON by default).
+type AgentEfficiencySettings struct {
+	PersistentContext  *FeatureFlag `json:"persistentContext,omitempty"`
+	SessionResume      *FeatureFlag `json:"sessionResume,omitempty"`
+	CodeNavigation     *FeatureFlag `json:"codeNavigation,omitempty"`
+	AutoValidation     *FeatureFlag `json:"autoValidation,omitempty"`
+	ModelRouter        *FeatureFlag `json:"modelRouter,omitempty"`
+	SkillComposer      *FeatureFlag `json:"skillComposer,omitempty"`
+	BackgroundIndexing *FeatureFlag `json:"backgroundIndexing,omitempty"`
+	MultiAgent         *FeatureFlag `json:"multiAgent,omitempty"`
+}
+
+// IsEnabled returns true if the named feature is enabled.
+// Returns false if the feature flag is nil.
+func (s *AgentEfficiencySettings) IsEnabled(name string) bool {
+	switch name {
+	case "persistentContext":
+		return s.PersistentContext == nil || s.PersistentContext.Enabled
+	case "sessionResume":
+		return s.SessionResume == nil || s.SessionResume.Enabled
+	case "codeNavigation":
+		return s.CodeNavigation == nil || s.CodeNavigation.Enabled
+	case "autoValidation":
+		return s.AutoValidation == nil || s.AutoValidation.Enabled
+	case "modelRouter":
+		return s.ModelRouter == nil || s.ModelRouter.Enabled
+	case "skillComposer":
+		return s.SkillComposer == nil || s.SkillComposer.Enabled
+	case "backgroundIndexing":
+		return s.BackgroundIndexing == nil || s.BackgroundIndexing.Enabled
+	case "multiAgent":
+		return s.MultiAgent == nil || s.MultiAgent.Enabled
+	}
+	return false
+}
+
+// DefaultAgentEfficiencySettings returns settings with all 8 features enabled.
+func DefaultAgentEfficiencySettings() *AgentEfficiencySettings {
+	return &AgentEfficiencySettings{
+		PersistentContext:  &FeatureFlag{Enabled: true, MaxMemories: 5},
+		SessionResume:      &FeatureFlag{Enabled: true, CheckpointTTLHours: 24},
+		CodeNavigation:     &FeatureFlag{Enabled: true, MaxTraceDepth: 10},
+		AutoValidation:     &FeatureFlag{Enabled: true, CacheTTLSeconds: 300},
+		ModelRouter:        &FeatureFlag{Enabled: true, FTS5Threshold: 0},
+		SkillComposer:       &FeatureFlag{Enabled: true},
+		BackgroundIndexing: &FeatureFlag{Enabled: true, DebounceSeconds: 5},
+		MultiAgent:         &FeatureFlag{Enabled: true, LockTTLSeconds: 300},
+	}
 }
 
 // SemanticSearchSettings configures the optional embedding-based search index.

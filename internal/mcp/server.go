@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/datran93/knowns/internal/mcp/handlers"
+	"github.com/datran93/knowns/internal/models"
 	"github.com/datran93/knowns/internal/permissions"
 	"github.com/datran93/knowns/internal/runtimequeue"
 	"github.com/datran93/knowns/internal/storage"
@@ -189,10 +190,12 @@ func mcpLogMaxBackups() int {
 // MCPServer wraps the mcp-go server and holds a reference to the active Store.
 // The store is nil until set_project is called.
 type MCPServer struct {
-	srv   *server.MCPServer
-	mu    sync.RWMutex
-	store *storage.Store
-	root  string
+	srv          *server.MCPServer
+	mu           sync.RWMutex
+	store        *storage.Store
+	root         string
+	sessHooks    *sessionHooks
+	agentReg     *agentRegistry
 }
 
 // NewMCPServer creates and configures a new MCPServer with all registered tools.
@@ -240,6 +243,25 @@ func NewMCPServer(projectHint string) *MCPServer {
 		return cfg.Settings.Permissions
 	}
 
+	// Build agent efficiency config loader for auto-validation hooks.
+	agentEffConfigLoader := func() *models.AgentEfficiencySettings {
+		store := getStore()
+		if store == nil {
+			return nil
+		}
+		cfg, err := store.Config.Load()
+		if err != nil {
+			return nil
+		}
+		return cfg.Settings.AgentEfficiency
+	}
+
+	// Create session hooks for checkpoint save/restore (sessionResume feature).
+	sessionServerHooks, sessHooks := newSessionHooks(getStore, agentEffConfigLoader)
+
+	// Create agent registry for multi-agent awareness and task locking (multiAgent feature).
+	ar := newAgentRegistry(getStore, agentEffConfigLoader)
+
 	s.srv = server.NewMCPServer(
 		"knowns",
 		version,
@@ -247,9 +269,12 @@ func NewMCPServer(projectHint string) *MCPServer {
 		server.WithRecovery(),
 		server.WithToolHandlerMiddleware(permissions.NewGuardMiddleware(permConfigLoader)),
 		server.WithHooks(newAuditHooks(auditStore, getRoot)),
+		server.WithHooks(newAutoValidationHooks(getStore, agentEffConfigLoader)),
+		server.WithHooks(sessionServerHooks),
 	)
 
-	// Register all tool groups.
+	s.sessHooks = sessHooks
+	s.agentReg = ar
 	handlers.RegisterProjectTool(s.srv, getStore, setStore, getRoot)
 	handlers.RegisterTaskTool(s.srv, getStore)
 	handlers.RegisterDocTool(s.srv, getStore)
@@ -263,6 +288,7 @@ func NewMCPServer(projectHint string) *MCPServer {
 	handlers.RegisterResearchTool(s.srv)
 	handlers.RegisterGitHubTool(s.srv)
 	handlers.RegisterDatabaseTool(s.srv)
+		handlers.RegisterSkillComposerTool(s.srv, getStore)
 
 	// Auto-detect project from hint or cwd.
 	s.autoDetectProject(setStore, projectHint)
@@ -318,6 +344,16 @@ func (s *MCPServer) Start() error {
 	store := s.store
 	s.mu.RUnlock()
 
+	// Load checkpoint if session resume is enabled.
+	if s.sessHooks != nil && store != nil {
+		s.sessHooks.LoadCheckpoint()
+	}
+
+	// Register and start heartbeat for multi-agent awareness.
+	if s.agentReg != nil {
+		s.agentReg.Start()
+	}
+
 	mcpLog.Printf("starting (version=%s, project=%q, pid=%d)", version, project, os.Getpid())
 	startedAt := time.Now()
 
@@ -341,6 +377,9 @@ func (s *MCPServer) Start() error {
 	cleanup := func(reason string) {
 		mcpLog.Printf("shutdown: %s", reason)
 		signal.Stop(sigCh)
+		if s.agentReg != nil {
+			s.agentReg.Stop()
+		}
 		if cancel != nil {
 			cancel()
 		}

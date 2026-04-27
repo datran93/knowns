@@ -3,8 +3,8 @@ package util
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -12,9 +12,8 @@ import (
 )
 
 const (
-	cacheTTL       = 1 * time.Hour
-	fetchTimeout   = 2 * time.Second
-	npmRegistryURL = "https://registry.npmjs.org/knowns/latest"
+	cacheTTL     = 1 * time.Hour
+	fetchTimeout = 5 * time.Second
 )
 
 type updateCache struct {
@@ -112,27 +111,24 @@ func writeUpdateCache(path string, c *updateCache) {
 	os.WriteFile(path, data, 0644)
 }
 
-// FetchLatestVersion fetches the latest version string from the npm registry.
+// FetchLatestVersion fetches the latest version string from git tags on origin.
 // Returns empty string on any error.
 func FetchLatestVersion() string {
-	client := &http.Client{Timeout: fetchTimeout}
-	resp, err := client.Get(npmRegistryURL)
+	// Fetch latest tags from origin
+	cmd := exec.Command("git", "fetch", "--tags", "origin")
+	cmd.Run() // Ignore errors - just try
+
+	// Get the latest tag
+	cmd = exec.Command("git", "describe", "--tags", "--abbrev=0", "origin/main")
+	if cmd.ProcessState.ExitCode() != 0 {
+		// Fallback to local tags if origin/main doesn't exist
+		cmd = exec.Command("git", "describe", "--tags", "--abbrev=0")
+	}
+	output, err := cmd.Output()
 	if err != nil {
 		return ""
 	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return ""
-	}
-
-	var result struct {
-		Version string `json:"version"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return ""
-	}
-	return result.Version
+	return strings.TrimSpace(string(output))
 }
 
 // CompareVersions compares two semver strings. Returns 1 if a > b, -1 if a < b, 0 if equal.

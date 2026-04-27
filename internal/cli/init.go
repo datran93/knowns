@@ -362,7 +362,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 		},
 	}
 
-	if !hasGitRepo && gitAvailable {
+	if !hasGitRepo && gitAvailable && cfg.GitTrackingMode != "none" {
 		steps = append([]initStep{{
 			label: "Initializing git repository",
 			run: func() error {

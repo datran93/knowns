@@ -13,6 +13,21 @@ description: Use when you need to understand existing code, find patterns, or ex
 
 - Topic, feature, API, error, file pattern, or task ID
 - Any suspected file paths, package names, or existing references
+- Optional: `--deep` for thorough analysis across multiple modules
+
+## Token Budget Management
+
+Research can eat context fast. Monitor:
+
+- If findings exceed ~40% of context → summarize and stop
+- If `retrieve` returns a large context pack → summarize inline, don't copy verbatim
+- Use `search` for discovery, `retrieve` only when the next consumer needs citations
+
+**If context > 50% after research:**
+```
+⚠️ Context budget exceeded. Summarizing findings and stopping.
+Full details: @doc/<research-doc> (if created)
+```
 
 ## Search Order
 
@@ -71,12 +86,28 @@ mcp_knowns_tasks({ "action": "get", "taskId": "<id>" })
 
 If Step 2 already found related tasks via structural resolve, focus keyword search on gaps — tasks that might be related but not formally linked.
 
-## Step 4: Search Codebase
+## Step 4: Search Codebase (Use MCP First)
 
+**Prefer MCP code search** over bash grep/find for reliability and context efficiency:
+
+```json
+// Find files/modules by pattern
+mcp_knowns_code({ "action": "search", "query": "<pattern>", "neighbors": 5 })
+
+// List symbols in a file or package
+mcp_knowns_code({ "action": "symbols", "path": "internal/<package>" })
+
+// Find callers/dependents of a specific symbol
+mcp_knowns_code({ "action": "deps", "path": "internal/<package>/<file>.go", "type": "calls" })
+```
+
+**Fallback to bash only if MCP is unavailable:**
 ```bash
 find . -name "*<pattern>*" -type f | grep -v node_modules | head -20
-grep -r "<pattern>" --include="*.ts" -l | head -20
+grep -r "<pattern>" --include="*.go" -l | head -20
 ```
+
+**Why MCP first?** It's faster, more reliable, and doesn't spawn subprocesses. Bash is acceptable as a fallback for quick ad-hoc searches when MCP is unavailable.
 
 ## Step 5: Document Findings
 
@@ -142,8 +173,9 @@ If the research uncovers a broad follow-up topic that should be tracked independ
 - [ ] Searched documentation
 - [ ] Expanded context via structural resolve (if spec/doc found)
 - [ ] Reviewed similar completed tasks
-- [ ] Found existing code patterns
+- [ ] Found existing code patterns (using MCP code search preferred)
 - [ ] Identified reusable components
+- [ ] Token budget respected
 
 ## Next Step Suggestion
 

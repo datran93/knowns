@@ -13,6 +13,7 @@ description: Use when working with Knowns documentation - viewing, searching, cr
 
 - Doc path, topic, folder, or task/spec reference
 - Whether this is a create, update, or search request
+- Optional: `--age` flag to check doc staleness (warn if >6 months old)
 
 ## Preflight
 
@@ -101,28 +102,43 @@ mcp_knowns_validate({ "scope": "docs" })
 
 If errors found, fix before continuing.
 
-## Shared Output Contract
+---
 
-All built-in skills in scope must end with the same user-facing information order: `kn-init`, `kn-spec`, `kn-plan`, `kn-research`, `kn-implement`, `kn-verify`, `kn-doc`, `kn-template`, `kn-extract`, and `kn-commit`.
+## Doc Age Check
 
-Required order for the final user-facing response:
+When `--age` flag is passed, check for potentially stale docs:
 
-1. Goal/result - state what doc was created, updated, inspected, or ruled out.
-2. Key details - include the most important supporting context, refs, path, warnings, or validation.
-3. Next action - recommend a concrete follow-up command only when a natural handoff exists.
+For any doc being updated or referenced:
+- Check `info.modified` or `CreatedAt` timestamp
+- Docs older than **6 months** without updates → flag as potentially stale:
 
-Keep this concise for CLI use. Documentation-specific content may extend the key-details section, but must not replace or reorder the shared structure.
+```
+⚠️ Doc age warning: @doc/<path> was last updated YYYY-MM-DD (N months ago).
+   Consider reviewing for accuracy.
+```
 
-Out of scope: explaining, syncing, or generating `.claude/skills/*`. Runtime auto-sync already handles platform copies, so this skill source only defines the built-in output contract.
+This applies especially to:
+- Architecture docs (tech stacks evolve fast)
+- Setup/guides (CLI flags, config formats change)
+- Pattern docs (best practices evolve)
 
-For `kn-doc`, the key details should cover:
+---
 
-- whether the doc was created, updated, or only inspected
-- the canonical doc path
-- any important refs added or fixed
-- validation result
+## Diagram Recommendation Heuristic
 
-When doc work naturally leads to another action, include the best next command. If the request ends with inspection or a fully validated update, do not force a handoff.
+When creating or updating docs, suggest Mermaid diagrams when:
+
+| Condition | Recommendation |
+|-----------|----------------|
+| Flow has >3 decision points | Use `graph TD` flowchart |
+| Sequence involves >2 actors/services | Use `sequenceDiagram` |
+| State transitions exist | Use `stateDiagram-v2` |
+| Hierarchical relationships (e.g., module tree) | Use `graph TD` with subgraphs |
+| Text description would require >3 paragraphs to explain | Use diagram instead |
+
+**Do NOT force diagrams** — if a simple paragraph explains it clearly, use text.
+
+---
 
 ## Mermaid Diagrams
 
@@ -143,17 +159,42 @@ graph TD
 
 Diagrams render automatically in WebUI preview.
 
+---
+
+## Shared Output Contract
+
+All built-in skills in scope must end with the same user-facing information order: `kn-init`, `kn-spec`, `kn-plan`, `kn-research`, `kn-implement`, `kn-verify`, `kn-doc`, `kn-template`, `kn-extract`, and `kn-commit`.
+
+Required order for the final user-facing response:
+
+1. Goal/result - state what doc was created, updated, inspected, or ruled out.
+2. Key details - include the canonical doc path, any important refs added or fixed, validation result, and doc age warnings if applicable.
+3. Next action - recommend a concrete follow-up command only when a natural handoff exists.
+
+Keep this concise for CLI use. Documentation-specific content may extend the key-details section, but must not replace or reorder the shared structure.
+
+For `kn-doc`, the key details should cover:
+
+- whether the doc was created, updated, or only inspected
+- the canonical doc path
+- any important refs added or fixed
+- validation result
+- doc age warnings if applicable
+
+When doc work naturally leads to another action, include the best next command. If the request ends with inspection or a fully validated update, do not force a handoff.
+
 ## Checklist
 
 - [ ] Searched for existing docs
 - [ ] Created with **description** (required!)
 - [ ] Used section editing for updates
 - [ ] Used mermaid for complex flows (optional)
-- [ ] Referenced with `@doc/<path>`
 - [ ] **Validated after changes**
+- [ ] Doc age checked (if `--age` passed)
 
 ## Red Flags
 
 - Creating near-duplicate docs instead of updating an existing one
 - Replacing a full doc when only one section needed a change
 - Leaving broken refs after an edit
+- Updating a stale doc without checking if content is still accurate

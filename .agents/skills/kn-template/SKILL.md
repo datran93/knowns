@@ -15,6 +15,22 @@ description: Use when generating code from templates - list, run, or create temp
 - Variables required by prompts
 - Linked pattern doc, if one exists
 
+## ⚠️ Critical Syntax Warning
+
+**NEVER write `$` + triple-brace in Handlebars templates:**
+
+```handlebars
+// ❌ WRONG — causes template evaluation errors
+${ {{camelCase name}} }
+
+// ✅ CORRECT — add space, use ~ for trimming
+${ {{~camelCase name~}} }
+```
+
+This is the #1 cause of template generation failures. Keep this rule in mind when creating or debugging templates.
+
+---
+
 ## Preflight
 
 - Read the linked doc before running a non-trivial template
@@ -66,7 +82,29 @@ mcp_knowns_templates({ "action": "create", "name": "<template-name>",
 })
 ```
 
-## Template Config
+---
+
+## Create Template from Pattern Workflow
+
+When `kn-extract` identifies a pattern worth templating, use this quick path:
+
+1. **Identify**: Pattern is generalizable AND will be reused ≥3 times
+2. **Check**: `mcp_knowns_templates({ "action": "list" })` — don't duplicate existing
+3. **Create linked doc**: `patterns/<pattern-name>` with working examples
+4. **Create template** with the linked doc:
+```json
+mcp_knowns_templates({ "action": "create", "name": "<pattern-name>",
+  "description": "Generate <what> from pattern",
+  "doc": "patterns/<pattern-name>"
+})
+```
+5. **Validate**: `mcp_knowns_validate({ "scope": "templates" })`
+
+**Trigger**: After `kn-extract` if pattern meets "code-generatable" criteria.
+
+---
+
+## Template Config Reference
 
 ```yaml
 name: react-component
@@ -80,25 +118,29 @@ prompts:
 
 files:
   - template: ".tsx.hbs"
-    destination: "src/components//.tsx"
+    destination: "src/components/{{kebabCase name}}.tsx"
 ```
 
-## CRITICAL: Syntax Pitfalls
+---
 
-**NEVER write `$` + triple-brace:**
-```
-// ❌ WRONG
-$` + `{` + `{` + `{camelCase name}`
+## Versioning and Migration
 
-// ✅ CORRECT - add space, use ~
-${ {{~camelCase name~}}}
-```
+If a pattern changes:
 
-## Step 6: Validate (after creating template)
+1. Update the linked `patterns/` doc first
+2. Then update the template files
+3. Run `mcp_knowns_validate({ "scope": "templates" })` to verify
+4. Warn if existing generated files might be stale: "Pattern updated — regenerate existing files?"
+
+---
+
+## Validation (After Creating Template)
 
 ```json
 mcp_knowns_validate({ "scope": "templates" })
 ```
+
+---
 
 ## Shared Output Contract
 
@@ -107,12 +149,10 @@ All built-in skills in scope must end with the same user-facing information orde
 Required order for the final user-facing response:
 
 1. Goal/result - state what template was inspected, created, or run.
-2. Key details - include the most important supporting context, refs, files, warnings, or validation.
+2. Key details - include which template was inspected/created/run, dry-run vs real execution, generated files, syntax warnings if applicable.
 3. Next action - recommend a concrete follow-up command only when a natural handoff exists.
 
 Keep this concise for CLI use. Template-specific content may extend the key-details section, but must not replace or reorder the shared structure.
-
-Out of scope: explaining, syncing, or generating `.claude/skills/*`. Runtime auto-sync already handles platform copies, so this skill source only defines the built-in output contract.
 
 For `kn-template`, the key details should cover:
 
@@ -125,9 +165,10 @@ When template work naturally leads to implementation or review, include the best
 
 ## Failure Modes
 
-- Missing linked doc -> say so and inspect the template directly
-- Dry run looks wrong -> stop and fix the template before real generation
-- New template overlaps an existing one -> prefer update or consolidation
+- Missing linked doc → say so and inspect the template directly
+- Dry run looks wrong → stop and fix the template before real generation
+- New template overlaps an existing one → prefer update or consolidation
+- **Syntax error** (`$` + triple-brace) → point to the ⚠️ Critical Syntax Warning section
 
 ## Checklist
 
@@ -136,3 +177,4 @@ When template work naturally leads to implementation or review, include the best
 - [ ] Ran dry run first
 - [ ] Verified generated files
 - [ ] **Validated (if created new template)**
+- [ ] Syntax pitfalls checked (no `$` + triple-brace)

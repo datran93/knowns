@@ -170,14 +170,69 @@ go test ./...
 
 ---
 
-### Phase 5: Commit
+### Phase 5: Pre-Flight Commit Safety Check
 
-Stage all changes and commit with a single conventional commit:
+Before staging anything, verify the working tree state:
 
+```bash
+git status --short
+```
+
+**If unrelated changes exist** (files modified that are NOT in the spec implementation):
+
+```
+⚠️ Working tree has unrelated changes:
+  M <unrelated-file-1>
+  M <unrelated-file-2>
+
+Cannot safely stage spec changes. Options:
+1. Stash unrelated changes: git stash
+2. Commit unrelated changes separately
+3. Abort (stage manually after cleanup)
+```
+
+Do NOT proceed to commit until unrelated changes are resolved.
+
+**If working tree is clean or only has spec-related changes:**
+
+Stage and commit:
 ```bash
 git add -A
 git diff --staged --stat
 ```
+
+---
+
+### Phase 6: Rollback Guidance
+
+If a mid-pipeline error leaves the codebase broken:
+
+**Build/test fails during a task:**
+1. Fix the error (compile error, test failure, etc.)
+2. Re-run the failing command to confirm fix
+3. Continue pipeline
+
+**If unfixable:**
+1. Mark task as `blocked`
+2. Append notes: `Pipeline blocked: <error summary>`
+3. Report at end of pipeline
+4. Do NOT proceed to commit with broken code
+
+**Context budget exceeded (context > 60% during implementation):**
+1. Finish the current task
+2. **Checkpoint**: commit completed work so far
+3. Report progress: "Pipeline checkpoint at task X/Y. Remaining: Z tasks."
+4. Suggest: "Run `/kn-go specs/<name>` again to continue remaining tasks."
+
+**Rollback note:** If a task fails and you cannot fix it in the current pipeline run:
+- Mark task as `blocked` with notes
+- Continue to next task if possible
+- At end of pipeline, report all blocked tasks
+- User can fix blocked tasks manually and re-run `/kn-go specs/<name>`
+
+---
+
+### Phase 7: Commit
 
 Generate commit message:
 ```
@@ -192,7 +247,9 @@ feat(<scope>): implement <spec-name>
 **This is the ONE gate in go mode — ask user before committing:**
 
 > Pipeline complete. X tasks done, SDD verified.
-> 
+>
+> Working tree status: [clean / has unrelated changes]
+>
 > Ready to commit:
 > ```
 > feat(<scope>): implement <spec-name>
@@ -206,7 +263,7 @@ feat(<scope>): implement <spec-name>
 If context exceeds ~60% during implementation:
 
 1. Finish the current task
-2. Commit completed work so far
+2. **Checkpoint**: commit completed work so far
 3. Report progress and remaining tasks
 4. Suggest: "Run `/kn-go specs/<name>` again to continue remaining tasks."
 
@@ -229,11 +286,15 @@ mcp_knowns_tasks({ "action": "list", "spec": "specs/<name>" })
 
 ---
 
-## Error Handling
+## Error Handling Summary
 
-- **Build/test fails during a task:** Fix the error, re-run tests. If unfixable, mark task as `blocked`, append notes, continue to next task.
-- **Spec has conflicting requirements:** STOP and ask user to clarify.
-- **Task depends on blocked task:** Skip and report at the end.
+| Situation | Action |
+|-----------|--------|
+| Build/test fails | Fix → re-run → continue |
+| Unfixable error | Mark blocked → append notes → continue |
+| Spec not approved | HARD ABORT — stop immediately |
+| Unrelated changes in working tree | Abort staging → ask user to resolve |
+| Context budget exceeded | Checkpoint → commit → report → re-run |
 
 ---
 
@@ -242,7 +303,7 @@ mcp_knowns_tasks({ "action": "list", "spec": "specs/<name>" })
 Required order for the final user-facing response:
 
 1. Goal/result — state what was completed across the full pipeline run.
-2. Key details — tasks completed, tasks blocked, SDD coverage, build/test status.
+2. Key details — tasks completed, tasks blocked, SDD coverage, build/test status, working tree status.
 3. Next action — commit confirmation, or remaining work if interrupted.
 
 For `kn-go`, the key details should cover:
@@ -251,6 +312,7 @@ For `kn-go`, the key details should cover:
 - any blocked or skipped tasks
 - SDD coverage percentage
 - build/test/lint status
+- working tree safety check result
 - commit proposal
 
 ---
@@ -268,12 +330,14 @@ Show what would be created and ask user to confirm before running for real.
 
 ## Checklist
 
-- [ ] Spec is approved
+- [ ] Spec is approved (HARD ABORT if not)
 - [ ] Spec validated (no broken refs)
 - [ ] Tasks generated with fulfills mapping
 - [ ] Each task: planned → implemented → ACs checked → validated → done
 - [ ] SDD verification passed
 - [ ] Build/test/lint passed
+- [ ] **Pre-flight: working tree safety check**
+- [ ] **Rollback guidance documented**
 - [ ] User approved commit
 - [ ] Commit created
 
@@ -282,7 +346,7 @@ Show what would be created and ask user to confirm before running for real.
 - Running on a draft spec
 - Skipping task validation between tasks
 - Not checking ACs before marking done
-- Committing without user approval
+- Committing without working tree safety check
 - Ignoring build/test failures
 - Not reporting progress between tasks
 - Continuing past context budget limit without checkpointing

@@ -21,6 +21,25 @@ Post-implementation quality review. Run after `kn-implement`, before `kn-test` o
 
 - Task ID (optional — if provided, reviews against task ACs and spec).
 - Current git diff (always).
+- Optional: `--autonomous` to skip summary pauses (for fast review without user interaction).
+
+## Token Budget Management
+
+Large diffs (>300 lines changed) can exhaust context. Manage this:
+
+```
+# Check diff size first
+git diff --stat
+
+# If >300 lines changed across >5 files → review by package/module
+# Pick the most critical file to review first
+git diff --name-only | head -5
+```
+
+For massive diffs, use `--autonomous` and focus on:
+1. P1 findings only (security, data corruption, bypass)
+2. The single most impactful file change
+3. Quick regression risk score
 
 ## Step 1: Gather Review Context
 
@@ -95,13 +114,48 @@ Classify each finding strictly:
 
 **Calibration:** Label accurately. NEVER downplay blocking issues. Be ruthless.
 
-## Step 4: Report Findings
+## Step 4: Regression Risk Score
+
+Before reporting, assign a regression risk score:
+
+| Score | Criteria |
+|-------|----------|
+| **High** | P1 exists; or >3 P2s across critical path (auth, data, payment) |
+| **Medium** | 1-2 P2s in non-critical path; or P3s in critical path |
+| **Low** | P3s only; no P1 or P2 |
+
+Include in the report header.
+
+## Step 5: Handle Spec-Linked Tasks with P1 Findings
+
+If the task is linked to a spec AND P1 findings exist:
+
+> ⚠️ **Spec Design Question**: The P1 finding may indicate a design issue in the spec itself, not just the implementation.
+> - Spec: `@doc/<spec-path>`
+> - Finding: [description]
+>
+> Options:
+> 1. Fix implementation only (spec assumption was correct, coder misapplied it)
+> 2. Fix spec AND implementation (spec was ambiguous/missing a constraint)
+> 3. Create a follow-up spec task to address the gap
+>
+> Document which path applies in the task notes.
+
+```json
+mcp_knowns_tasks({ "action": "update", "taskId": "<id>",
+  "appendNotes": "P1 finding from review may indicate spec gap: <finding summary>"
+})
+```
+
+## Step 6: Report Findings
 
 Present findings grouped by severity:
 
 ```
 Review Complete — [task-id or "current changes"]
 ═══════════════════════════════════════════════
+
+Regression Risk: [HIGH / MEDIUM / LOW]
 
 P1 (blocks commit): X findings
 - [file:line] Description — why it breaks the system
@@ -115,7 +169,7 @@ P3 (nice to have): X findings
 Verdict: PASS / BLOCKED (P1 exists)
 ```
 
-## Step 5: Handle Results
+## Step 7: Handle Results
 
 ### If P1 findings exist — HARD GATE
 > ⛔ P1 findings block commit. Fix these first:
@@ -138,8 +192,28 @@ Do NOT proceed to commit. Do NOT offer to skip P1.
 >
 > Ready: `/kn-test` or `/kn-commit`
 
+## Autonomous Mode
+
+Use `--autonomous` (or if user explicitly asked for "review all" without pauses):
+
+- Skip summary pauses between findings
+- Report all findings in one message
+- Skip the "Options:" section — just state the verdict and next action
+- Focus on P1 + P2 only, deprioritize P3
+
+```
+Review Complete — [task-id] (autonomous)
+═══════════════════════════════════════════════
+Regression Risk: [HIGH/MEDIUM/LOW]
+P1: X | P2: X | P3: X
+Verdict: [PASS/BLOCKED]
+[Immediate next action]
+```
+
 ## Constraints & Red Flags
+
 1. **Report, NEVER fix**: Identify and document issues — NEVER modify code directly during review unless instructed.
 2. **Adversarial distance**: Do not trust the implementation. Prove it is safe before approving.
 3. **Severity honesty**: Label accurately. NEVER downplay blocking issues.
 4. **Read the code**: Every finding MUST reference specific files and line numbers.
+5. **Token budget**: If diff is massive, prioritize critical path + P1 findings. Don't try to review everything in one pass.

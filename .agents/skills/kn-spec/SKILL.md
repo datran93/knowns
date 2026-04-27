@@ -111,14 +111,92 @@ After all gray areas resolved, summarize locked decisions:
 
 ---
 
-## Step 1: Get Feature Name
+## Quick Spec Mode (`--skip-explore`)
+
+When `--skip-explore` is passed or the feature is clearly "Quick" scope:
+
+1. Skip Phase 0 (Socratic exploration)
+2. Go directly to Step 1
+3. Use a streamlined template:
+   - Overview
+   - Requirements (fewer items)
+   - Acceptance Criteria (3-5 items max)
+   - One happy-path scenario
+
+**When to use quick mode:**
+- Rename a flag or label
+- Add a single new CLI command
+- Trivial config change
+- Small internal refactor
+
+**When NOT to use quick mode:**
+- New API endpoint with auth
+- Multi-step workflow
+- Cross-cutting infrastructure change
+
+---
+
+## Step 1: Overlap Check (Before Writing)
+
+**Before writing spec**, check for overlap with existing specs:
+
+```json
+mcp_knowns_docs({ "action": "list" })
+```
+
+Search for existing specs that might overlap:
+```json
+mcp_knowns_search({ "action": "search", "query": "<feature area>", "type": "doc" })
+```
+
+**If overlap found:**
+```
+⚠️ Potential spec overlap detected:
+  Existing: @doc/specs/<name>
+  New feature: <feature>
+
+Options:
+1. Extend existing spec (add new FRs/ACs to it)
+2. Create separate spec (if concerns are truly independent)
+3. Merge into one spec (if features are tightly coupled)
+
+Which approach?
+```
+
+Resolve overlap BEFORE creating new spec to avoid fragmentation.
+
+---
+
+## Step 1b: Cross-Domain Check
+
+If the feature affects multiple parts of the system (CLI + WebUI + backend):
+
+1. **Identify affected domains**:
+   - CLI command/flag?
+   - WebUI component/page?
+   - Backend API/service?
+   - Storage/data model?
+
+2. **Add cross-domain note** in the spec header:
+```
+## Cross-Domain Impact
+- CLI: @doc/guides/cli-guide (new command)
+- WebUI: @doc/architecture/webui (new component)
+- Backend: @doc/architecture/api (new endpoint)
+```
+
+3. **Plan accordingly**: Tasks from this spec will touch multiple areas.
+
+---
+
+## Step 2: Get Feature Name
 
 If `$ARGUMENTS` provided, use it as spec name.
 
 If no arguments, ask user:
 > What feature are you speccing? (e.g., "user-auth", "payment-flow")
 
-## Step 2: Gather Requirements
+## Step 3: Gather Requirements
 
 Ask user to describe the feature:
 > Please describe the feature requirements. What should it do?
@@ -135,7 +213,7 @@ If requirements depend on large domain or architecture context:
 - keep the spec focused on product/behavioral requirements
 - reference the supporting doc with `@doc/<path>` instead of dumping background material inline
 
-## Step 3: Create Spec Document
+## Step 4: Create Spec Document
 
 ```json
 mcp_knowns_docs({ "action": "create", "title": "<Feature Name>",
@@ -152,6 +230,12 @@ mcp_knowns_docs({ "action": "create", "title": "<Feature Name>",
 ## Overview
 
 Brief description of the feature and its purpose.
+
+## Cross-Domain Impact (if applicable)
+
+- CLI: [affected area]
+- WebUI: [affected area]
+- Backend: [affected area]
 
 ## Locked Decisions
 
@@ -196,7 +280,7 @@ Optional implementation hints or constraints.
 - [ ] Question 2?
 ```
 
-## Step 3.5: Validate Spec
+## Step 4.5: Validate Spec
 
 **CRITICAL:** After creating spec, validate to catch issues:
 
@@ -204,7 +288,7 @@ Optional implementation hints or constraints.
 mcp_knowns_validate({ "entity": "specs/<name>" })
 ```
 
-## Step 4: Ask for Review
+## Step 5: Ask for Review
 
 Present the spec and ask:
 > Please review this spec:
@@ -212,7 +296,7 @@ Present the spec and ask:
 > - **Edit** if you want to modify something
 > - **Add more** if requirements are missing
 
-## Step 5: Handle Response
+## Step 6: Handle Response
 
 **If approved:**
 ```json
@@ -222,7 +306,7 @@ mcp_knowns_docs({ "action": "update", "path": "specs/<name>",
 ```
 
 **If edit requested:**
-Update the spec based on feedback and return to Step 4.
+Update the spec based on feedback and return to Step 5.
 
 **If add more:**
 Gather additional requirements and update spec.
@@ -237,9 +321,7 @@ Required order for the final user-facing response:
 2. Key details - include the most important supporting context, refs, open questions, or validation.
 3. Next action - recommend a concrete follow-up command only when a natural handoff exists.
 
-Keep this concise for CLI use. Skill-specific content may extend the key-details section, but must not replace or reorder the shared structure.
-
-Out of scope: explaining, syncing, or generating `.claude/skills/*`. Runtime auto-sync already handles platform copies, so this skill source only defines the built-in output contract.
+Keep this concise for CLI use. Verification-specific content may extend the key-details section, but must not replace or reorder the shared structure.
 
 For `kn-spec`, the key details should cover:
 
@@ -297,7 +379,9 @@ Next step — choose one:
 ## Checklist
 
 - [ ] Scope assessed (quick/standard/deep)
-- [ ] Gray areas identified and explored (Phase 0)
+- [ ] **Overlap check done** (no existing spec covers this feature)
+- [ ] **Cross-domain impact identified** (if applicable)
+- [ ] Gray areas identified and explored (Phase 0, skipped in quick mode)
 - [ ] Decisions locked with stable IDs (D1, D2...)
 - [ ] Feature name determined
 - [ ] Requirements gathered
@@ -318,3 +402,4 @@ Next step — choose one:
 - **Not suggesting task creation after approval**
 - Writing implementation notes instead of requirements
 - Leaving ambiguous AC text that cannot be verified later
+- Creating a new spec when an existing spec already covers this feature

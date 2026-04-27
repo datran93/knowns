@@ -65,6 +65,44 @@ mcp_knowns_memory({ "action": "list", "layer": "project" })
 
 Project memories contain accumulated patterns, decisions, and conventions from past work. Include key entries in the session context summary. If there are many entries, prioritize by recency and relevance to the user's stated focus.
 
+## Step 3.7: Skill Sync Check
+
+Verify skills are up-to-date:
+
+```bash
+# Compare source skills with deployed skills
+ls internal/instructions/skills/
+ls .claude/skills/
+```
+
+**If version mismatch detected:**
+
+```
+⚠️ Skill version mismatch:
+  internal/instructions/skills/: [N files]
+  .claude/skills/: [M files] (may be stale)
+
+Recommend: sync skills before starting work.
+(Platform auto-sync should handle this — if issue persists, check sync mechanism)
+```
+
+This is informational — the runtime auto-sync handles platform copies. If a mismatch persists across multiple sessions, flag it as a potential sync issue in the session notes.
+
+## Step 3.8: Pre-Warm Code Graph (Optional)
+
+If working on a code-intensive task, optionally pre-warm the code graph:
+
+```json
+mcp_knowns_code({ "action": "symbols", "path": "internal/" })
+```
+
+This is useful when:
+- Starting a `/kn-plan` on a large task
+- Running `/kn-research` on a complex feature
+- `/kn-review` or `/kn-test` on a multi-file change
+
+**Skip this step** if context is already warm or the task is simple.
+
 ## Step 4: Summarize
 
 ```markdown
@@ -75,6 +113,7 @@ Project memories contain accumulated patterns, decisions, and conventions from p
 - **Project Memories**: [count, or "none yet"]
 - **In-progress tasks**: [count]
 - **Current risks / gaps**: [missing docs, unclear conventions, broken search, etc.]
+- **Skills**: [synced / mismatch — see warning if applicable]
 - **Ready for**: tasks, docs, questions
 ```
 
@@ -85,7 +124,7 @@ All built-in skills in scope must end with the same user-facing information orde
 Required order for the final user-facing response:
 
 1. Goal/result - state what session context was established or what was confirmed.
-2. Key details - include only the most important supporting context, refs, risks, or current-state notes.
+2. Key details - include only the most important supporting context, refs, risks, skill sync status, or current-state notes.
 3. Next action - recommend a concrete follow-up command only when a natural handoff exists.
 
 Keep this concise for CLI use. Skill-specific content may extend the key-details section, but must not replace or reorder the shared structure.
@@ -98,6 +137,7 @@ For `kn-init`, the key details should cover:
 - 1 short list of the most relevant docs opened
 - current in-progress work, if any
 - current risks or missing context, if any
+- skill sync status (if mismatch detected)
 
 ## Fallbacks
 

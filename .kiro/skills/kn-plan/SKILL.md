@@ -82,11 +82,14 @@ Use `search` for discovery. Use `retrieve` when you need ranked candidates plus 
 4. Update docs
 ```
 
-**Tip:** Use mermaid for complex flows:
+**Tip:** Use mermaid for complex flows (if plan has >3 steps):
 ````markdown
 ```mermaid
 graph LR
-    A[Input] --> B[Process] --> C[Output]
+    A[Input] --> B[Step 1]
+    B --> C[Step 2]
+    C --> D[Step 3]
+    D --> E[Output]
 ```
 ````
 
@@ -140,21 +143,34 @@ Before presenting the plan for approval, verify plan quality:
 - Steps touching core/shared modules → flag blast radius
 - Steps with no test coverage in plan → flag
 
+### Complexity Rating
+
+Assign a complexity rating to help the user calibrate effort:
+
+| Rating | Criteria |
+|--------|----------|
+| **Low** | ≤3 steps, touches ≤3 files, no external deps |
+| **Medium** | 4-6 steps, touches 4-6 files, some external deps |
+| **High** | ≥7 steps, touches >6 files, complex deps, or cross-cutting changes |
+
 **Report any issues found inline with the plan:**
 
 ```
-Plan for task-<id>:
+Plan for task-<id> [Complexity: MEDIUM]
+═══════════════════════════════════════
 1. Step one
 2. Step two
 ⚠️ Plan check: AC-3 not covered by any step
 ⚠️ Plan check: Step 4 touches 7 files — consider splitting
+
+⚠️ Risk: Step 3 uses new external dependency (verify compatibility first)
 ```
 
 Fix issues before presenting for approval. If unfixable, surface them explicitly so the user can decide.
 
 ## Step 6: Ask Approval
 
-Present plan and **WAIT for explicit approval**.
+Present plan with complexity rating and **WAIT for explicit approval**.
 
 ## Final Response Contract
 
@@ -163,16 +179,17 @@ All built-in skills in scope must end with the same user-facing information orde
 Required order for the final user-facing response:
 
 1. Goal/result - state what plan or task preview was produced and whether approval is pending.
-2. Key details - include the most important supporting context, refs, assumptions, or validation.
+2. Key details - include the concise implementation plan, complexity rating, key assumptions, references used to derive the plan, and validation results.
 3. Next action - recommend a concrete follow-up command only when a natural handoff exists.
 
-Keep this concise for CLI use. Skill-specific content may extend the key-details section, but must not replace or reorder the shared structure.
+Keep this concise for CLI use. Verification-specific content may extend the key-details section, but must not replace or reorder the shared structure.
 
 Out of scope: explaining, syncing, or generating `.claude/skills/*`. Runtime auto-sync already handles platform copies, so this skill source only defines the built-in output contract.
 
 For `kn-plan`, the key details should cover:
 
 - the concise implementation plan
+- complexity rating (Low/Medium/High)
 - key assumptions or unresolved questions
 - references used to derive the plan
 - an explicit approval gate or validation result
@@ -214,6 +231,7 @@ Run: /kn-implement $ARGUMENTS
 - [ ] Templates checked
 - [ ] **Validated (no broken refs)**
 - [ ] **Pre-execution plan check passed**
+- [ ] Complexity rating assigned
 - [ ] User approved
 - [ ] **Next step suggested**
 
@@ -239,7 +257,23 @@ Extract spec path from arguments (e.g., `--from @doc/specs/user-auth` → `specs
 mcp_knowns_docs({ "action": "get", "path": "specs/<name>", "smart": true })
 ```
 
-## Step 2: Parse Requirements
+## Step 2: Spec Approval Check (HARD ABORT)
+
+**CRITICAL**: If the spec does not have the `approved` tag, STOP immediately:
+
+```
+⛔ Spec `specs/<name>` is not approved yet (status: draft).
+
+Cannot generate tasks from a draft spec. Please:
+1. Run `/kn-spec <name>` to review and approve the spec
+2. Or use `/kn-review <spec-path>` to assess readiness
+
+Aborted — not creating tasks from unapproved spec.
+```
+
+Only proceed if spec has `approved` tag.
+
+## Step 3: Parse Requirements
 
 Scan spec for:
 - **Functional Requirements** (FR-1, FR-2, etc.)
@@ -248,14 +282,15 @@ Scan spec for:
 
 Group related items into logical tasks.
 
-## Step 3: Generate Task Preview
+## Step 4: Generate Task Preview
 
 For each requirement/group, create task structure:
 
 ```markdown
-## Generated Tasks from specs/<name>
+## Generated Tasks from specs/<name> [Complexity: MEDIUM]
+Total: X tasks
 
-### Task 1: [Requirement Title]
+### Task 1: [Requirement Title] [LOW]
 - **Description:** [From spec]
 - **ACs:**
   - [ ] AC from spec
@@ -264,22 +299,19 @@ For each requirement/group, create task structure:
 - **Fulfills:** AC-1, AC-2 (maps to Spec ACs this task completes)
 - **Priority:** medium
 
-### Task 2: [Requirement Title]
+### Task 2: [Requirement Title] [HIGH]
 - **Description:** [From spec]
 - **ACs:**
   - [ ] AC from spec
 - **Spec:** specs/<name>
 - **Fulfills:** AC-3
 - **Priority:** medium
-
----
-Total: X tasks to create
 ```
 
 > **CRITICAL:** The `fulfills` field maps Task → Spec ACs. When the task is marked done,
 > the matching Spec ACs will be auto-checked in the spec document.
 
-## Step 4: Ask for Approval
+## Step 5: Ask for Approval
 
 > I've generated **X tasks** from the spec. Please review:
 > - **Approve** to create all tasks
@@ -288,7 +320,7 @@ Total: X tasks to create
 
 **WAIT for explicit approval.**
 
-## Step 5: Create Tasks
+## Step 6: Create Tasks
 
 When approved, create tasks with `fulfills` to link Task → Spec ACs:
 
@@ -325,14 +357,14 @@ Creation rules:
 - If the spec depends on broad domain knowledge, create/update a supporting doc and reference it from the spec or generated tasks
 - If the spec reveals general platform work, create a dedicated task and reference it instead of hiding it inside an unrelated feature task
 
-## Step 6: Summary
+## Step 7: Summary
 
 ```markdown
 Goal/result: created X tasks linked to `specs/<name>`.
 
 Key details:
-- task-xxx: Requirement 1 (3 ACs)
-- task-yyy: Requirement 2 (2 ACs)
+- task-xxx: Requirement 1 (3 ACs) [MEDIUM]
+- task-yyy: Requirement 2 (2 ACs) [LOW]
 - validation/approval status, if relevant
 
 Next action:
@@ -342,9 +374,10 @@ Next action:
 ## Checklist (--from mode)
 
 - [ ] Spec document read
+- [ ] **Spec approved (hard abort if not)**
 - [ ] Requirements parsed
 - [ ] **Tasks include `fulfills` mapping to Spec ACs**
-- [ ] Tasks previewed
+- [ ] Tasks previewed with complexity ratings
 - [ ] User approved
 - [ ] Tasks created with spec link and fulfills
 - [ ] Summary shown

@@ -14,5 +14,11 @@
       "Bash(rtk read *)",
       "mcp__knowns__time"
     ]
-  }
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "knowns"
+  ],
+  "prefersReducedMotion": true,
+  "outputStyle": "default"
 }

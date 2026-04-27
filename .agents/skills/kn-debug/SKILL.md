@@ -56,9 +56,9 @@ Also check learnings docs:
 mcp_knowns_search({ "action": "search", "query": "<error pattern>", "type": "doc", "tag": "learning" })
 ```
 
-Search memories for past debug patterns:
+**Query debug pattern memory specifically:**
 ```json
-mcp_knowns_search({ "action": "search", "query": "<error pattern>", "type": "memory" })
+mcp_knowns_search({ "action": "search", "query": "<error pattern>", "type": "memory", "tag": "debug" })
 ```
 
 If a known pattern matches → jump to Step 4 (Fix) using the documented resolution.
@@ -159,19 +159,31 @@ If verification fails → return to Step 3 with new information. Do NOT report s
 
 ## Step 5: Learn — Capture the Pattern
 
+### Learning Capture Trigger (Inclusive)
+
+Capture a learning if **ANY** of:
+- Debug time ≥ 10 minutes (not trivial)
+- Root cause is non-obvious (not immediately visible from error message)
+- The fix could apply to future similar issues
+- The error could recur in other parts of the codebase
+
+**Rule**: Better to capture a small learning than to miss a significant one. If unsure, err on the side of capturing.
+
 ### New failure pattern worth remembering?
 
 Ask: would this save ≥15 minutes if a future agent knew it?
 
-**Quick pattern (< 5 min to describe):** save to memory for fast recall:
+**Quick pattern (< 5 min to describe):** save to memory with `category: debug` for fast recall in future `kn-debug` runs:
 ```json
 mcp_knowns_memory({ "action": "add", "title": "<error pattern>",
   "content": "Root cause: <sentence>. Fix: <what resolves it>",
   "layer": "project",
-  "category": "failure",
+  "category": "debug",
   "tags": ["debug", "<domain>"]
 })
 ```
+
+Note: The `debug` category enables future `kn-debug` sessions to query patterns by error type. This is distinct from `failure` which is more general.
 
 **Detailed pattern (worth a full writeup):** create or update a learning doc:
 
@@ -207,12 +219,31 @@ mcp_knowns_docs({ "action": "update", "path": "<learning-path>",
 
 ---
 
+## Step 6: Post-Fix Review (Optional but Recommended)
+
+After fixing and capturing the learning:
+
+> Review fix before committing? (`/kn-review`)
+
+This is especially important for:
+- Security-related fixes
+- Concurrency/race condition fixes
+- Changes to shared/ core modules
+
+```
+After fix captured:
+→ Run `/kn-review` to review the fix before committing
+→ Or `/kn-commit` to commit directly if fix is simple and isolated
+```
+
+---
+
 ## Shared Output Contract
 
 Required order for the final user-facing response:
 
 1. Goal/result — what was debugged and whether it's fixed.
-2. Key details — root cause, fix applied, verification status, learning captured.
+2. Key details — root cause, fix applied, verification status, learning captured (and whether it was reviewed).
 3. Next action — resume implementation, or escalate if unfixable.
 
 For `kn-debug`, the key details should cover:
@@ -220,7 +251,8 @@ For `kn-debug`, the key details should cover:
 - classification and root cause
 - what was changed to fix it
 - verification result (pass/fail)
-- whether a learning was captured or updated
+- whether a learning was captured (and its category: `debug` vs `failure`)
+- whether post-fix review was suggested
 
 ---
 
@@ -233,7 +265,7 @@ For `kn-debug`, the key details should cover:
 | Flaky test | Run 5× — if intermittent, check shared state/ordering |
 | Runtime crash | Read stack trace top-to-bottom, find first line in your code |
 | Integration error | Check env vars, then API response body (not just status code) |
-| Recurring issue | Search learnings docs first |
+| Recurring issue | Search debug memories (`category: debug`) first |
 
 ## Related Skills
 
@@ -245,16 +277,18 @@ For `kn-debug`, the key details should cover:
 ## Checklist
 
 - [ ] Issue classified
-- [ ] Known patterns checked
+- [ ] Known patterns checked (including debug memory category)
 - [ ] Reproduced with exact command
 - [ ] Root cause identified (one sentence)
 - [ ] Fix applied and verified
-- [ ] Learning captured (if pattern is new/useful)
+- [ ] Learning captured (if ≥10 min OR non-obvious root cause)
+- [ ] **Post-fix review suggested**
 
 ## Red Flags
 
 - Fixing symptoms without root cause
 - Skipping reproduction — diagnosing from error message alone
-- Not checking known patterns first
+- Not checking known patterns first (especially debug memory category)
 - Committing fix without running verification
-- Not capturing a learning when the fix took >15 minutes to find
+- Not capturing a learning when the fix took ≥10 minutes to find
+- Not suggesting post-fix review for security/concurrency fixes

@@ -15,11 +15,14 @@ description: Use when extracting reusable patterns, decisions, failures, or know
 - Sometimes a code change, repeated pattern, or recurring support issue
 - Optional: `--compound` flag for full 3-category analysis
 - Optional: `--consolidate` flag to review and consolidate all existing learnings
+- Optional: `--mid-task` flag to trigger extraction during implementation (not just after completion)
 
 ## Mode Detection
 
 Check `$ARGUMENTS`:
 - Contains `--consolidate` → Go to "Consolidation Mode" section
+- Contains `--mid-task` → Go to "Mid-Task Extract Trigger" section
+- Contains `--compound` → Run full 3-category analysis
 - Otherwise → Continue with normal extraction flow
 
 ## Extraction Rules
@@ -44,7 +47,29 @@ Look for three categories:
 | **Decisions** | Good calls, bad calls, trade-offs, surprises |
 | **Failures** | Bugs, wrong assumptions, wasted effort, missing prerequisites |
 
-## Step 2: Search for Existing Docs
+## Step 2: Confidence Verification
+
+**CRITICAL**: Before extracting, verify the source is genuine and not fabricated.
+
+Verify the task exists and has real implementation:
+```json
+mcp_knowns_tasks({ "action": "get", "taskId": "<source-task-id>" })
+```
+
+For pattern extraction, verify the code actually exists:
+```bash
+# Check the referenced file and symbol actually exist
+grep -n "<pattern-symbol>" <referenced-file>
+```
+
+If the task doesn't exist, the pattern isn't in code, or the finding feels "manufactured":
+- Do NOT fabricate a finding
+- If the task ran smoothly with no surprises, say that explicitly
+- Document only what is verifiable
+
+**Rule**: A short learning with 2 genuine entries is better than a long doc with invented ones.
+
+## Step 3: Search for Existing Docs
 
 ```json
 mcp_knowns_search({ "action": "search", "query": "<pattern/topic>", "type": "doc" })
@@ -52,16 +77,16 @@ mcp_knowns_search({ "action": "search", "query": "<pattern/topic>", "type": "doc
 
 **Don't duplicate.** Update existing docs when possible.
 
-## Step 3: Three-Category Analysis
+## Step 4: Three-Category Analysis
 
-### 3a. Patterns
+### 4a. Patterns
 
 Identify reusable patterns:
 - Code patterns: new utilities, abstractions worth standardizing
 - Architecture patterns: structural decisions that worked
 - Process patterns: workflow approaches that saved time
 
-### 3b. Decisions
+### 4b. Decisions
 
 Identify significant decisions:
 - **GOOD_CALL**: decisions that proved correct or saved time
@@ -69,7 +94,7 @@ Identify significant decisions:
 - **SURPRISE**: things that turned out differently than expected
 - **TRADEOFF**: conscious choices where alternatives were considered
 
-### 3c. Failures
+### 4c. Failures
 
 Identify failures and wasted effort:
 - Bugs introduced and root causes
@@ -77,9 +102,7 @@ Identify failures and wasted effort:
 - Missing prerequisites discovered mid-execution
 - Test gaps that allowed regressions
 
----
-
-## Step 4: Create/Update Documentation
+## Step 5: Create/Update Documentation
 
 ### For patterns → pattern doc (same as before)
 
@@ -130,7 +153,7 @@ mcp_knowns_docs({ "action": "create", "title": "Learning: <feature/domain>",
 - **Prevention:** <what to do differently>
 ```
 
-## Step 5: Save to Memory
+## Step 6: Save to Memory
 
 For each extracted pattern or decision worth quick recall, save a concise memory entry alongside the doc:
 
@@ -143,11 +166,21 @@ mcp_knowns_memory({ "action": "add", "title": "<pattern/decision name>",
 })
 ```
 
+For debug patterns specifically, use `category: "debug"` so future `kn-debug` runs can query by error type:
+```json
+mcp_knowns_memory({ "action": "add", "title": "<error pattern>",
+  "content": "Root cause: <sentence>. Fix: <what resolves it>",
+  "layer": "project",
+  "category": "debug",
+  "tags": ["debug", "<domain>"]
+})
+```
+
 Memory = fast agent recall in future sessions. Doc = full structured reference.
 Do NOT duplicate the entire doc content — store a summary and link to the doc.
 Skip this step if the extraction produced nothing generalizable.
 
-## Step 6: Create Template (if code-generatable)
+## Step 7: Create Template (if code-generatable)
 
 ```json
 mcp_knowns_templates({ "action": "create", "name": "<pattern-name>",
@@ -156,7 +189,7 @@ mcp_knowns_templates({ "action": "create", "name": "<pattern-name>",
 })
 ```
 
-## Step 7: Promote Critical Learnings
+## Step 8: Promote Critical Learnings
 
 For any finding that meets ALL criteria:
 - Affects more than one future feature
@@ -187,7 +220,7 @@ mcp_knowns_docs({ "action": "create", "title": "Critical Patterns",
 
 **Calibration:** Do NOT promote everything. If critical-patterns grows past 20-30 entries it becomes noise. Only promote learnings that would have saved ≥30 minutes if known in advance.
 
-## Step 8: Validate
+## Step 9: Validate
 
 **CRITICAL:** After creating doc/template, validate to catch broken refs:
 
@@ -197,12 +230,45 @@ mcp_knowns_validate({ "entity": "<doc-path>" })
 
 If errors found, fix before continuing.
 
-## Step 9: Link Back to Task
+## Step 10: Link Back to Task
 
 ```json
 mcp_knowns_tasks({ "action": "update", "taskId": "$ARGUMENTS",
   "appendNotes": "📚 Extracted to @doc/<path>"
 })
+```
+
+---
+
+# Mid-Task Extract Trigger
+
+When `$ARGUMENTS` contains `--mid-task`, trigger extraction during implementation when a significant architectural decision is made.
+
+## When to Trigger
+
+During `kn-implement`, if ANY of these occur:
+- A non-obvious design choice was made to solve a problem
+- A tradeoff was explicitly weighed and one option was chosen over another
+- A bug was discovered and the root cause + fix was non-trivial
+- A pattern was identified that could be reused
+
+## How to Execute
+
+1. Pause implementation briefly
+2. Run the extract workflow for the finding (Steps 1-10 condensed):
+   - Identify the specific pattern/decision/failure (1 finding, not full 3-category)
+   - Search for existing doc to avoid duplication
+   - Create/update doc
+   - Save to memory with `category: "debug"` if it's a bug pattern
+   - Continue implementation
+
+## Output Format (condensed)
+
+```
+📚 Mid-task extract: <finding summary>
+   → @doc/<path> (or updated existing doc)
+   Memory saved: <title>
+   Continue: /kn-implement <task-id>
 ```
 
 ---
@@ -215,20 +281,22 @@ When `$ARGUMENTS` contains `--consolidate`:
 
 Scan all existing learnings docs, merge duplicates, flag outdated entries, and promote new critical patterns. Run on-demand when the learnings folder feels messy or after a batch of completed work.
 
-## C-Step 1: Scan All Learnings
+## C-Step 1: Priority Queue for Consolidation
+
+Don't read ALL docs blindly. Prioritize by:
+- **Staleness**: Docs not updated in >6 months
+- **Ref count**: Docs referenced by many other docs/tasks (high impact if wrong)
+- **Broken refs**: Docs with existing validation errors
 
 ```json
 mcp_knowns_docs({ "action": "list", "tag": "learning" })
 ```
 
-Read each learning doc:
-```json
-mcp_knowns_docs({ "action": "get", "path": "<path>", "smart": true })
-```
+Sort by priority before reading all of them.
 
-## C-Step 2: Identify Issues
+## C-Step 2: Scan and Classify
 
-For each learning doc, check:
+Read docs in priority order. For each, classify as:
 
 ### Duplicates
 - Two docs covering the same root cause or pattern
@@ -253,7 +321,7 @@ For each learning doc, check:
 For each issue found, present to user:
 
 ```
-Consolidation findings:
+Consolidation findings (priority order):
 
 1. MERGE: "Learning: auth token" + "Learning: JWT refresh" → same root cause
    → Merge into "Learning: auth token handling"?
@@ -281,7 +349,7 @@ Consolidation complete:
 - Updated: X docs
 - Promoted: X to critical-patterns
 - Orphans fixed: X
-- Total learnings: X docs
+- Total learnings: X docs (skipped low-priority: Y)
 ```
 
 ---
@@ -338,3 +406,4 @@ If the work is too specific to generalize, say so explicitly and do not force a 
 - Writing generic learnings ("test more carefully" is worthless)
 - Fabricating findings when the task was straightforward
 - Not checking existing docs before creating duplicates
+- Extracting without verifying the source task/pattern actually exists

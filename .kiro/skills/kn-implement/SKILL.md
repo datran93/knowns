@@ -41,13 +41,19 @@ mcp_knowns_time({ "action": "start", "taskId": "$ARGUMENTS" })
 
 Verify: plan exists, timer running, which ACs pending.
 
-## Step 2: Check Templates
+## Step 2: Check Templates (MANDATORY)
 
 ```json
 mcp_knowns_templates({ "action": "list" })
 ```
 
-If template exists → use it to generate boilerplate.
+**If a matching template exists for the task type:**
+→ Use it to generate boilerplate
+→ This is NOT optional — templates ensure consistent code generation
+
+**If no matching template exists:**
+→ Continue with manual implementation
+→ Consider creating a template after task completion (via `kn-extract`)
 
 ## Step 3: Work Through Plan
 
@@ -70,6 +76,32 @@ Working rules:
 - If the task needs docs or template changes, do them as part of completion, not as an afterthought
 - Use `search` to discover relevant sources; use `retrieve` when implementation needs assembled context with citations for docs, tasks, and memories.
 - Prefer MCP `mcp_knowns_search({ "action": "retrieve", "query": "<keywords>" })` for retrieval; fall back to CLI `knowns retrieve "<keywords>" --json` if MCP is unavailable.
+
+## Context Budget Checkpoint
+
+**Every 3-4 plan steps** (or when context feels warm):
+- Check if context is approaching 50%
+- If yes → checkpoint: run quick validation, commit progress, report remaining work
+
+```
+Context checkpoint at step N/M:
+- Implemented: [what's done]
+- Remaining: [what's left]
+- Suggestion: Continue or checkpoint and re-run later
+```
+
+## Step 3.5: Frequent Validation
+
+**NOT just at the end** — run quick validation every few steps:
+
+```json
+mcp_knowns_validate({ "entity": "$ARGUMENTS" })
+```
+
+This catches broken refs early, not after completing all steps. If errors found:
+- Fix immediately
+- Re-validate
+- Continue
 
 ## Step 4: Handle Scope Changes
 
@@ -148,7 +180,7 @@ mcp_knowns_validate({ "scope": "sdd" })
 Display SDD Coverage Report:
 ```
 SDD Coverage Report
-═══════════════════════════════════════
+═══════════════════════════════════════════════
 Spec: specs/xxx
 Tasks: X/X complete (100%)
 ACs: Y/Z verified
@@ -158,7 +190,7 @@ ACs: Y/Z verified
 
 ## Step 6: Extract Knowledge (optional)
 
-If patterns discovered: `/kn-extract`
+If patterns discovered: `/kn-extract --mid-task` to capture mid-task
 
 If a quick insight is worth remembering but doesn't warrant a full doc:
 ```json
@@ -210,7 +242,7 @@ After task completion, check for:
 | More tasks in spec | "Next: `/kn-plan <next-task-id>` for [task title]" |
 | All spec tasks done | "All tasks complete! Run `/kn-verify` to verify against spec" |
 | Standalone task | "Task done. Run `/kn-extract` to extract patterns, or `/kn-commit` to commit" |
-| Patterns discovered | "Consider `/kn-extract` to document this pattern" |
+| Patterns discovered | "Consider `/kn-extract --mid-task` to capture mid-task findings" |
 
 **Example output:**
 ```
@@ -229,6 +261,7 @@ Run: /kn-plan 44
 - `/kn-plan <id>` - Create plan before implementing
 - `/kn-verify` - Verify all tasks against spec
 - `/kn-extract` - Extract patterns to docs
+- `/kn-extract --mid-task` - Capture mid-task architectural decisions
 - `/kn-commit` - Commit with verification
 
 ## Checklist
@@ -241,6 +274,8 @@ Run: /kn-plan 44
 - [ ] Status = done
 - [ ] **SDD workflow handled (if spec linked)**
 - [ ] **Next step suggested**
+- [ ] Template used (if applicable)
+- [ ] Context budget respected (checkpoint if >50%)
 
 ## Red Flags
 
@@ -254,3 +289,4 @@ Run: /kn-plan 44
 - **Not suggesting next step**
 - Implementing from a vague task without clarifying plan/context
 - Silently expanding scope instead of asking
+- **Template exists but not used** (template usage is mandatory when available)

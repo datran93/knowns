@@ -1,0 +1,228 @@
+{
+  "taskId": "ywdl06",
+  "currentVersion": 4,
+  "versions": [
+    {
+      "id": "v1",
+      "taskId": "ywdl06",
+      "version": 1,
+      "timestamp": "2026-04-27T09:48:42.813334Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": null,
+          "newValue": "todo"
+        },
+        {
+          "field": "priority",
+          "oldValue": null,
+          "newValue": "high"
+        }
+      ],
+      "snapshot": {
+        "description": "Integrate 3 MCP tools from antigravity-kit into Knowns: doc-researcher (web search + scraping), github-reader (GitHub API), database-inspector (SQL/Redis inspection)",
+        "labels": [
+          "mcp",
+          "integration",
+          "feature"
+        ],
+        "priority": "high",
+        "status": "todo",
+        "title": "Integrate external MCP tools: doc-researcher, github-reader, database-inspector"
+      }
+    },
+    {
+      "id": "v2",
+      "taskId": "ywdl06",
+      "version": 2,
+      "timestamp": "2026-04-27T09:48:49.099646Z",
+      "changes": [
+        {
+          "field": "acceptanceCriteria",
+          "oldValue": null,
+          "newValue": [
+            {
+              "completed": false,
+              "text": "Create research.go handler with search_latest_syntax tool"
+            },
+            {
+              "completed": false,
+              "text": "Create github.go handler with get_file_content, search_repos, list_commits tools"
+            },
+            {
+              "completed": false,
+              "text": "Create database.go handler with list_tables, inspect_schema, explain_query tools"
+            },
+            {
+              "completed": false,
+              "text": "Update server.go to register 3 new handlers"
+            },
+            {
+              "completed": false,
+              "text": "Update go.mod with required dependencies"
+            },
+            {
+              "completed": false,
+              "text": "Add unit tests for each handler"
+            },
+            {
+              "completed": false,
+              "text": "Update ai/mcp documentation"
+            }
+          ]
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "Create research.go handler with search_latest_syntax tool"
+          },
+          {
+            "completed": false,
+            "text": "Create github.go handler with get_file_content, search_repos, list_commits tools"
+          },
+          {
+            "completed": false,
+            "text": "Create database.go handler with list_tables, inspect_schema, explain_query tools"
+          },
+          {
+            "completed": false,
+            "text": "Update server.go to register 3 new handlers"
+          },
+          {
+            "completed": false,
+            "text": "Update go.mod with required dependencies"
+          },
+          {
+            "completed": false,
+            "text": "Add unit tests for each handler"
+          },
+          {
+            "completed": false,
+            "text": "Update ai/mcp documentation"
+          }
+        ],
+        "description": "Integrate 3 MCP tools from antigravity-kit into Knowns: doc-researcher (web search + scraping), github-reader (GitHub API), database-inspector (SQL/Redis inspection)",
+        "labels": [
+          "mcp",
+          "integration",
+          "feature"
+        ],
+        "priority": "high",
+        "status": "todo",
+        "title": "Integrate external MCP tools: doc-researcher, github-reader, database-inspector"
+      }
+    },
+    {
+      "id": "v3",
+      "taskId": "ywdl06",
+      "version": 3,
+      "timestamp": "2026-04-27T10:02:27.469695Z",
+      "changes": [
+        {
+          "field": "implementationNotes",
+          "oldValue": null,
+          "newValue": "AC1-5 completed: Created research.go, github.go, database.go handlers. Updated server.go to register new handlers. Updated go.mod with go-github v62, oauth2, redis, gorm dependencies."
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "completed": true,
+            "text": "Create research.go handler with search_latest_syntax tool"
+          },
+          {
+            "completed": true,
+            "text": "Create github.go handler with get_file_content, search_repos, list_commits tools"
+          },
+          {
+            "completed": true,
+            "text": "Create database.go handler with list_tables, inspect_schema, explain_query tools"
+          },
+          {
+            "completed": true,
+            "text": "Update server.go to register 3 new handlers"
+          },
+          {
+            "completed": true,
+            "text": "Update go.mod with required dependencies"
+          },
+          {
+            "completed": false,
+            "text": "Add unit tests for each handler"
+          },
+          {
+            "completed": false,
+            "text": "Update ai/mcp documentation"
+          }
+        ],
+        "description": "Integrate 3 MCP tools from antigravity-kit into Knowns: doc-researcher (web search + scraping), github-reader (GitHub API), database-inspector (SQL/Redis inspection)",
+        "implementationNotes": "AC1-5 completed: Created research.go, github.go, database.go handlers. Updated server.go to register new handlers. Updated go.mod with go-github v62, oauth2, redis, gorm dependencies.",
+        "labels": [
+          "mcp",
+          "integration",
+          "feature"
+        ],
+        "priority": "high",
+        "status": "todo",
+        "title": "Integrate external MCP tools: doc-researcher, github-reader, database-inspector"
+      }
+    },
+    {
+      "id": "v4",
+      "taskId": "ywdl06",
+      "version": 4,
+      "timestamp": "2026-04-27T10:04:30.648386Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "todo",
+          "newValue": "done"
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "text": "Create research.go handler with search_latest_syntax tool",
+            "completed": true
+          },
+          {
+            "text": "Create github.go handler with get_file_content, search_repos, list_commits tools",
+            "completed": true
+          },
+          {
+            "text": "Create database.go handler with list_tables, inspect_schema, explain_query tools",
+            "completed": true
+          },
+          {
+            "text": "Update server.go to register 3 new handlers",
+            "completed": true
+          },
+          {
+            "text": "Update go.mod with required dependencies",
+            "completed": true
+          },
+          {
+            "text": "Add unit tests for each handler",
+            "completed": true
+          },
+          {
+            "text": "Update ai/mcp documentation",
+            "completed": true
+          }
+        ],
+        "description": "Integrate 3 MCP tools from antigravity-kit into Knowns: doc-researcher (web search + scraping), github-reader (GitHub API), database-inspector (SQL/Redis inspection)",
+        "implementationNotes": "AC1-5 completed: Created research.go, github.go, database.go handlers. Updated server.go to register new handlers. Updated go.mod with go-github v62, oauth2, redis, gorm dependencies.",
+        "labels": [
+          "mcp",
+          "integration",
+          "feature"
+        ],
+        "priority": "high",
+        "status": "done",
+        "title": "Integrate external MCP tools: doc-researcher, github-reader, database-inspector"
+      }
+    }
+  ]
+}

@@ -22,6 +22,16 @@ description: Use when you need to understand existing code, find patterns, or ex
 4. Existing code paths and implementations
 5. Adjacent tests, templates, and validation logic
 
+## Step 0: Web Research (for real-time topics)
+
+If the topic involves recent syntax, best practices, or external documentation (e.g., "React server components", "Go 1.23 generics"), use web research first:
+
+```json
+mcp_knowns_research({ "action": "search_latest_syntax", "topic": "<topic>", "libraries": ["<lib>"] })
+```
+
+This fetches real-time search results and top URL content via Jina AI markdown extraction, cached for 30 days. Use when project docs are outdated or topic is about external libraries/frameworks.
+
 ## Step 1: Search Documentation and Memory
 
 ```json

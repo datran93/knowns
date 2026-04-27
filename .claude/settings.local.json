@@ -11,7 +11,8 @@
       "Bash(mv /Users/datran/Project/knowns/.claude/skills/kn-codemap /Users/datran/Project/knowns/internal/instructions/skills/)",
       "mcp__knowns__code",
       "Bash(rtk grep *)",
-      "Bash(rtk read *)"
+      "Bash(rtk read *)",
+      "mcp__knowns__time"
     ]
   }
 }

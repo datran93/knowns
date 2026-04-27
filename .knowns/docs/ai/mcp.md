@@ -238,6 +238,28 @@ knowns mcp setup
 |------|-------------|
 | `mcp__knowns__validate` | Validate tasks, docs, templates, memories for broken refs and quality |
 
+### Research (Web Search & Scraping)
+| Tool | Action | Description |
+|------|--------|-------------|
+| `mcp__knowns__research` | `search_latest_syntax` | Real-time web search with DuckDuckGo + Jina AI markdown fetching, 30-day cache |
+
+### GitHub
+| Tool | Action | Description |
+|------|--------|-------------|
+| `mcp__knowns__github` | `get_file_content` | Get file contents from GitHub repos (paginated, with ref support) |
+| `mcp__knowns__github` | `search_repos` | Search GitHub repositories |
+| `mcp__knowns__github` | `list_commits` | List commits for a repository |
+
+### Database (SQL & Redis)
+| Tool | Action | Description |
+|------|--------|-------------|
+| `mcp__knowns__database` | `list_tables` | List tables in SQL DB or keys in Redis |
+| `mcp__knowns__database` | `inspect_schema` | Inspect table schema or Redis key metadata |
+| `mcp__knowns__database` | `run_query` | Execute SQL queries (read-only by default, write requires confirm) |
+| `mcp__knowns__database` | `redis_list_keys` | List Redis keys (up to 100) |
+| `mcp__knowns__database` | `redis_inspect_key` | Inspect Redis key type, TTL, and metadata |
+| `mcp__knowns__database` | `redis_run_command` | Execute Redis commands (read-only by default, write requires confirm) |
+
 ## MCP vs CLI
 
 | Aspect | MCP | CLI |

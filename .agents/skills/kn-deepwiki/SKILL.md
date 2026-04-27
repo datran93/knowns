@@ -19,6 +19,10 @@ This workflow guides you to autonomously transform a codebase or a specific feat
 - **Analyze**: Scan the repository/feature to detect project type, domain layers, tech stack, and key components.
 - Use `mcp__knowns__search` and `mcp__knowns__code` to trace actual code paths.
 - Identify the main entry points, primary modules, and data flows.
+- **External research**: For topics involving external libraries or recent tech, use `mcp__knowns__research` to fetch real-time docs:
+  ```json
+  mcp_knowns_research({ "action": "search_latest_syntax", "topic": "<tech-stack-topic>" })
+  ```
 
 ### Phase 2: Content Generation
 

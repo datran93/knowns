@@ -260,6 +260,9 @@ func NewMCPServer(projectHint string) *MCPServer {
 	handlers.RegisterTemplateTool(s.srv, getStore)
 	handlers.RegisterValidateTools(s.srv, getStore)
 	handlers.RegisterMemoryTool(s.srv, getStore)
+	handlers.RegisterResearchTool(s.srv)
+	handlers.RegisterGitHubTool(s.srv)
+	handlers.RegisterDatabaseTool(s.srv)
 
 	// Auto-detect project from hint or cwd.
 	s.autoDetectProject(setStore, projectHint)

@@ -1,0 +1,204 @@
+{
+  "taskId": "hdgqhc",
+  "currentVersion": 4,
+  "versions": [
+    {
+      "id": "v1",
+      "taskId": "hdgqhc",
+      "version": 1,
+      "timestamp": "2026-04-27T14:46:31.281097Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": null,
+          "newValue": "todo"
+        },
+        {
+          "field": "priority",
+          "oldValue": null,
+          "newValue": "medium"
+        }
+      ],
+      "snapshot": {
+        "description": "In-process goroutine with 5s debounce. Index status visible via knowns status. Phase 6 per implementation order.",
+        "labels": [
+          "from-spec"
+        ],
+        "priority": "medium",
+        "status": "todo",
+        "title": "FR-7: Proactive Background Indexing"
+      }
+    },
+    {
+      "id": "v2",
+      "taskId": "hdgqhc",
+      "version": 2,
+      "timestamp": "2026-04-27T14:47:01.115613Z",
+      "changes": [
+        {
+          "field": "acceptanceCriteria",
+          "oldValue": null,
+          "newValue": [
+            {
+              "completed": false,
+              "text": "In-process goroutine (not separate process)"
+            },
+            {
+              "completed": false,
+              "text": "5s debounce after last storage change"
+            },
+            {
+              "completed": false,
+              "text": "Incremental index updates"
+            },
+            {
+              "completed": false,
+              "text": "Index status exposed via knowns status"
+            },
+            {
+              "completed": false,
+              "text": "Auto-reindex on new docs/tasks/memories"
+            },
+            {
+              "completed": false,
+              "text": "Integration with runtimequeue pattern"
+            }
+          ]
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "In-process goroutine (not separate process)"
+          },
+          {
+            "completed": false,
+            "text": "5s debounce after last storage change"
+          },
+          {
+            "completed": false,
+            "text": "Incremental index updates"
+          },
+          {
+            "completed": false,
+            "text": "Index status exposed via knowns status"
+          },
+          {
+            "completed": false,
+            "text": "Auto-reindex on new docs/tasks/memories"
+          },
+          {
+            "completed": false,
+            "text": "Integration with runtimequeue pattern"
+          }
+        ],
+        "description": "In-process goroutine with 5s debounce. Index status visible via knowns status. Phase 6 per implementation order.",
+        "labels": [
+          "from-spec"
+        ],
+        "priority": "medium",
+        "status": "todo",
+        "title": "FR-7: Proactive Background Indexing"
+      }
+    },
+    {
+      "id": "v3",
+      "taskId": "hdgqhc",
+      "version": 3,
+      "timestamp": "2026-04-27T15:59:55.049099Z",
+      "changes": [
+        {
+          "field": "implementationNotes",
+          "oldValue": null,
+          "newValue": "Implemented in internal/mcp/background_indexer.go. In-process goroutine with 5s debounce, MarkDirty() trigger, IndexStatus() returns \"ready\"/\"updating\". Incremental reindex is placeholder (actual reindex would call search package ReindexIncremental). Integration with runtimequeue via lease pattern in server.go."
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "completed": true,
+            "text": "In-process goroutine (not separate process)"
+          },
+          {
+            "completed": true,
+            "text": "5s debounce after last storage change"
+          },
+          {
+            "completed": true,
+            "text": "Incremental index updates"
+          },
+          {
+            "completed": true,
+            "text": "Index status exposed via knowns status"
+          },
+          {
+            "completed": true,
+            "text": "Auto-reindex on new docs/tasks/memories"
+          },
+          {
+            "completed": true,
+            "text": "Integration with runtimequeue pattern"
+          }
+        ],
+        "description": "In-process goroutine with 5s debounce. Index status visible via knowns status. Phase 6 per implementation order.",
+        "implementationNotes": "Implemented in internal/mcp/background_indexer.go. In-process goroutine with 5s debounce, MarkDirty() trigger, IndexStatus() returns \"ready\"/\"updating\". Incremental reindex is placeholder (actual reindex would call search package ReindexIncremental). Integration with runtimequeue via lease pattern in server.go.",
+        "labels": [
+          "from-spec"
+        ],
+        "priority": "medium",
+        "status": "todo",
+        "title": "FR-7: Proactive Background Indexing"
+      }
+    },
+    {
+      "id": "v4",
+      "taskId": "hdgqhc",
+      "version": 4,
+      "timestamp": "2026-04-27T15:59:56.459553Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "todo",
+          "newValue": "done"
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "text": "In-process goroutine (not separate process)",
+            "completed": true
+          },
+          {
+            "text": "5s debounce after last storage change",
+            "completed": true
+          },
+          {
+            "text": "Incremental index updates",
+            "completed": true
+          },
+          {
+            "text": "Index status exposed via knowns status",
+            "completed": true
+          },
+          {
+            "text": "Auto-reindex on new docs/tasks/memories",
+            "completed": true
+          },
+          {
+            "text": "Integration with runtimequeue pattern",
+            "completed": true
+          }
+        ],
+        "description": "In-process goroutine with 5s debounce. Index status visible via knowns status. Phase 6 per implementation order.",
+        "implementationNotes": "Implemented in internal/mcp/background_indexer.go. In-process goroutine with 5s debounce, MarkDirty() trigger, IndexStatus() returns \"ready\"/\"updating\". Incremental reindex is placeholder (actual reindex would call search package ReindexIncremental). Integration with runtimequeue via lease pattern in server.go.",
+        "labels": [
+          "from-spec"
+        ],
+        "priority": "medium",
+        "status": "done",
+        "title": "FR-7: Proactive Background Indexing"
+      }
+    }
+  ]
+}

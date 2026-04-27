@@ -1,0 +1,188 @@
+{
+  "taskId": "1tuujo",
+  "currentVersion": 4,
+  "versions": [
+    {
+      "id": "v1",
+      "taskId": "1tuujo",
+      "version": 1,
+      "timestamp": "2026-04-27T14:46:31.287842Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": null,
+          "newValue": "todo"
+        },
+        {
+          "field": "priority",
+          "oldValue": null,
+          "newValue": "high"
+        }
+      ],
+      "snapshot": {
+        "description": "Add agentEfficiency config section with all 8 feature flags defaulting to ON (opinionated defaults). All features opt-out per-feature.",
+        "labels": [
+          "from-spec"
+        ],
+        "priority": "high",
+        "status": "todo",
+        "title": "Agent Efficiency Config Schema + Defaults"
+      }
+    },
+    {
+      "id": "v2",
+      "taskId": "1tuujo",
+      "version": 2,
+      "timestamp": "2026-04-27T14:47:01.131098Z",
+      "changes": [
+        {
+          "field": "acceptanceCriteria",
+          "oldValue": null,
+          "newValue": [
+            {
+              "completed": false,
+              "text": "Add agentEfficiency config section to config.go"
+            },
+            {
+              "completed": false,
+              "text": "All 8 feature flags with default: true (opinionated)"
+            },
+            {
+              "completed": false,
+              "text": "Per-feature opt-out support"
+            },
+            {
+              "completed": false,
+              "text": "Schema validated against spec"
+            },
+            {
+              "completed": false,
+              "text": "Default values match spec Config Schema section"
+            }
+          ]
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "Add agentEfficiency config section to config.go"
+          },
+          {
+            "completed": false,
+            "text": "All 8 feature flags with default: true (opinionated)"
+          },
+          {
+            "completed": false,
+            "text": "Per-feature opt-out support"
+          },
+          {
+            "completed": false,
+            "text": "Schema validated against spec"
+          },
+          {
+            "completed": false,
+            "text": "Default values match spec Config Schema section"
+          }
+        ],
+        "description": "Add agentEfficiency config section with all 8 feature flags defaulting to ON (opinionated defaults). All features opt-out per-feature.",
+        "labels": [
+          "from-spec"
+        ],
+        "priority": "high",
+        "status": "todo",
+        "title": "Agent Efficiency Config Schema + Defaults"
+      }
+    },
+    {
+      "id": "v3",
+      "taskId": "1tuujo",
+      "version": 3,
+      "timestamp": "2026-04-27T16:26:02.014934Z",
+      "changes": [
+        {
+          "field": "implementationNotes",
+          "oldValue": null,
+          "newValue": "Config schema implemented in internal/models/config.go (AgentEfficiencySettings with all 8 feature flags defaulting to ON) + config_store.go (defaults applied when nil). Build clean. All 5 ACs verified."
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "completed": true,
+            "text": "Add agentEfficiency config section to config.go"
+          },
+          {
+            "completed": true,
+            "text": "All 8 feature flags with default: true (opinionated)"
+          },
+          {
+            "completed": true,
+            "text": "Per-feature opt-out support"
+          },
+          {
+            "completed": true,
+            "text": "Schema validated against spec"
+          },
+          {
+            "completed": true,
+            "text": "Default values match spec Config Schema section"
+          }
+        ],
+        "description": "Add agentEfficiency config section with all 8 feature flags defaulting to ON (opinionated defaults). All features opt-out per-feature.",
+        "implementationNotes": "Config schema implemented in internal/models/config.go (AgentEfficiencySettings with all 8 feature flags defaulting to ON) + config_store.go (defaults applied when nil). Build clean. All 5 ACs verified.",
+        "labels": [
+          "from-spec"
+        ],
+        "priority": "high",
+        "status": "todo",
+        "title": "Agent Efficiency Config Schema + Defaults"
+      }
+    },
+    {
+      "id": "v4",
+      "taskId": "1tuujo",
+      "version": 4,
+      "timestamp": "2026-04-27T16:26:06.616861Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "todo",
+          "newValue": "done"
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "text": "Add agentEfficiency config section to config.go",
+            "completed": true
+          },
+          {
+            "text": "All 8 feature flags with default: true (opinionated)",
+            "completed": true
+          },
+          {
+            "text": "Per-feature opt-out support",
+            "completed": true
+          },
+          {
+            "text": "Schema validated against spec",
+            "completed": true
+          },
+          {
+            "text": "Default values match spec Config Schema section",
+            "completed": true
+          }
+        ],
+        "description": "Add agentEfficiency config section with all 8 feature flags defaulting to ON (opinionated defaults). All features opt-out per-feature.",
+        "implementationNotes": "Config schema implemented in internal/models/config.go (AgentEfficiencySettings with all 8 feature flags defaulting to ON) + config_store.go (defaults applied when nil). Build clean. All 5 ACs verified.",
+        "labels": [
+          "from-spec"
+        ],
+        "priority": "high",
+        "status": "done",
+        "title": "Agent Efficiency Config Schema + Defaults"
+      }
+    }
+  ]
+}

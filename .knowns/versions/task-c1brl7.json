@@ -1,0 +1,204 @@
+{
+  "taskId": "c1brl7",
+  "currentVersion": 4,
+  "versions": [
+    {
+      "id": "v1",
+      "taskId": "c1brl7",
+      "version": 1,
+      "timestamp": "2026-04-27T14:46:31.284543Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": null,
+          "newValue": "todo"
+        },
+        {
+          "field": "priority",
+          "oldValue": null,
+          "newValue": "medium"
+        }
+      ],
+      "snapshot": {
+        "description": "Agent registry in SQLite with optimistic locking. Lock TTL auto-release on disconnect. Phase 7 per implementation order.",
+        "labels": [
+          "from-spec"
+        ],
+        "priority": "medium",
+        "status": "todo",
+        "title": "FR-8: Multi-Agent Awareness"
+      }
+    },
+    {
+      "id": "v2",
+      "taskId": "c1brl7",
+      "version": 2,
+      "timestamp": "2026-04-27T14:47:01.123152Z",
+      "changes": [
+        {
+          "field": "acceptanceCriteria",
+          "oldValue": null,
+          "newValue": [
+            {
+              "completed": false,
+              "text": "Agent registry table in SQLite"
+            },
+            {
+              "completed": false,
+              "text": "Task locking with optimistic conflict detection"
+            },
+            {
+              "completed": false,
+              "text": "Lock TTL auto-release on disconnect (default: 5min)"
+            },
+            {
+              "completed": false,
+              "text": "Broadcast mechanism on task completion"
+            },
+            {
+              "completed": false,
+              "text": "knowns status shows active sessions"
+            },
+            {
+              "completed": false,
+              "text": "FR-8.2: Lock denied message with owner info"
+            }
+          ]
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "Agent registry table in SQLite"
+          },
+          {
+            "completed": false,
+            "text": "Task locking with optimistic conflict detection"
+          },
+          {
+            "completed": false,
+            "text": "Lock TTL auto-release on disconnect (default: 5min)"
+          },
+          {
+            "completed": false,
+            "text": "Broadcast mechanism on task completion"
+          },
+          {
+            "completed": false,
+            "text": "knowns status shows active sessions"
+          },
+          {
+            "completed": false,
+            "text": "FR-8.2: Lock denied message with owner info"
+          }
+        ],
+        "description": "Agent registry in SQLite with optimistic locking. Lock TTL auto-release on disconnect. Phase 7 per implementation order.",
+        "labels": [
+          "from-spec"
+        ],
+        "priority": "medium",
+        "status": "todo",
+        "title": "FR-8: Multi-Agent Awareness"
+      }
+    },
+    {
+      "id": "v3",
+      "taskId": "c1brl7",
+      "version": 3,
+      "timestamp": "2026-04-27T16:02:48.991604Z",
+      "changes": [
+        {
+          "field": "implementationNotes",
+          "oldValue": null,
+          "newValue": "Implemented in internal/storage/agent_registry_store.go (AgentRegistryStore with SQLite) + internal/mcp/agent_registry.go. Agent registry tracks active sessions with heartbeat/TTL, task locking with conflict detection, auto-release on disconnect. Store.Agents field added to Store struct. Lock denied returns owner info."
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "completed": true,
+            "text": "Agent registry table in SQLite"
+          },
+          {
+            "completed": true,
+            "text": "Task locking with optimistic conflict detection"
+          },
+          {
+            "completed": true,
+            "text": "Lock TTL auto-release on disconnect (default: 5min)"
+          },
+          {
+            "completed": true,
+            "text": "Broadcast mechanism on task completion"
+          },
+          {
+            "completed": true,
+            "text": "knowns status shows active sessions"
+          },
+          {
+            "completed": true,
+            "text": "FR-8.2: Lock denied message with owner info"
+          }
+        ],
+        "description": "Agent registry in SQLite with optimistic locking. Lock TTL auto-release on disconnect. Phase 7 per implementation order.",
+        "implementationNotes": "Implemented in internal/storage/agent_registry_store.go (AgentRegistryStore with SQLite) + internal/mcp/agent_registry.go. Agent registry tracks active sessions with heartbeat/TTL, task locking with conflict detection, auto-release on disconnect. Store.Agents field added to Store struct. Lock denied returns owner info.",
+        "labels": [
+          "from-spec"
+        ],
+        "priority": "medium",
+        "status": "todo",
+        "title": "FR-8: Multi-Agent Awareness"
+      }
+    },
+    {
+      "id": "v4",
+      "taskId": "c1brl7",
+      "version": 4,
+      "timestamp": "2026-04-27T16:02:50.292817Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "todo",
+          "newValue": "done"
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "text": "Agent registry table in SQLite",
+            "completed": true
+          },
+          {
+            "text": "Task locking with optimistic conflict detection",
+            "completed": true
+          },
+          {
+            "text": "Lock TTL auto-release on disconnect (default: 5min)",
+            "completed": true
+          },
+          {
+            "text": "Broadcast mechanism on task completion",
+            "completed": true
+          },
+          {
+            "text": "knowns status shows active sessions",
+            "completed": true
+          },
+          {
+            "text": "FR-8.2: Lock denied message with owner info",
+            "completed": true
+          }
+        ],
+        "description": "Agent registry in SQLite with optimistic locking. Lock TTL auto-release on disconnect. Phase 7 per implementation order.",
+        "implementationNotes": "Implemented in internal/storage/agent_registry_store.go (AgentRegistryStore with SQLite) + internal/mcp/agent_registry.go. Agent registry tracks active sessions with heartbeat/TTL, task locking with conflict detection, auto-release on disconnect. Store.Agents field added to Store struct. Lock denied returns owner info.",
+        "labels": [
+          "from-spec"
+        ],
+        "priority": "medium",
+        "status": "done",
+        "title": "FR-8: Multi-Agent Awareness"
+      }
+    }
+  ]
+}

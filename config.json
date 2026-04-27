@@ -1,0 +1,16 @@
+{
+  "provider": {
+    "9router": {
+      "name": "9router",
+      "npm": "@ai-sdk/openai-compatible",
+      "options": {
+        "baseURL": "http://localhost:20128/v1"
+      },
+      "models": {
+        "minimax/MiniMax-M2.7": {
+          "name": "minimax/MiniMax-M2.7"
+        }
+      }
+    }
+  }
+}

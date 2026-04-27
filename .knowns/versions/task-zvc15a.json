@@ -1,0 +1,204 @@
+{
+  "taskId": "zvc15a",
+  "currentVersion": 4,
+  "versions": [
+    {
+      "id": "v1",
+      "taskId": "zvc15a",
+      "version": 1,
+      "timestamp": "2026-04-27T14:46:31.262743Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": null,
+          "newValue": "todo"
+        },
+        {
+          "field": "priority",
+          "oldValue": null,
+          "newValue": "high"
+        }
+      ],
+      "snapshot": {
+        "description": "Load relevant memories on session start (FR-1). Save/restore checkpoint on completion (FR-2). Checkpoints stored in Knowns SQLite. Phase 2 per implementation order.",
+        "labels": [
+          "from-spec"
+        ],
+        "priority": "high",
+        "status": "todo",
+        "title": "FR-1 + FR-2: Persistent Context Window + Smart Session Resume"
+      }
+    },
+    {
+      "id": "v2",
+      "taskId": "zvc15a",
+      "version": 2,
+      "timestamp": "2026-04-27T14:47:01.098372Z",
+      "changes": [
+        {
+          "field": "acceptanceCriteria",
+          "oldValue": null,
+          "newValue": [
+            {
+              "completed": false,
+              "text": "Add session_checkpoints table to SQLite store"
+            },
+            {
+              "completed": false,
+              "text": "FR-1: kn-init loads top N memories on startup"
+            },
+            {
+              "completed": false,
+              "text": "FR-2: checkpoint saved after each task completion"
+            },
+            {
+              "completed": false,
+              "text": "FR-2: checkpoint restored on session start (TTL: 24h)"
+            },
+            {
+              "completed": false,
+              "text": "FR-2: Apply checkpoint on MCP session start"
+            },
+            {
+              "completed": false,
+              "text": "Tests for context window + resume"
+            }
+          ]
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "Add session_checkpoints table to SQLite store"
+          },
+          {
+            "completed": false,
+            "text": "FR-1: kn-init loads top N memories on startup"
+          },
+          {
+            "completed": false,
+            "text": "FR-2: checkpoint saved after each task completion"
+          },
+          {
+            "completed": false,
+            "text": "FR-2: checkpoint restored on session start (TTL: 24h)"
+          },
+          {
+            "completed": false,
+            "text": "FR-2: Apply checkpoint on MCP session start"
+          },
+          {
+            "completed": false,
+            "text": "Tests for context window + resume"
+          }
+        ],
+        "description": "Load relevant memories on session start (FR-1). Save/restore checkpoint on completion (FR-2). Checkpoints stored in Knowns SQLite. Phase 2 per implementation order.",
+        "labels": [
+          "from-spec"
+        ],
+        "priority": "high",
+        "status": "todo",
+        "title": "FR-1 + FR-2: Persistent Context Window + Smart Session Resume"
+      }
+    },
+    {
+      "id": "v3",
+      "taskId": "zvc15a",
+      "version": 3,
+      "timestamp": "2026-04-27T15:08:01.052821Z",
+      "changes": [
+        {
+          "field": "implementationNotes",
+          "oldValue": null,
+          "newValue": "Done: Created checkpoint_store.go (SessionCheckpointStore with atomic JSON writes, TTL-based expiry). Created session_hooks.go (afterCallTool hook saves checkpoint async). Wired into MCP server. Load checkpoint on start. Tests: 37 passed."
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "completed": true,
+            "text": "Add session_checkpoints table to SQLite store"
+          },
+          {
+            "completed": true,
+            "text": "FR-1: kn-init loads top N memories on startup"
+          },
+          {
+            "completed": true,
+            "text": "FR-2: checkpoint saved after each task completion"
+          },
+          {
+            "completed": true,
+            "text": "FR-2: checkpoint restored on session start (TTL: 24h)"
+          },
+          {
+            "completed": true,
+            "text": "FR-2: Apply checkpoint on MCP session start"
+          },
+          {
+            "completed": true,
+            "text": "Tests for context window + resume"
+          }
+        ],
+        "description": "Load relevant memories on session start (FR-1). Save/restore checkpoint on completion (FR-2). Checkpoints stored in Knowns SQLite. Phase 2 per implementation order.",
+        "implementationNotes": "Done: Created checkpoint_store.go (SessionCheckpointStore with atomic JSON writes, TTL-based expiry). Created session_hooks.go (afterCallTool hook saves checkpoint async). Wired into MCP server. Load checkpoint on start. Tests: 37 passed.",
+        "labels": [
+          "from-spec"
+        ],
+        "priority": "high",
+        "status": "todo",
+        "title": "FR-1 + FR-2: Persistent Context Window + Smart Session Resume"
+      }
+    },
+    {
+      "id": "v4",
+      "taskId": "zvc15a",
+      "version": 4,
+      "timestamp": "2026-04-27T15:08:01.06801Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "todo",
+          "newValue": "done"
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "text": "Add session_checkpoints table to SQLite store",
+            "completed": true
+          },
+          {
+            "text": "FR-1: kn-init loads top N memories on startup",
+            "completed": true
+          },
+          {
+            "text": "FR-2: checkpoint saved after each task completion",
+            "completed": true
+          },
+          {
+            "text": "FR-2: checkpoint restored on session start (TTL: 24h)",
+            "completed": true
+          },
+          {
+            "text": "FR-2: Apply checkpoint on MCP session start",
+            "completed": true
+          },
+          {
+            "text": "Tests for context window + resume",
+            "completed": true
+          }
+        ],
+        "description": "Load relevant memories on session start (FR-1). Save/restore checkpoint on completion (FR-2). Checkpoints stored in Knowns SQLite. Phase 2 per implementation order.",
+        "implementationNotes": "Done: Created checkpoint_store.go (SessionCheckpointStore with atomic JSON writes, TTL-based expiry). Created session_hooks.go (afterCallTool hook saves checkpoint async). Wired into MCP server. Load checkpoint on start. Tests: 37 passed.",
+        "labels": [
+          "from-spec"
+        ],
+        "priority": "high",
+        "status": "done",
+        "title": "FR-1 + FR-2: Persistent Context Window + Smart Session Resume"
+      }
+    }
+  ]
+}

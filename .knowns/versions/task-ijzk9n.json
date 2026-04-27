@@ -1,0 +1,204 @@
+{
+  "taskId": "ijzk9n",
+  "currentVersion": 4,
+  "versions": [
+    {
+      "id": "v1",
+      "taskId": "ijzk9n",
+      "version": 1,
+      "timestamp": "2026-04-27T14:46:31.254604Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": null,
+          "newValue": "todo"
+        },
+        {
+          "field": "priority",
+          "oldValue": null,
+          "newValue": "high"
+        }
+      ],
+      "snapshot": {
+        "description": "Hook validation into task/doc/memory create/update. Non-blocking with 5-min TTL cache. Phase 1 per implementation order.",
+        "labels": [
+          "from-spec"
+        ],
+        "priority": "high",
+        "status": "todo",
+        "title": "FR-4: Contextual Auto-Validation"
+      }
+    },
+    {
+      "id": "v2",
+      "taskId": "ijzk9n",
+      "version": 2,
+      "timestamp": "2026-04-27T14:47:01.093885Z",
+      "changes": [
+        {
+          "field": "acceptanceCriteria",
+          "oldValue": null,
+          "newValue": [
+            {
+              "completed": false,
+              "text": "Create validation hook middleware for MCP write operations"
+            },
+            {
+              "completed": false,
+              "text": "Add 5-min TTL cache for validation results"
+            },
+            {
+              "completed": false,
+              "text": "Integrate with existing validate package"
+            },
+            {
+              "completed": false,
+              "text": "Non-blocking async execution"
+            },
+            {
+              "completed": false,
+              "text": "Tests for validation hook"
+            },
+            {
+              "completed": false,
+              "text": "NFR-1: \u003c 50ms latency"
+            }
+          ]
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "Create validation hook middleware for MCP write operations"
+          },
+          {
+            "completed": false,
+            "text": "Add 5-min TTL cache for validation results"
+          },
+          {
+            "completed": false,
+            "text": "Integrate with existing validate package"
+          },
+          {
+            "completed": false,
+            "text": "Non-blocking async execution"
+          },
+          {
+            "completed": false,
+            "text": "Tests for validation hook"
+          },
+          {
+            "completed": false,
+            "text": "NFR-1: \u003c 50ms latency"
+          }
+        ],
+        "description": "Hook validation into task/doc/memory create/update. Non-blocking with 5-min TTL cache. Phase 1 per implementation order.",
+        "labels": [
+          "from-spec"
+        ],
+        "priority": "high",
+        "status": "todo",
+        "title": "FR-4: Contextual Auto-Validation"
+      }
+    },
+    {
+      "id": "v3",
+      "taskId": "ijzk9n",
+      "version": 3,
+      "timestamp": "2026-04-27T15:00:33.008047Z",
+      "changes": [
+        {
+          "field": "implementationNotes",
+          "oldValue": null,
+          "newValue": "Done: Created auto_validation.go with beforeCallTool hook (non-blocking async, 5-min TTL cache). Wired into MCP server via WithHooks. Config checked at call time (no blocking). Tests: 11 passed in mcp package.\""
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "completed": true,
+            "text": "Create validation hook middleware for MCP write operations"
+          },
+          {
+            "completed": true,
+            "text": "Add 5-min TTL cache for validation results"
+          },
+          {
+            "completed": true,
+            "text": "Integrate with existing validate package"
+          },
+          {
+            "completed": true,
+            "text": "Non-blocking async execution"
+          },
+          {
+            "completed": true,
+            "text": "Tests for validation hook"
+          },
+          {
+            "completed": true,
+            "text": "NFR-1: \u003c 50ms latency"
+          }
+        ],
+        "description": "Hook validation into task/doc/memory create/update. Non-blocking with 5-min TTL cache. Phase 1 per implementation order.",
+        "implementationNotes": "Done: Created auto_validation.go with beforeCallTool hook (non-blocking async, 5-min TTL cache). Wired into MCP server via WithHooks. Config checked at call time (no blocking). Tests: 11 passed in mcp package.\"",
+        "labels": [
+          "from-spec"
+        ],
+        "priority": "high",
+        "status": "todo",
+        "title": "FR-4: Contextual Auto-Validation"
+      }
+    },
+    {
+      "id": "v4",
+      "taskId": "ijzk9n",
+      "version": 4,
+      "timestamp": "2026-04-27T15:00:33.013428Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "todo",
+          "newValue": "done"
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "text": "Create validation hook middleware for MCP write operations",
+            "completed": true
+          },
+          {
+            "text": "Add 5-min TTL cache for validation results",
+            "completed": true
+          },
+          {
+            "text": "Integrate with existing validate package",
+            "completed": true
+          },
+          {
+            "text": "Non-blocking async execution",
+            "completed": true
+          },
+          {
+            "text": "Tests for validation hook",
+            "completed": true
+          },
+          {
+            "text": "NFR-1: \u003c 50ms latency",
+            "completed": true
+          }
+        ],
+        "description": "Hook validation into task/doc/memory create/update. Non-blocking with 5-min TTL cache. Phase 1 per implementation order.",
+        "implementationNotes": "Done: Created auto_validation.go with beforeCallTool hook (non-blocking async, 5-min TTL cache). Wired into MCP server via WithHooks. Config checked at call time (no blocking). Tests: 11 passed in mcp package.\"",
+        "labels": [
+          "from-spec"
+        ],
+        "priority": "high",
+        "status": "done",
+        "title": "FR-4: Contextual Auto-Validation"
+      }
+    }
+  ]
+}

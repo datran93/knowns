@@ -1,0 +1,204 @@
+{
+  "taskId": "7vqhyh",
+  "currentVersion": 4,
+  "versions": [
+    {
+      "id": "v1",
+      "taskId": "7vqhyh",
+      "version": 1,
+      "timestamp": "2026-04-27T14:46:31.270571Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": null,
+          "newValue": "todo"
+        },
+        {
+          "field": "priority",
+          "oldValue": null,
+          "newValue": "medium"
+        }
+      ],
+      "snapshot": {
+        "description": "Route queries to FTS5 vs ONNX backend. Keyword queries bypass embedding for less than 100ms latency. Phase 4 per implementation order.",
+        "labels": [
+          "from-spec"
+        ],
+        "priority": "medium",
+        "status": "todo",
+        "title": "FR-5: Embedding Model Router"
+      }
+    },
+    {
+      "id": "v2",
+      "taskId": "7vqhyh",
+      "version": 2,
+      "timestamp": "2026-04-27T14:47:01.106655Z",
+      "changes": [
+        {
+          "field": "acceptanceCriteria",
+          "oldValue": null,
+          "newValue": [
+            {
+              "completed": false,
+              "text": "Query classifier: keyword-only vs semantic vs hybrid"
+            },
+            {
+              "completed": false,
+              "text": "FTS5 fast path for keyword-only queries (\u003c 100ms)"
+            },
+            {
+              "completed": false,
+              "text": "ONNX semantic routing for semantic queries"
+            },
+            {
+              "completed": false,
+              "text": "Fallback to FTS5 if embedding fails"
+            },
+            {
+              "completed": false,
+              "text": "Configurable routing rules in agentEfficiency.modelRouter"
+            },
+            {
+              "completed": false,
+              "text": "Metrics: track routing effectiveness"
+            }
+          ]
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "Query classifier: keyword-only vs semantic vs hybrid"
+          },
+          {
+            "completed": false,
+            "text": "FTS5 fast path for keyword-only queries (\u003c 100ms)"
+          },
+          {
+            "completed": false,
+            "text": "ONNX semantic routing for semantic queries"
+          },
+          {
+            "completed": false,
+            "text": "Fallback to FTS5 if embedding fails"
+          },
+          {
+            "completed": false,
+            "text": "Configurable routing rules in agentEfficiency.modelRouter"
+          },
+          {
+            "completed": false,
+            "text": "Metrics: track routing effectiveness"
+          }
+        ],
+        "description": "Route queries to FTS5 vs ONNX backend. Keyword queries bypass embedding for less than 100ms latency. Phase 4 per implementation order.",
+        "labels": [
+          "from-spec"
+        ],
+        "priority": "medium",
+        "status": "todo",
+        "title": "FR-5: Embedding Model Router"
+      }
+    },
+    {
+      "id": "v3",
+      "taskId": "7vqhyh",
+      "version": 3,
+      "timestamp": "2026-04-27T15:54:04.822276Z",
+      "changes": [
+        {
+          "field": "implementationNotes",
+          "oldValue": null,
+          "newValue": "Done: router.go + query_classifier.go already existed. search handler (line 131-156) integrates router via shouldUseModelRouter(). FTS5 fast path, ONNX semantic, fallback, metrics all implemented. Tests pass."
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "completed": true,
+            "text": "Query classifier: keyword-only vs semantic vs hybrid"
+          },
+          {
+            "completed": true,
+            "text": "FTS5 fast path for keyword-only queries (\u003c 100ms)"
+          },
+          {
+            "completed": true,
+            "text": "ONNX semantic routing for semantic queries"
+          },
+          {
+            "completed": true,
+            "text": "Fallback to FTS5 if embedding fails"
+          },
+          {
+            "completed": true,
+            "text": "Configurable routing rules in agentEfficiency.modelRouter"
+          },
+          {
+            "completed": true,
+            "text": "Metrics: track routing effectiveness"
+          }
+        ],
+        "description": "Route queries to FTS5 vs ONNX backend. Keyword queries bypass embedding for less than 100ms latency. Phase 4 per implementation order.",
+        "implementationNotes": "Done: router.go + query_classifier.go already existed. search handler (line 131-156) integrates router via shouldUseModelRouter(). FTS5 fast path, ONNX semantic, fallback, metrics all implemented. Tests pass.",
+        "labels": [
+          "from-spec"
+        ],
+        "priority": "medium",
+        "status": "todo",
+        "title": "FR-5: Embedding Model Router"
+      }
+    },
+    {
+      "id": "v4",
+      "taskId": "7vqhyh",
+      "version": 4,
+      "timestamp": "2026-04-27T15:54:04.827637Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "todo",
+          "newValue": "done"
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "text": "Query classifier: keyword-only vs semantic vs hybrid",
+            "completed": true
+          },
+          {
+            "text": "FTS5 fast path for keyword-only queries (\u003c 100ms)",
+            "completed": true
+          },
+          {
+            "text": "ONNX semantic routing for semantic queries",
+            "completed": true
+          },
+          {
+            "text": "Fallback to FTS5 if embedding fails",
+            "completed": true
+          },
+          {
+            "text": "Configurable routing rules in agentEfficiency.modelRouter",
+            "completed": true
+          },
+          {
+            "text": "Metrics: track routing effectiveness",
+            "completed": true
+          }
+        ],
+        "description": "Route queries to FTS5 vs ONNX backend. Keyword queries bypass embedding for less than 100ms latency. Phase 4 per implementation order.",
+        "implementationNotes": "Done: router.go + query_classifier.go already existed. search handler (line 131-156) integrates router via shouldUseModelRouter(). FTS5 fast path, ONNX semantic, fallback, metrics all implemented. Tests pass.",
+        "labels": [
+          "from-spec"
+        ],
+        "priority": "medium",
+        "status": "done",
+        "title": "FR-5: Embedding Model Router"
+      }
+    }
+  ]
+}

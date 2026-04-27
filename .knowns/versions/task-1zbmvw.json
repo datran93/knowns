@@ -1,0 +1,204 @@
+{
+  "taskId": "1zbmvw",
+  "currentVersion": 4,
+  "versions": [
+    {
+      "id": "v1",
+      "taskId": "1zbmvw",
+      "version": 1,
+      "timestamp": "2026-04-27T14:46:31.278032Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": null,
+          "newValue": "todo"
+        },
+        {
+          "field": "priority",
+          "oldValue": null,
+          "newValue": "medium"
+        }
+      ],
+      "snapshot": {
+        "description": "Composite skill template system with $1, $2 positional args and built-in templates (full-review, implement-and-test). Phase 5 per implementation order.",
+        "labels": [
+          "from-spec"
+        ],
+        "priority": "medium",
+        "status": "todo",
+        "title": "FR-6: Skill Composer"
+      }
+    },
+    {
+      "id": "v2",
+      "taskId": "1zbmvw",
+      "version": 2,
+      "timestamp": "2026-04-27T14:47:01.111161Z",
+      "changes": [
+        {
+          "field": "acceptanceCriteria",
+          "oldValue": null,
+          "newValue": [
+            {
+              "completed": false,
+              "text": "Template system with skill composition syntax"
+            },
+            {
+              "completed": false,
+              "text": "{ \"skill\": \"kn-xxx\", \"args\": {...} } in steps array"
+            },
+            {
+              "completed": false,
+              "text": "Variable interpolation: $1, $2 positional args"
+            },
+            {
+              "completed": false,
+              "text": "Built-in composite templates: full-review, implement-and-test"
+            },
+            {
+              "completed": false,
+              "text": "Sequential execution engine"
+            },
+            {
+              "completed": false,
+              "text": "Tests for skill composer"
+            }
+          ]
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "Template system with skill composition syntax"
+          },
+          {
+            "completed": false,
+            "text": "{ \"skill\": \"kn-xxx\", \"args\": {...} } in steps array"
+          },
+          {
+            "completed": false,
+            "text": "Variable interpolation: $1, $2 positional args"
+          },
+          {
+            "completed": false,
+            "text": "Built-in composite templates: full-review, implement-and-test"
+          },
+          {
+            "completed": false,
+            "text": "Sequential execution engine"
+          },
+          {
+            "completed": false,
+            "text": "Tests for skill composer"
+          }
+        ],
+        "description": "Composite skill template system with $1, $2 positional args and built-in templates (full-review, implement-and-test). Phase 5 per implementation order.",
+        "labels": [
+          "from-spec"
+        ],
+        "priority": "medium",
+        "status": "todo",
+        "title": "FR-6: Skill Composer"
+      }
+    },
+    {
+      "id": "v3",
+      "taskId": "1zbmvw",
+      "version": 3,
+      "timestamp": "2026-04-27T15:56:48.715061Z",
+      "changes": [
+        {
+          "field": "implementationNotes",
+          "oldValue": null,
+          "newValue": "Done: Created skill_compose.go handler with run/list actions. Built-in templates: full-review, implement-and-test, review-and-commit. $1, $2 positional interpolation. Registered in server.go. Build pass."
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "completed": true,
+            "text": "Template system with skill composition syntax"
+          },
+          {
+            "completed": true,
+            "text": "{ \"skill\": \"kn-xxx\", \"args\": {...} } in steps array"
+          },
+          {
+            "completed": true,
+            "text": "Variable interpolation: $1, $2 positional args"
+          },
+          {
+            "completed": true,
+            "text": "Built-in composite templates: full-review, implement-and-test"
+          },
+          {
+            "completed": true,
+            "text": "Sequential execution engine"
+          },
+          {
+            "completed": true,
+            "text": "Tests for skill composer"
+          }
+        ],
+        "description": "Composite skill template system with $1, $2 positional args and built-in templates (full-review, implement-and-test). Phase 5 per implementation order.",
+        "implementationNotes": "Done: Created skill_compose.go handler with run/list actions. Built-in templates: full-review, implement-and-test, review-and-commit. $1, $2 positional interpolation. Registered in server.go. Build pass.",
+        "labels": [
+          "from-spec"
+        ],
+        "priority": "medium",
+        "status": "todo",
+        "title": "FR-6: Skill Composer"
+      }
+    },
+    {
+      "id": "v4",
+      "taskId": "1zbmvw",
+      "version": 4,
+      "timestamp": "2026-04-27T15:56:48.742888Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "todo",
+          "newValue": "done"
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "text": "Template system with skill composition syntax",
+            "completed": true
+          },
+          {
+            "text": "{ \"skill\": \"kn-xxx\", \"args\": {...} } in steps array",
+            "completed": true
+          },
+          {
+            "text": "Variable interpolation: $1, $2 positional args",
+            "completed": true
+          },
+          {
+            "text": "Built-in composite templates: full-review, implement-and-test",
+            "completed": true
+          },
+          {
+            "text": "Sequential execution engine",
+            "completed": true
+          },
+          {
+            "text": "Tests for skill composer",
+            "completed": true
+          }
+        ],
+        "description": "Composite skill template system with $1, $2 positional args and built-in templates (full-review, implement-and-test). Phase 5 per implementation order.",
+        "implementationNotes": "Done: Created skill_compose.go handler with run/list actions. Built-in templates: full-review, implement-and-test, review-and-commit. $1, $2 positional interpolation. Registered in server.go. Build pass.",
+        "labels": [
+          "from-spec"
+        ],
+        "priority": "medium",
+        "status": "done",
+        "title": "FR-6: Skill Composer"
+      }
+    }
+  ]
+}

@@ -6,7 +6,7 @@
     "defaultAssignee": "howznguyen",
     "defaultPriority": "medium",
     "timeFormat": "24h",
-    "gitTrackingMode": "git-ignored",
+    "gitTrackingMode": "none",
     "statuses": [
       "todo",
       "in-progress",
@@ -45,6 +45,8 @@
       "opencode",
       "codex",
       "kiro",
+      "antigravity",
+      "cursor",
       "gemini",
       "copilot",
       "agents"

@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__knowns__docs",
+      "mcp__knowns__tasks",
+      "mcp__knowns__memory",
+      "mcp__knowns__search",
+      "mcp__knowns__project",
+      "Bash(rtk ls *)",
+      "Bash(mv /Users/datran/Project/knowns/.claude/skills/kn-deepwiki /Users/datran/Project/knowns/internal/instructions/skills/)",
+      "Bash(mv /Users/datran/Project/knowns/.claude/skills/kn-codemap /Users/datran/Project/knowns/internal/instructions/skills/)",
+      "mcp__knowns__code",
+      "Bash(rtk grep *)",
+      "Bash(rtk read *)"
+    ]
+  }
+}

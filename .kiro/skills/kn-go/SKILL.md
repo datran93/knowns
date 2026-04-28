@@ -22,6 +22,7 @@ Run the entire SDD pipeline from an approved spec: generate tasks → plan each 
 - Spec is still draft — redirect to `/kn-spec` first
 - User wants to review each task individually — use `/kn-plan <id>` + `/kn-implement <id>`
 - Spec has unresolved open questions — resolve them first
+- Spec lacks an approved design and user wants to review design before planning — use `/kn-design <spec-path>` first
 
 ## Inputs
 
@@ -31,6 +32,30 @@ Run the entire SDD pipeline from an approved spec: generate tasks → plan each 
 ## Process
 
 Complete these phases in order. Do not skip phases.
+
+---
+
+### Phase 0.5: Design Check (auto-invoke kn-design if needed)
+
+Before generating tasks, check if design document exists:
+
+```
+Checking for existing design at designs/<spec-name>.md...
+```
+
+**If design exists:**
+```
+Design found at designs/<spec-name>.md. Skipping design generation.
+```
+→ Skip to Phase 1
+
+**If design doesn't exist:**
+```
+No design found. Invoking /kn-design specs/<name>...
+```
+→ Auto-invoke `/kn-design specs/<name>` to generate design first
+→ Wait for design to complete
+→ Then proceed to Phase 1
 
 ---
 

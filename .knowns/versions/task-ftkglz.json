@@ -1,0 +1,222 @@
+{
+  "taskId": "ftkglz",
+  "currentVersion": 5,
+  "versions": [
+    {
+      "id": "v1",
+      "taskId": "ftkglz",
+      "version": 1,
+      "timestamp": "2026-04-28T16:51:24.659165Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": null,
+          "newValue": "todo"
+        },
+        {
+          "field": "priority",
+          "oldValue": null,
+          "newValue": "medium"
+        }
+      ],
+      "snapshot": {
+        "description": "Modify kn-go skill to auto-invoke kn-design when design doesn't exist.\n\nRequirements:\n- FR-5: kn-go auto-invokes kn-design if design doesn't exist\n- FR-6: kn-go skips design step if design already exists\n\nCheck designs/\u003cspec-name\u003e.md existence before invoking kn-design.",
+        "labels": [
+          "from-spec",
+          "go-mode",
+          "skill"
+        ],
+        "priority": "medium",
+        "status": "todo",
+        "title": "Integrate kn-design into kn-go"
+      }
+    },
+    {
+      "id": "v2",
+      "taskId": "ftkglz",
+      "version": 2,
+      "timestamp": "2026-04-28T16:51:33.558171Z",
+      "changes": [
+        {
+          "field": "acceptanceCriteria",
+          "oldValue": null,
+          "newValue": [
+            {
+              "completed": false,
+              "text": "1. Read current kn-go skill.md"
+            },
+            {
+              "completed": false,
+              "text": "2. Add design check in Phase 1: if designs/\u003cspec-name\u003e.md doesn't exist, invoke kn-design"
+            },
+            {
+              "completed": false,
+              "text": "3. Document the auto-invoke behavior in kn-go process"
+            },
+            {
+              "completed": false,
+              "text": "4. Add Phase 0.5 for design phase"
+            }
+          ]
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "1. Read current kn-go skill.md"
+          },
+          {
+            "completed": false,
+            "text": "2. Add design check in Phase 1: if designs/\u003cspec-name\u003e.md doesn't exist, invoke kn-design"
+          },
+          {
+            "completed": false,
+            "text": "3. Document the auto-invoke behavior in kn-go process"
+          },
+          {
+            "completed": false,
+            "text": "4. Add Phase 0.5 for design phase"
+          }
+        ],
+        "description": "Modify kn-go skill to auto-invoke kn-design when design doesn't exist.\n\nRequirements:\n- FR-5: kn-go auto-invokes kn-design if design doesn't exist\n- FR-6: kn-go skips design step if design already exists\n\nCheck designs/\u003cspec-name\u003e.md existence before invoking kn-design.",
+        "labels": [
+          "from-spec",
+          "go-mode",
+          "skill"
+        ],
+        "priority": "medium",
+        "status": "todo",
+        "title": "Integrate kn-design into kn-go"
+      }
+    },
+    {
+      "id": "v3",
+      "taskId": "ftkglz",
+      "version": 3,
+      "timestamp": "2026-04-28T16:52:54.693598Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "todo",
+          "newValue": "in-progress"
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "1. Read current kn-go skill.md"
+          },
+          {
+            "completed": false,
+            "text": "2. Add design check in Phase 1: if designs/\u003cspec-name\u003e.md doesn't exist, invoke kn-design"
+          },
+          {
+            "completed": false,
+            "text": "3. Document the auto-invoke behavior in kn-go process"
+          },
+          {
+            "completed": false,
+            "text": "4. Add Phase 0.5 for design phase"
+          }
+        ],
+        "description": "Modify kn-go skill to auto-invoke kn-design when design doesn't exist.\n\nRequirements:\n- FR-5: kn-go auto-invokes kn-design if design doesn't exist\n- FR-6: kn-go skips design step if design already exists\n\nCheck designs/\u003cspec-name\u003e.md existence before invoking kn-design.",
+        "labels": [
+          "from-spec",
+          "go-mode",
+          "skill"
+        ],
+        "priority": "medium",
+        "status": "in-progress",
+        "title": "Integrate kn-design into kn-go"
+      }
+    },
+    {
+      "id": "v4",
+      "taskId": "ftkglz",
+      "version": 4,
+      "timestamp": "2026-04-28T16:53:25.764144Z",
+      "changes": [
+        {
+          "field": "implementationNotes",
+          "oldValue": null,
+          "newValue": "Updated kn-go skill.md:\n- Added \"When NOT to Use\" case for design review before planning\n- Added Phase 0.5: Design Check before Phase 1\n- Design check checks designs/\u003cspec-name\u003e.md existence\n- If design doesn't exist, auto-invokes /kn-design specs/\u003cname\u003e\n- If design exists, skips design generation"
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "completed": true,
+            "text": "1. Read current kn-go skill.md"
+          },
+          {
+            "completed": true,
+            "text": "2. Add design check in Phase 1: if designs/\u003cspec-name\u003e.md doesn't exist, invoke kn-design"
+          },
+          {
+            "completed": true,
+            "text": "3. Document the auto-invoke behavior in kn-go process"
+          },
+          {
+            "completed": true,
+            "text": "4. Add Phase 0.5 for design phase"
+          }
+        ],
+        "description": "Modify kn-go skill to auto-invoke kn-design when design doesn't exist.\n\nRequirements:\n- FR-5: kn-go auto-invokes kn-design if design doesn't exist\n- FR-6: kn-go skips design step if design already exists\n\nCheck designs/\u003cspec-name\u003e.md existence before invoking kn-design.",
+        "implementationNotes": "Updated kn-go skill.md:\n- Added \"When NOT to Use\" case for design review before planning\n- Added Phase 0.5: Design Check before Phase 1\n- Design check checks designs/\u003cspec-name\u003e.md existence\n- If design doesn't exist, auto-invokes /kn-design specs/\u003cname\u003e\n- If design exists, skips design generation",
+        "labels": [
+          "from-spec",
+          "go-mode",
+          "skill"
+        ],
+        "priority": "medium",
+        "status": "in-progress",
+        "title": "Integrate kn-design into kn-go"
+      }
+    },
+    {
+      "id": "v5",
+      "taskId": "ftkglz",
+      "version": 5,
+      "timestamp": "2026-04-28T16:53:31.273813Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "in-progress",
+          "newValue": "done"
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "text": "1. Read current kn-go skill.md",
+            "completed": true
+          },
+          {
+            "text": "2. Add design check in Phase 1: if designs/\u003cspec-name\u003e.md doesn't exist, invoke kn-design",
+            "completed": true
+          },
+          {
+            "text": "3. Document the auto-invoke behavior in kn-go process",
+            "completed": true
+          },
+          {
+            "text": "4. Add Phase 0.5 for design phase",
+            "completed": true
+          }
+        ],
+        "description": "Modify kn-go skill to auto-invoke kn-design when design doesn't exist.\n\nRequirements:\n- FR-5: kn-go auto-invokes kn-design if design doesn't exist\n- FR-6: kn-go skips design step if design already exists\n\nCheck designs/\u003cspec-name\u003e.md existence before invoking kn-design.",
+        "implementationNotes": "Updated kn-go skill.md:\n- Added \"When NOT to Use\" case for design review before planning\n- Added Phase 0.5: Design Check before Phase 1\n- Design check checks designs/\u003cspec-name\u003e.md existence\n- If design doesn't exist, auto-invokes /kn-design specs/\u003cname\u003e\n- If design exists, skips design generation",
+        "labels": [
+          "from-spec",
+          "go-mode",
+          "skill"
+        ],
+        "priority": "medium",
+        "status": "done",
+        "title": "Integrate kn-design into kn-go"
+      }
+    }
+  ]
+}

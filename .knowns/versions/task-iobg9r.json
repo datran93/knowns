@@ -1,0 +1,242 @@
+{
+  "taskId": "iobg9r",
+  "currentVersion": 5,
+  "versions": [
+    {
+      "id": "v1",
+      "taskId": "iobg9r",
+      "version": 1,
+      "timestamp": "2026-04-28T16:51:15.725429Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": null,
+          "newValue": "todo"
+        },
+        {
+          "field": "priority",
+          "oldValue": null,
+          "newValue": "medium"
+        }
+      ],
+      "snapshot": {
+        "description": "Create the kn-design skill file at /Users/datran/Project/knowns/internal/instructions/skills/kn-design/skill.md\n\nRequirements:\n- FR-1: Design doc generation with Architecture Decisions, Component Breakdown, Data Flow sections\n- FR-2: Codebase context awareness (scans existing patterns, checks architecture docs)\n- FR-3: Interactive review (show draft, user requests changes, save on approval)\n- FR-4: Standalone invocation via /kn-design specs/\u003cname\u003e\n\nDesign doc output: designs/\u003cspec-name\u003e.md",
+        "labels": [
+          "from-spec",
+          "go-mode",
+          "skill"
+        ],
+        "priority": "medium",
+        "status": "todo",
+        "title": "Create kn-design skill file"
+      }
+    },
+    {
+      "id": "v2",
+      "taskId": "iobg9r",
+      "version": 2,
+      "timestamp": "2026-04-28T16:51:33.136969Z",
+      "changes": [
+        {
+          "field": "acceptanceCriteria",
+          "oldValue": null,
+          "newValue": [
+            {
+              "completed": false,
+              "text": "1. Read existing skill patterns (kn-plan, kn-spec) for structure reference"
+            },
+            {
+              "completed": false,
+              "text": "2. Create directory: internal/instructions/skills/kn-design/"
+            },
+            {
+              "completed": false,
+              "text": "3. Write skill.md with: FR-1 (Architecture Decisions, Component Breakdown, Data Flow sections), FR-2 (codebase context awareness), FR-3 (interactive review loop)"
+            },
+            {
+              "completed": false,
+              "text": "4. Add frontmatter: name, description fields"
+            },
+            {
+              "completed": false,
+              "text": "5. Add skill to skills directory listing"
+            }
+          ]
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "1. Read existing skill patterns (kn-plan, kn-spec) for structure reference"
+          },
+          {
+            "completed": false,
+            "text": "2. Create directory: internal/instructions/skills/kn-design/"
+          },
+          {
+            "completed": false,
+            "text": "3. Write skill.md with: FR-1 (Architecture Decisions, Component Breakdown, Data Flow sections), FR-2 (codebase context awareness), FR-3 (interactive review loop)"
+          },
+          {
+            "completed": false,
+            "text": "4. Add frontmatter: name, description fields"
+          },
+          {
+            "completed": false,
+            "text": "5. Add skill to skills directory listing"
+          }
+        ],
+        "description": "Create the kn-design skill file at /Users/datran/Project/knowns/internal/instructions/skills/kn-design/skill.md\n\nRequirements:\n- FR-1: Design doc generation with Architecture Decisions, Component Breakdown, Data Flow sections\n- FR-2: Codebase context awareness (scans existing patterns, checks architecture docs)\n- FR-3: Interactive review (show draft, user requests changes, save on approval)\n- FR-4: Standalone invocation via /kn-design specs/\u003cname\u003e\n\nDesign doc output: designs/\u003cspec-name\u003e.md",
+        "labels": [
+          "from-spec",
+          "go-mode",
+          "skill"
+        ],
+        "priority": "medium",
+        "status": "todo",
+        "title": "Create kn-design skill file"
+      }
+    },
+    {
+      "id": "v3",
+      "taskId": "iobg9r",
+      "version": 3,
+      "timestamp": "2026-04-28T16:51:44.762633Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "todo",
+          "newValue": "in-progress"
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "1. Read existing skill patterns (kn-plan, kn-spec) for structure reference"
+          },
+          {
+            "completed": false,
+            "text": "2. Create directory: internal/instructions/skills/kn-design/"
+          },
+          {
+            "completed": false,
+            "text": "3. Write skill.md with: FR-1 (Architecture Decisions, Component Breakdown, Data Flow sections), FR-2 (codebase context awareness), FR-3 (interactive review loop)"
+          },
+          {
+            "completed": false,
+            "text": "4. Add frontmatter: name, description fields"
+          },
+          {
+            "completed": false,
+            "text": "5. Add skill to skills directory listing"
+          }
+        ],
+        "description": "Create the kn-design skill file at /Users/datran/Project/knowns/internal/instructions/skills/kn-design/skill.md\n\nRequirements:\n- FR-1: Design doc generation with Architecture Decisions, Component Breakdown, Data Flow sections\n- FR-2: Codebase context awareness (scans existing patterns, checks architecture docs)\n- FR-3: Interactive review (show draft, user requests changes, save on approval)\n- FR-4: Standalone invocation via /kn-design specs/\u003cname\u003e\n\nDesign doc output: designs/\u003cspec-name\u003e.md",
+        "labels": [
+          "from-spec",
+          "go-mode",
+          "skill"
+        ],
+        "priority": "medium",
+        "status": "in-progress",
+        "title": "Create kn-design skill file"
+      }
+    },
+    {
+      "id": "v4",
+      "taskId": "iobg9r",
+      "version": 4,
+      "timestamp": "2026-04-28T16:52:46.021444Z",
+      "changes": [
+        {
+          "field": "implementationNotes",
+          "oldValue": null,
+          "newValue": "Created /Users/datran/Project/knowns/internal/instructions/skills/kn-design/skill.md with:\n- Frontmatter (name: kn-design, description)\n- Phase 1: Validate spec (approved check)\n- Phase 2: Gather codebase context (patterns, architecture docs)\n- Phase 3: Draft design (Architecture Decisions, Component Breakdown, Data Flow)\n- Phase 4: Interactive review (show draft, user feedback, iterate)\n- Phase 5: Save design document (designs/\u003cspec-name\u003e.md)\n- Phase 6: Report completion + suggest next steps\n- Integration section for kn-go auto-invoke"
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "completed": true,
+            "text": "1. Read existing skill patterns (kn-plan, kn-spec) for structure reference"
+          },
+          {
+            "completed": true,
+            "text": "2. Create directory: internal/instructions/skills/kn-design/"
+          },
+          {
+            "completed": true,
+            "text": "3. Write skill.md with: FR-1 (Architecture Decisions, Component Breakdown, Data Flow sections), FR-2 (codebase context awareness), FR-3 (interactive review loop)"
+          },
+          {
+            "completed": true,
+            "text": "4. Add frontmatter: name, description fields"
+          },
+          {
+            "completed": true,
+            "text": "5. Add skill to skills directory listing"
+          }
+        ],
+        "description": "Create the kn-design skill file at /Users/datran/Project/knowns/internal/instructions/skills/kn-design/skill.md\n\nRequirements:\n- FR-1: Design doc generation with Architecture Decisions, Component Breakdown, Data Flow sections\n- FR-2: Codebase context awareness (scans existing patterns, checks architecture docs)\n- FR-3: Interactive review (show draft, user requests changes, save on approval)\n- FR-4: Standalone invocation via /kn-design specs/\u003cname\u003e\n\nDesign doc output: designs/\u003cspec-name\u003e.md",
+        "implementationNotes": "Created /Users/datran/Project/knowns/internal/instructions/skills/kn-design/skill.md with:\n- Frontmatter (name: kn-design, description)\n- Phase 1: Validate spec (approved check)\n- Phase 2: Gather codebase context (patterns, architecture docs)\n- Phase 3: Draft design (Architecture Decisions, Component Breakdown, Data Flow)\n- Phase 4: Interactive review (show draft, user feedback, iterate)\n- Phase 5: Save design document (designs/\u003cspec-name\u003e.md)\n- Phase 6: Report completion + suggest next steps\n- Integration section for kn-go auto-invoke",
+        "labels": [
+          "from-spec",
+          "go-mode",
+          "skill"
+        ],
+        "priority": "medium",
+        "status": "in-progress",
+        "title": "Create kn-design skill file"
+      }
+    },
+    {
+      "id": "v5",
+      "taskId": "iobg9r",
+      "version": 5,
+      "timestamp": "2026-04-28T16:52:49.179965Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "in-progress",
+          "newValue": "done"
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "text": "1. Read existing skill patterns (kn-plan, kn-spec) for structure reference",
+            "completed": true
+          },
+          {
+            "text": "2. Create directory: internal/instructions/skills/kn-design/",
+            "completed": true
+          },
+          {
+            "text": "3. Write skill.md with: FR-1 (Architecture Decisions, Component Breakdown, Data Flow sections), FR-2 (codebase context awareness), FR-3 (interactive review loop)",
+            "completed": true
+          },
+          {
+            "text": "4. Add frontmatter: name, description fields",
+            "completed": true
+          },
+          {
+            "text": "5. Add skill to skills directory listing",
+            "completed": true
+          }
+        ],
+        "description": "Create the kn-design skill file at /Users/datran/Project/knowns/internal/instructions/skills/kn-design/skill.md\n\nRequirements:\n- FR-1: Design doc generation with Architecture Decisions, Component Breakdown, Data Flow sections\n- FR-2: Codebase context awareness (scans existing patterns, checks architecture docs)\n- FR-3: Interactive review (show draft, user requests changes, save on approval)\n- FR-4: Standalone invocation via /kn-design specs/\u003cname\u003e\n\nDesign doc output: designs/\u003cspec-name\u003e.md",
+        "implementationNotes": "Created /Users/datran/Project/knowns/internal/instructions/skills/kn-design/skill.md with:\n- Frontmatter (name: kn-design, description)\n- Phase 1: Validate spec (approved check)\n- Phase 2: Gather codebase context (patterns, architecture docs)\n- Phase 3: Draft design (Architecture Decisions, Component Breakdown, Data Flow)\n- Phase 4: Interactive review (show draft, user feedback, iterate)\n- Phase 5: Save design document (designs/\u003cspec-name\u003e.md)\n- Phase 6: Report completion + suggest next steps\n- Integration section for kn-go auto-invoke",
+        "labels": [
+          "from-spec",
+          "go-mode",
+          "skill"
+        ],
+        "priority": "medium",
+        "status": "done",
+        "title": "Create kn-design skill file"
+      }
+    }
+  ]
+}

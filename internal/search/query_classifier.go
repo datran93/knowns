@@ -81,20 +81,15 @@ func (qc *QueryClassifier) Classify(query string) QueryType {
 
 	fields := strings.Fields(trimmed)
 
-	// Rule 1: Check for FTS5 operators → keyword.
-	if hasOperators(trimmed) {
-		return QueryTypeKeyword
-	}
-
-	// Rule 2: Very short single token without spaces → keyword.
+	// Rule 1: Very short single token without spaces → keyword.
 	if len(fields) == 1 && !strings.Contains(trimmed, " ") {
 		if len(trimmed) <= 3 || isTechnical(trimmed) {
 			return QueryTypeKeyword
 		}
 	}
 
-	// Rule 3: Short query (≤3 words) that looks fully technical → keyword.
-	// Skip if query contains stopwords (let Rules 4/5/6 handle those).
+	// Rule 2: Short query (≤3 words) that looks fully technical → keyword.
+	// Skip if query contains stopwords (let Rules 3/4/5 handle those).
 	if len(fields) <= 3 {
 		technicalCount := 0
 		stopwordCount := 0
@@ -112,16 +107,25 @@ func (qc *QueryClassifier) Classify(query string) QueryType {
 		}
 	}
 
-	// Rule 4: Very high stopword ratio (>75%) → semantic.
+	// Rule 3: Very high stopword ratio (>75%) → semantic.
 	// Queries like "what is that" (100% stopwords) or "the foo" (50%) are natural language.
 	stopwordRatio := stopwordRatio(trimmed, fields)
 	if stopwordRatio > 0.75 {
 		return QueryTypeSemantic
 	}
 
-	// Rule 5: Long natural language phrase (≥7 words) → semantic.
+	// Rule 4: Long natural language phrase (≥7 words) → semantic.
+	// Check this before FTS5 operator check so that "and" as a conjunction
+	// in natural language queries doesn't incorrectly trigger keyword classification.
 	if len(fields) >= 7 {
 		return QueryTypeSemantic
+	}
+
+	// Rule 5: Check for FTS5 operators → keyword.
+	// Only reached for shorter queries where AND/OR/NOT are more likely
+	// to be intentional FTS5 operators rather than natural language conjunctions.
+	if hasOperators(trimmed) {
+		return QueryTypeKeyword
 	}
 
 	// Rule 6: Medium-length query (3-6 words) with at least one stopword → hybrid.

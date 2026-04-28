@@ -22,7 +22,7 @@ Post-implementation bug hunting and test writing. Run after `kn-implement` or `k
 - Task ID (optional).
 - Current implementation code.
 - Optional: `--autonomous` for full test run without approval gates.
-- Optional: `--coverage-min=N` to set minimum coverage threshold (default: 70).
+- Optional: `--coverage-min=N` to set minimum coverage threshold (default: 80).
 
 ## Step 1: Deep Code Analysis (Bug Hunting)
 
@@ -83,7 +83,7 @@ For each hypothesis:
 
 ## Step 4: Coverage Completion
 
-Only after adversarial tests are written. If overall coverage is below the configured threshold (default: 70%, adjustable via `--coverage-min=N`):
+Only after adversarial tests are written. If overall coverage is below the configured threshold (default: 80%, adjustable via `--coverage-min=N`):
 
 - Write tests for uncovered paths — thinking "what could go wrong", not just "what lines to hit".
 - High-stakes code (auth, payments, data): aim for 80-90%.
@@ -133,7 +133,7 @@ Use `--autonomous` (or if user explicitly asked for "test all without approval")
 The coverage minimum is configurable:
 - `--coverage-min=90` for high-stakes code (auth, payments, data)
 - `--coverage-min=50` for exploratory/prototype code
-- Default (when not specified): 70%
+- Default (when not specified): 80%
 
 ## Constraints
 

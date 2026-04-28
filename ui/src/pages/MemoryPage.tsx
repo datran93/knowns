@@ -112,12 +112,16 @@ export default function MemoryPage() {
 	const fetchEntries = useCallback(async () => {
 		try {
 			const layer = activeLayer === "all" ? undefined : activeLayer;
-			const [persistent, working] = await Promise.all([
+			const [persistentResult, workingResult] = await Promise.allSettled([
 				memoryApi.list(layer),
 				workingMemoryApi.list(),
 			]);
-			setPersistentEntries(persistent);
-			setWorkingEntries(working);
+			if (persistentResult.status === "fulfilled") {
+				setPersistentEntries(persistentResult.value);
+			}
+			if (workingResult.status === "fulfilled") {
+				setWorkingEntries(workingResult.value);
+			}
 		} catch (err) {
 			console.error("Failed to load memory:", err);
 		} finally {

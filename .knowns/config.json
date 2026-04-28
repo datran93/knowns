@@ -69,6 +69,38 @@
         "opencode:minimax-m2.5-free",
         "openrouter:minimax/minimax-m2.5:free"
       ]
+    },
+    "agentEfficiency": {
+      "persistentContext": {
+        "enabled": true,
+        "maxMemories": 5
+      },
+      "sessionResume": {
+        "enabled": true,
+        "checkpointTTLHours": 24
+      },
+      "codeNavigation": {
+        "enabled": true,
+        "maxTraceDepth": 10
+      },
+      "autoValidation": {
+        "enabled": true,
+        "cacheTTLSeconds": 300
+      },
+      "modelRouter": {
+        "enabled": true
+      },
+      "skillComposer": {
+        "enabled": true
+      },
+      "backgroundIndexing": {
+        "enabled": true,
+        "debounceSeconds": 5
+      },
+      "multiAgent": {
+        "enabled": true,
+        "lockTTLSeconds": 300
+      }
     }
   }
 }

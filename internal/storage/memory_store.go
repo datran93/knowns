@@ -18,8 +18,9 @@ type MemoryStore struct {
 	globalRoot string // ~/.knowns/ directory
 }
 
-func (ms *MemoryStore) projectDir() string { return filepath.Join(ms.root, "memory") }
-func (ms *MemoryStore) globalDir() string  { return filepath.Join(ms.globalRoot, "memory") }
+func (ms *MemoryStore) projectDir() string  { return filepath.Join(ms.root, "memory") }
+func (ms *MemoryStore) globalDir() string   { return filepath.Join(ms.globalRoot, "memory") }
+func (ms *MemoryStore) workingDir() string { return filepath.Join(ms.root, ".working-memory") }
 
 // ListLocal returns project memories without global entries.
 func (ms *MemoryStore) ListLocal() ([]*models.MemoryEntry, error) {
@@ -38,6 +39,8 @@ func (ms *MemoryStore) dirForLayer(layer string) (string, error) {
 		return ms.projectDir(), nil
 	case models.MemoryLayerGlobal:
 		return ms.globalDir(), nil
+	case models.MemoryLayerWorking:
+		return ms.workingDir(), nil
 	default:
 		return "", fmt.Errorf("invalid memory layer: %q", layer)
 	}
@@ -93,6 +96,75 @@ func (ms *MemoryStore) listLayers(layers []string) ([]*models.MemoryEntry, error
 	}
 
 	return entries, nil
+}
+
+// ListWorking returns all working memory entries.
+func (ms *MemoryStore) ListWorking() ([]*models.MemoryEntry, error) {
+	entries, err := ms.listDir(ms.workingDir(), models.MemoryLayerWorking)
+	if err != nil {
+		return nil, err
+	}
+	if entries == nil {
+		return []*models.MemoryEntry{}, nil
+	}
+	return entries, nil
+}
+
+// GetWorking retrieves a working memory entry by ID.
+func (ms *MemoryStore) GetWorking(id string) (*models.MemoryEntry, error) {
+	entry, err := ms.GetInLayer(id, models.MemoryLayerWorking)
+	if err != nil {
+		return nil, fmt.Errorf("working memory %q not found", id)
+	}
+	return entry, nil
+}
+
+// CreateWorking creates a new working memory entry.
+func (ms *MemoryStore) CreateWorking(entry *models.MemoryEntry) error {
+	if entry.ID == "" {
+		entry.ID = models.NewTaskID()
+	}
+	now := time.Now().UTC()
+	if entry.CreatedAt.IsZero() {
+		entry.CreatedAt = now
+	}
+	if entry.UpdatedAt.IsZero() {
+		entry.UpdatedAt = now
+	}
+	entry.Layer = models.MemoryLayerWorking
+
+	dir := ms.workingDir()
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return fmt.Errorf("create working memory dir: %w", err)
+	}
+
+	absPath := filepath.Join(dir, models.MemoryFileName(entry.ID))
+	return atomicWrite(absPath, []byte(renderMemory(entry)))
+}
+
+// DeleteWorking removes a working memory entry by ID.
+func (ms *MemoryStore) DeleteWorking(id string) error {
+	dir := ms.workingDir()
+	absPath := filepath.Join(dir, models.MemoryFileName(id))
+	if _, err := os.Stat(absPath); os.IsNotExist(err) {
+		return fmt.Errorf("working memory %q not found", id)
+	}
+	return os.Remove(absPath)
+}
+
+// CleanWorking removes all working memory entries.
+func (ms *MemoryStore) CleanWorking() (int, error) {
+	entries, err := ms.ListWorking()
+	if err != nil {
+		return 0, err
+	}
+	count := 0
+	for _, entry := range entries {
+		if err := ms.DeleteWorking(entry.ID); err == nil {
+			count++
+		}
+	}
+	return count, nil
 }
 
 // listDir reads all memory files from a directory.

@@ -4,6 +4,7 @@ import "time"
 
 // Memory layer constants.
 const (
+	MemoryLayerWorking = "working"
 	MemoryLayerProject = "project"
 	MemoryLayerGlobal  = "global"
 )
@@ -34,7 +35,7 @@ func MemoryFileName(id string) string {
 
 // ValidMemoryLayer reports whether layer is a recognised memory layer.
 func ValidMemoryLayer(layer string) bool {
-	return layer == MemoryLayerProject || layer == MemoryLayerGlobal
+	return layer == MemoryLayerWorking || layer == MemoryLayerProject || layer == MemoryLayerGlobal
 }
 
 // ValidPersistentMemoryLayer reports whether layer is a persistent memory layer.
@@ -45,6 +46,8 @@ func ValidPersistentMemoryLayer(layer string) bool {
 // PromoteLayer returns the next layer up, or an error string if already at top.
 func PromoteLayer(layer string) (string, bool) {
 	switch layer {
+	case MemoryLayerWorking:
+		return MemoryLayerProject, true
 	case MemoryLayerProject:
 		return MemoryLayerGlobal, true
 	default:
@@ -57,6 +60,8 @@ func DemoteLayer(layer string) (string, bool) {
 	switch layer {
 	case MemoryLayerGlobal:
 		return MemoryLayerProject, true
+	case MemoryLayerProject:
+		return MemoryLayerWorking, true
 	default:
 		return "", false
 	}

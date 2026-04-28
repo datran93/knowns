@@ -87,6 +87,10 @@ func SetupRoutes(r chi.Router, store *storage.Store, sse Broadcaster, projectRoo
 		// Memory
 		mr := &MemoryRoutes{store: store, mgr: manager, sse: sse}
 		mr.Register(r)
+
+		// Working Memory
+		wmr := &WorkingMemoryRoutes{store: store, mgr: manager}
+		wmr.Register(r)
 	})
 
 	// Skills (project-root based, not store-dependent)

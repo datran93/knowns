@@ -268,15 +268,23 @@ func validateInstallable(spec runtimeSpec, opts Options) error {
 }
 
 func hookCommandPath(spec runtimeSpec, opts Options) string {
-	return shellCommandString(hookCommandArgs(spec, opts), opts.GOOS)
-}
-
-func hookCommandArgs(spec runtimeSpec, opts Options) []string {
-	return []string{opts.ExecutablePath, "runtime-memory", "hook", "--runtime", spec.Runtime, "--event", sessionStartEvent(spec.Runtime)}
+	exe := opts.ExecutablePath
+	if isTestBinaryPath(exe) {
+		exe = "./bin/knowns"
+	}
+	return shellCommandString([]string{exe, "runtime-memory", "hook", "--runtime", spec.Runtime, "--event", sessionStartEvent(spec.Runtime)}, opts.GOOS)
 }
 
 func legacyPromptCommandPath(spec runtimeSpec, opts Options) string {
-	return shellCommandString([]string{opts.ExecutablePath, "runtime-memory", "hook", "--runtime", spec.Runtime, "--event", defaultHookEvent}, opts.GOOS)
+	exe := opts.ExecutablePath
+	if isTestBinaryPath(exe) {
+		exe = "./bin/knowns"
+	}
+	return shellCommandString([]string{exe, "runtime-memory", "hook", "--runtime", spec.Runtime, "--event", defaultHookEvent}, opts.GOOS)
+}
+
+func isTestBinaryPath(path string) bool {
+	return strings.Contains(path, "/var/folders") && strings.Contains(path, "cli.test")
 }
 
 func shellCommandString(args []string, goos string) string {
@@ -728,6 +736,16 @@ func ensureCommandHookGroup(existing any, commandPath, statusMessage string) []a
 			}
 			continue
 		}
+		// Skip any existing Knowns-managed hook that is NOT stale but whose
+		// command points to a knowns binary (different path). This prevents
+		// accumulating multiple knowns binaries in the hook list.
+		if isSameManagedHook(item, commandPath) {
+			if !replaced {
+				updated = append(updated, group)
+				replaced = true
+			}
+			continue
+		}
 		updated = append(updated, raw)
 	}
 	if !replaced {
@@ -736,20 +754,66 @@ func ensureCommandHookGroup(existing any, commandPath, statusMessage string) []a
 	return updated
 }
 
-func isStaleKnownsHookGroup(group map[string]any) bool {
-	statusMessage, _ := group["statusMessage"].(string)
-	if statusMessage != managedStatus {
-		return false
+// isSameManagedHook returns true if group is a Knowns-managed hook with the
+// runtime-memory+hook pattern but a different executable path than commandPath.
+// This prevents duplicate Knowns hooks when the same binary is installed via
+// different paths (e.g. /Users/datran/go/bin/knowns vs /Users/datran/Project/knowns/bin/knowns).
+func isSameManagedHook(group map[string]any, currentPath string) bool {
+	if statusMessage, _ := group["statusMessage"].(string); statusMessage == managedStatus {
+		hooks, _ := group["hooks"].([]any)
+		for _, h := range hooks {
+			hook, _ := h.(map[string]any)
+			cmd := strings.TrimSpace(stringValue(hook["command"]))
+			if cmd == "" {
+				continue
+			}
+			if strings.Contains(cmd, "runtime-memory") && strings.Contains(cmd, "hook") {
+				if cmd != currentPath {
+					return true
+				}
+			}
+		}
 	}
+	// Also check individual hook-level statusMessage.
 	hooks, _ := group["hooks"].([]any)
 	for _, h := range hooks {
 		hook, _ := h.(map[string]any)
-		cmd := strings.TrimSpace(stringValue(hook["command"]))
-		if cmd == "" {
-			continue
+		if statusMessage, _ := hook["statusMessage"].(string); statusMessage == managedStatus {
+			cmd := strings.TrimSpace(stringValue(hook["command"]))
+			if cmd != "" && strings.Contains(cmd, "runtime-memory") && strings.Contains(cmd, "hook") {
+				if cmd != currentPath {
+					return true
+				}
+			}
 		}
-		if strings.Contains(cmd, "runtime-memory") && strings.Contains(cmd, "hook") {
-			return true
+	}
+	return false
+}
+
+func isStaleKnownsHookGroup(group map[string]any) bool {
+	// Check group-level statusMessage first.
+	if statusMessage, _ := group["statusMessage"].(string); statusMessage == managedStatus {
+		hooks, _ := group["hooks"].([]any)
+		for _, h := range hooks {
+			hook, _ := h.(map[string]any)
+			cmd := strings.TrimSpace(stringValue(hook["command"]))
+			if cmd == "" {
+				continue
+			}
+			if strings.Contains(cmd, "runtime-memory") && strings.Contains(cmd, "hook") {
+				return true
+			}
+		}
+	}
+	// Also check individual hook-level statusMessage (some configs place it there).
+	hooks, _ := group["hooks"].([]any)
+	for _, h := range hooks {
+		hook, _ := h.(map[string]any)
+		if statusMessage, _ := hook["statusMessage"].(string); statusMessage == managedStatus {
+			cmd := strings.TrimSpace(stringValue(hook["command"]))
+			if cmd != "" && strings.Contains(cmd, "runtime-memory") && strings.Contains(cmd, "hook") {
+				return true
+			}
 		}
 	}
 	return false
@@ -791,19 +855,10 @@ func removeCommandHookGroup(existing any, commandPath string) []any {
 		if commandHookGroupMatches(group, commandPath) {
 			continue
 		}
-		// Also remove stale groups where the executable path is dead
-		// (e.g. /var/folders/.../go-build.../cli.test) but the hook is
-		// still managed by Knowns (same statusMessage).
-		if statusMessage, _ := group["statusMessage"].(string); statusMessage == managedStatus {
-			hooks, _ := group["hooks"].([]any)
-			for _, h := range hooks {
-				hook, _ := h.(map[string]any)
-				if cmd := strings.TrimSpace(stringValue(hook["command"])); cmd != "" {
-					if strings.Contains(cmd, "runtime-memory") && strings.Contains(cmd, "hook") {
-						goto skipGroup
-					}
-				}
-			}
+		// Also remove stale Knowns-managed groups: check both group-level and
+		// hook-level statusMessage.
+		if isKnownsHookGroup(group) {
+			goto skipGroup
 		}
 		filtered = append(filtered, raw)
 		continue
@@ -813,6 +868,32 @@ func removeCommandHookGroup(existing any, commandPath string) []any {
 		return nil
 	}
 	return filtered
+}
+
+// isKnownsHookGroup returns true if the group has any hook with the
+// runtime-memory+hook pattern. Used to identify and remove stale Knowns hooks.
+func isKnownsHookGroup(group map[string]any) bool {
+	if statusMessage, _ := group["statusMessage"].(string); statusMessage == managedStatus {
+		hooks, _ := group["hooks"].([]any)
+		for _, h := range hooks {
+			hook, _ := h.(map[string]any)
+			cmd := strings.TrimSpace(stringValue(hook["command"]))
+			if cmd != "" && strings.Contains(cmd, "runtime-memory") && strings.Contains(cmd, "hook") {
+				return true
+			}
+		}
+	}
+	hooks, _ := group["hooks"].([]any)
+	for _, h := range hooks {
+		hook, _ := h.(map[string]any)
+		if statusMessage, _ := hook["statusMessage"].(string); statusMessage == managedStatus {
+			cmd := strings.TrimSpace(stringValue(hook["command"]))
+			if cmd != "" && strings.Contains(cmd, "runtime-memory") && strings.Contains(cmd, "hook") {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func commandHookGroupMatches(group map[string]any, commandPath string) bool {

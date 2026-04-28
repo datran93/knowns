@@ -166,6 +166,79 @@ func TestInstallClaudeWindowsWritesExactSessionStartHookJSON(t *testing.T) {
 	}
 }
 
+func TestStaleHooksGetReplacedByFreshHooks(t *testing.T) {
+	staleExe := "/var/folders/j7/wbwyp1sn0rv_34drdg4m34fw0000gn/T/go-build3766182753/b461/cli.test"
+	freshExe := "/Users/datran/go/bin/knowns"
+
+	// Simulate a settings.json with a stale go-build hook from a previous test run
+	// and an unrelated existing hook.
+	existing := []any{
+		map[string]any{
+			"statusMessage": managedStatus,
+			"hooks": []any{
+				map[string]any{
+					"type":    "command",
+					"command": staleExe + ` "runtime-memory" "hook" "--runtime" "claude-code" "--event" "session-start"`,
+				},
+			},
+		},
+		map[string]any{
+			"hooks": []any{
+				map[string]any{
+					"type":    "command",
+					"command": "/tmp/existing-hook.sh",
+				},
+			},
+		},
+	}
+
+	freshPath := freshExe + ` "runtime-memory" "hook" "--runtime" "claude-code" "--event" "session-start"`
+	result := ensureCommandHookGroup(existing, freshPath, managedStatus)
+
+	// Debug: print all groups using JSON marshal (reliable for interface{} values)
+	for i, g := range result {
+		gg := g.(map[string]any)
+		b, _ := json.MarshalIndent(gg, "", "  ")
+		t.Logf("result[%d]: %s", i, string(b))
+	}
+
+	// Should end up with 2 groups: fresh Knowns hook + unrelated existing hook.
+	if len(result) != 2 {
+		t.Fatalf("expected 2 groups after stale cleanup, got %d: %+v", len(result), result)
+	}
+	// Identify by fresh command path presence (reliable when statusMessage is unreliable).
+	var knownsGroup, otherGroup map[string]any
+	for _, g := range result {
+		gg := g.(map[string]any)
+		hooks := gg["hooks"].([]any)
+		if len(hooks) > 0 {
+			cmd := hooks[0].(map[string]any)["command"].(string)
+			if strings.Contains(cmd, freshExe) && strings.Contains(cmd, "runtime-memory") {
+				knownsGroup = gg
+			} else {
+				otherGroup = gg
+			}
+		}
+	}
+	if knownsGroup == nil {
+		t.Fatal("expected a Knowns-managed group in result")
+	}
+	if otherGroup == nil {
+		t.Fatal("expected the unrelated existing hook to be preserved")
+	}
+	hooks0 := knownsGroup["hooks"].([]any)
+	if len(hooks0) != 1 {
+		t.Fatalf("expected 1 hook in Knowns group, got %d", len(hooks0))
+	}
+	if cmd, _ := hooks0[0].(map[string]any)["command"].(string); cmd != freshPath {
+		t.Fatalf("expected fresh path, got %q", cmd)
+	}
+	hooks1 := otherGroup["hooks"].([]any)
+	if cmd, _ := hooks1[0].(map[string]any)["command"].(string); cmd != "/tmp/existing-hook.sh" {
+		t.Fatalf("expected unrelated existing hook preserved, got %q", cmd)
+	}
+}
+
 func TestInstallCodexEnablesFeatureAndUninstallRemovesManagedHookOnly(t *testing.T) {
 	home := t.TempDir()
 	codexDir := filepath.Join(home, ".codex")

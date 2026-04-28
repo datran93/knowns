@@ -708,19 +708,51 @@ func ensureCommandHookGroup(existing any, commandPath, statusMessage string) []a
 			},
 		},
 	}
-	if hasCommandHookGroup(existing, commandPath) {
-		updated := make([]any, 0, len(groups))
-		for _, raw := range groups {
-			item, _ := raw.(map[string]any)
-			if commandHookGroupMatches(item, commandPath) {
-				updated = append(updated, group)
-				continue
-			}
-			updated = append(updated, raw)
+	// First pass: replace any stale Knowns-managed hook groups that have a dead
+	// executable path (e.g. /var/folders/.../go-build.../cli.test) but still carry
+	// the managed statusMessage.
+	replaced := false
+	updated := make([]any, 0, len(groups))
+	for _, raw := range groups {
+		item, _ := raw.(map[string]any)
+		if !replaced && commandHookGroupMatches(item, commandPath) {
+			updated = append(updated, group)
+			replaced = true
+			continue
 		}
-		return updated
+		// Skip stale Knowns hooks — they will be replaced by the new group below.
+		if isStaleKnownsHookGroup(item) {
+			if !replaced {
+				updated = append(updated, group)
+				replaced = true
+			}
+			continue
+		}
+		updated = append(updated, raw)
 	}
-	return append(groups, group)
+	if !replaced {
+		updated = append(updated, group)
+	}
+	return updated
+}
+
+func isStaleKnownsHookGroup(group map[string]any) bool {
+	statusMessage, _ := group["statusMessage"].(string)
+	if statusMessage != managedStatus {
+		return false
+	}
+	hooks, _ := group["hooks"].([]any)
+	for _, h := range hooks {
+		hook, _ := h.(map[string]any)
+		cmd := strings.TrimSpace(stringValue(hook["command"]))
+		if cmd == "" {
+			continue
+		}
+		if strings.Contains(cmd, "runtime-memory") && strings.Contains(cmd, "hook") {
+			return true
+		}
+	}
+	return false
 }
 
 func hasCommandHookGroup(existing any, commandPath string) bool {
@@ -729,6 +761,20 @@ func hasCommandHookGroup(existing any, commandPath string) bool {
 		group, _ := raw.(map[string]any)
 		if commandHookGroupMatches(group, commandPath) {
 			return true
+		}
+		// Also match by managed status message so hooks are deduplicated
+		// even when ExecutablePath changes across reinstalls/upgrades.
+		if statusMessage, _ := group["statusMessage"].(string); statusMessage == managedStatus {
+			hooks, _ := group["hooks"].([]any)
+			for _, h := range hooks {
+				hook, _ := h.(map[string]any)
+				if cmd := strings.TrimSpace(stringValue(hook["command"])); cmd != "" {
+					// Check if the command contains the knowns runtime-memory hook pattern.
+					if strings.Contains(cmd, "runtime-memory") && strings.Contains(cmd, "hook") {
+						return true
+					}
+				}
+			}
 		}
 	}
 	return false
@@ -745,7 +791,23 @@ func removeCommandHookGroup(existing any, commandPath string) []any {
 		if commandHookGroupMatches(group, commandPath) {
 			continue
 		}
+		// Also remove stale groups where the executable path is dead
+		// (e.g. /var/folders/.../go-build.../cli.test) but the hook is
+		// still managed by Knowns (same statusMessage).
+		if statusMessage, _ := group["statusMessage"].(string); statusMessage == managedStatus {
+			hooks, _ := group["hooks"].([]any)
+			for _, h := range hooks {
+				hook, _ := h.(map[string]any)
+				if cmd := strings.TrimSpace(stringValue(hook["command"])); cmd != "" {
+					if strings.Contains(cmd, "runtime-memory") && strings.Contains(cmd, "hook") {
+						goto skipGroup
+					}
+				}
+			}
+		}
 		filtered = append(filtered, raw)
+		continue
+	skipGroup:
 	}
 	if len(filtered) == 0 {
 		return nil

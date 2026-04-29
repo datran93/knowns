@@ -502,19 +502,19 @@ func runStatusCheck() error {
 	store := getStore()
 	cfg, _ := store.Config.Load()
 
-	sidecarAvail, sidecarPath := search.IsSidecarAvailable()
+	onnxAvail, onnxPath := search.IsONNXAvailable()
 
 	fmt.Println()
 	fmt.Println(StyleBold.Render("Semantic Search Status"))
 	fmt.Println(RenderSeparator(40))
 
-	// Embedding sidecar.
-	if sidecarAvail {
-		fmt.Println(searchSuccessStyle.Render("  Embedding sidecar: installed"))
-		fmt.Println(searchDimStyle.Render(fmt.Sprintf("    Path: %s", sidecarPath)))
+	// ONNX Runtime.
+	if onnxAvail {
+		fmt.Println(searchSuccessStyle.Render("  ONNX Runtime: installed"))
+		fmt.Println(searchDimStyle.Render(fmt.Sprintf("    Path: %s", onnxPath)))
 	} else {
-		fmt.Println(searchWarnStyle.Render("  Embedding sidecar: not found"))
-		fmt.Println(searchDimStyle.Render("    Reinstall knowns to restore the bundled knowns-embed binary"))
+		fmt.Println(searchWarnStyle.Render("  ONNX Runtime: not found"))
+		fmt.Println(searchDimStyle.Render("    Reinstall knowns to restore the bundled ONNX Runtime library"))
 	}
 
 	// Model.
@@ -543,9 +543,9 @@ func runStatusCheck() error {
 
 	// Overall status.
 	fmt.Println()
-	if sidecarAvail && cfg != nil && cfg.Settings.SemanticSearch != nil && cfg.Settings.SemanticSearch.Enabled && count > 0 {
+	if onnxAvail && cfg != nil && cfg.Settings.SemanticSearch != nil && cfg.Settings.SemanticSearch.Enabled && count > 0 {
 		fmt.Println(searchSuccessStyle.Render("  Status: ready (hybrid search active)"))
-	} else if sidecarAvail && cfg != nil && cfg.Settings.SemanticSearch != nil && cfg.Settings.SemanticSearch.Enabled {
+	} else if onnxAvail && cfg != nil && cfg.Settings.SemanticSearch != nil && cfg.Settings.SemanticSearch.Enabled {
 		fmt.Println(searchWarnStyle.Render("  Status: needs search reindex (run: knowns search --reindex)"))
 	} else {
 		fmt.Println(searchDimStyle.Render("  Status: keyword-only mode"))
@@ -564,10 +564,10 @@ func runSetup() error {
 		return err
 	}
 
-	// Check embedding sidecar.
-	sidecarAvail, _ := search.IsSidecarAvailable()
-	if !sidecarAvail {
-		fmt.Println(searchWarnStyle.Render("Embedding sidecar (knowns-embed) not found."))
+	// Check ONNX Runtime.
+	onnxAvail, _ := search.IsONNXAvailable()
+	if !onnxAvail {
+		fmt.Println(searchWarnStyle.Render("ONNX Runtime library not found."))
 		fmt.Println()
 		fmt.Println(RenderHint("Reinstall knowns to restore the bundled binary, or set KNOWNS_EMBED_BIN."))
 		fmt.Println()
@@ -858,15 +858,15 @@ func runReindex() error {
 		return nil
 	}
 
-	// Verify embedding sidecar is available.
-	if !ensureSidecar() {
-		fmt.Println(searchWarnStyle.Render("  Warning: knowns-embed sidecar not found"))
+	// Verify ONNX Runtime is available.
+	if !ensureONNX() {
+		fmt.Println(searchWarnStyle.Render("  Warning: ONNX Runtime not found"))
 		fmt.Println(searchDimStyle.Render("  Falling back to keyword-only search."))
 		fmt.Println()
 	}
 
-	// Auto-download default model if sidecar is available but no model configured.
-	if avail, _ := search.IsSidecarAvailable(); avail {
+	// Auto-download default model if ONNX Runtime is available but no model configured.
+	if avail, _ := search.IsONNXAvailable(); avail {
 		cfg, _ := store.Config.Load()
 		if cfg != nil && (cfg.Settings.SemanticSearch == nil || cfg.Settings.SemanticSearch.Model == "") {
 			defaultModel := "multilingual-e5-small"

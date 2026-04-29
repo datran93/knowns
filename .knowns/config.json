@@ -1,61 +1,46 @@
 {
-  "createdAt": "2026-03-08T17:15:18.432Z",
-  "id": "knowns-go",
   "name": "knowns-go",
+  "id": "knowns-go",
+  "createdAt": "2026-03-08T17:15:18.432Z",
   "settings": {
-    "agentEfficiency": {
-      "autoValidation": {
-        "cacheTTLSeconds": 300,
-        "enabled": true
-      },
-      "backgroundIndexing": {
-        "debounceSeconds": 5,
-        "enabled": true
-      },
-      "codeNavigation": {
-        "enabled": true,
-        "maxTraceDepth": 10
-      },
-      "modelRouter": {
-        "enabled": true
-      },
-      "multiAgent": {
-        "enabled": true,
-        "lockTTLSeconds": 300
-      },
-      "persistentContext": {
-        "enabled": true,
-        "maxMemories": 5
-      },
-      "sessionResume": {
-        "checkpointTTLHours": 24,
-        "enabled": true
-      },
-      "skillComposer": {
-        "enabled": true
-      }
-    },
     "defaultAssignee": "datran93",
     "defaultPriority": "medium",
-    "enableChatUI": true,
+    "timeFormat": "24h",
     "gitTrackingMode": "none",
-    "opencodeModels": {
-      "activeModels": [
-        "anthropic:claude-sonnet-4-5",
-        "knowns-hub:cx/gpt-5.4",
-        "opencode:minimax-m2.5-free",
-        "openrouter:minimax/minimax-m2.5:free"
-      ],
-      "defaultModel": {
-        "modelID": "cx/gpt-5.4",
-        "providerID": "knowns-hub"
-      },
-      "variantModels": {
-        "anthropic:claude-sonnet-4-5": "high",
-        "openai:gpt-5.4": "high"
-      },
-      "version": 1
+    "statuses": [
+      "todo",
+      "in-progress",
+      "in-review",
+      "done",
+      "blocked",
+      "on-hold",
+      "urgent"
+    ],
+    "statusColors": {
+      "blocked": "red",
+      "done": "green",
+      "in-progress": "blue",
+      "in-review": "purple",
+      "on-hold": "yellow",
+      "todo": "gray",
+      "urgent": "orange"
     },
+    "visibleColumns": [
+      "todo",
+      "in-progress",
+      "blocked",
+      "done",
+      "in-review",
+      "on-hold"
+    ],
+    "semanticSearch": {
+      "enabled": true,
+      "model": "multilingual-e5-small",
+      "huggingFaceId": "Xenova/multilingual-e5-small",
+      "dimensions": 384,
+      "maxTokens": 512
+    },
+    "serverPort": 6420,
     "platforms": [
       "claude-code",
       "opencode",
@@ -67,40 +52,55 @@
       "copilot",
       "agents"
     ],
-    "semanticSearch": {
-      "dimensions": 384,
-      "enabled": true,
-      "huggingFaceId": "Xenova/multilingual-e5-small",
-      "maxTokens": 512,
-      "model": "multilingual-e5-small"
+    "enableChatUI": true,
+    "opencodeModels": {
+      "version": 1,
+      "defaultModel": {
+        "providerID": "knowns-hub",
+        "modelID": "cx/gpt-5.4"
+      },
+      "variantModels": {
+        "anthropic:claude-sonnet-4-5": "high",
+        "openai:gpt-5.4": "high"
+      },
+      "activeModels": [
+        "anthropic:claude-sonnet-4-5",
+        "knowns-hub:cx/gpt-5.4",
+        "opencode:minimax-m2.5-free",
+        "openrouter:minimax/minimax-m2.5:free"
+      ]
     },
-    "serverPort": 6420,
-    "statusColors": {
-      "blocked": "red",
-      "done": "green",
-      "in-progress": "blue",
-      "in-review": "purple",
-      "on-hold": "yellow",
-      "todo": "gray",
-      "urgent": "orange"
-    },
-    "statuses": [
-      "todo",
-      "in-progress",
-      "in-review",
-      "done",
-      "blocked",
-      "on-hold",
-      "urgent"
-    ],
-    "timeFormat": "24h",
-    "visibleColumns": [
-      "todo",
-      "in-progress",
-      "blocked",
-      "done",
-      "in-review",
-      "on-hold"
-    ]
+    "agentEfficiency": {
+      "persistentContext": {
+        "enabled": true,
+        "maxMemories": 5
+      },
+      "sessionResume": {
+        "enabled": true,
+        "checkpointTTLHours": 24
+      },
+      "codeNavigation": {
+        "enabled": true,
+        "maxTraceDepth": 10
+      },
+      "autoValidation": {
+        "enabled": true,
+        "cacheTTLSeconds": 300
+      },
+      "modelRouter": {
+        "enabled": true
+      },
+      "skillComposer": {
+        "enabled": true
+      },
+      "backgroundIndexing": {
+        "enabled": true,
+        "debounceSeconds": 5
+      },
+      "multiAgent": {
+        "enabled": true,
+        "lockTTLSeconds": 300
+      }
+    }
   }
 }

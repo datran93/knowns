@@ -195,25 +195,19 @@ func ensureORTEnvironment() error {
 	if lib != "" {
 		ort.SetSharedLibraryPath(lib)
 	} else {
-		// Try to find sidecar library if ResolveORTLibraryPath didn't find anything
-		if sidecarLib := findSidecarORTLib(); sidecarLib != "" {
-			ort.SetSharedLibraryPath(sidecarLib)
-			lib = sidecarLib
+		libName := ortSharedLibName()
+		// Check if a library file exists but was skipped due to arch mismatch.
+		archMismatch := false
+		if home, err := os.UserHomeDir(); err == nil {
+			candidate := filepath.Join(home, ".knowns", "bin", libName)
+			if ortIsFile(candidate) && !ortMatchesArch(candidate) {
+				archMismatch = true
+			}
+		}
+		if archMismatch {
+			fmt.Fprintf(os.Stderr, "warning: %s found but has wrong CPU architecture (expected %s); reinstall knowns for the correct platform or set KNOWNS_ORT_LIB\n", libName, runtime.GOARCH)
 		} else {
-			libName := ortSharedLibName()
-			// Check if a library file exists but was skipped due to arch mismatch.
-			archMismatch := false
-			if home, err := os.UserHomeDir(); err == nil {
-				candidate := filepath.Join(home, ".knowns", "bin", libName)
-				if ortIsFile(candidate) && !ortMatchesArch(candidate) {
-					archMismatch = true
-				}
-			}
-			if archMismatch {
-				fmt.Fprintf(os.Stderr, "warning: %s found but has wrong CPU architecture (expected %s); reinstall knowns for the correct platform or set KNOWNS_ORT_LIB\n", libName, runtime.GOARCH)
-			} else {
-				fmt.Fprintf(os.Stderr, "warning: bundled %s not found next to executable, sibling lib dirs, or ~/.knowns/bin; falling back to system search which may load an incompatible version\n", libName)
-			}
+			fmt.Fprintf(os.Stderr, "warning: bundled %s not found next to executable, sibling lib dirs, or ~/.knowns/bin; falling back to system search which may load an incompatible version\n", libName)
 		}
 	}
 	if err := ort.InitializeEnvironment(); err != nil {
@@ -226,85 +220,20 @@ func ensureORTEnvironment() error {
 	return nil
 }
 
-// findSidecarORTLib searches for onnxruntime library in sidecar node_modules.
-// This is used as a fallback when ResolveORTLibraryPath doesn't find a library.
-func findSidecarORTLib() string {
-	name := ortSharedLibName()
-	subdir := ortLibSubdir()
-
-	// Search paths in order of priority
-	searchPaths := []string{}
-
-	// From CWD (for development)
-	if cwd, err := os.Getwd(); err == nil {
-		for _, sidecar := range []string{"sidecar", ".sidecar"} {
-			searchPaths = append(searchPaths, filepath.Join(cwd, sidecar, "node_modules", "onnxruntime-node", "bin", "napi-v3", subdir, name))
-		}
-	}
-
-	// From exe location (for installed binaries)
-	if exe, err := os.Executable(); err == nil {
-		if real, _ := filepath.EvalSymlinks(exe); real != "" {
-			dir := filepath.Dir(real)
-			for _, sidecar := range []string{"sidecar", ".sidecar"} {
-				searchPaths = append(searchPaths, filepath.Join(dir, "..", "..", sidecar, "node_modules", "onnxruntime-node", "bin", "napi-v3", subdir, name))
-			}
-			// Also try the parent directories
-			for _, sidecar := range []string{"sidecar", ".sidecar"} {
-				searchPaths = append(searchPaths, filepath.Join(dir, sidecar, "node_modules", "onnxruntime-node", "bin", "napi-v3", subdir, name))
-			}
-		}
-	}
-
-	// From ~/.knowns/
-	if home, err := os.UserHomeDir(); err == nil {
-		for _, sidecar := range []string{"sidecar", ".sidecar"} {
-			searchPaths = append(searchPaths, filepath.Join(home, ".knowns", sidecar, "node_modules", "onnxruntime-node", "bin", "napi-v3", subdir, name))
-		}
-	}
-
-	for _, p := range searchPaths {
-		if ortIsFile(p) && ortMatchesArch(p) {
-			return p
-		}
-	}
-	return ""
-}
-
+// ortSharedLibName returns the platform-specific ONNX Runtime shared library name.
 func ortSharedLibName() string {
 	switch runtime.GOOS {
-	case "windows":
-		return "onnxruntime.dll"
 	case "darwin":
 		return "libonnxruntime.dylib"
+	case "windows":
+		return "onnxruntime.dll"
 	default:
 		return "libonnxruntime.so"
 	}
 }
 
-// ortLibSubdir returns the platform-specific subdirectory for onnxruntime-node
-// native binaries (e.g., "darwin/arm64" on macOS arm64).
-func ortLibSubdir() string {
-	switch runtime.GOOS {
-	case "darwin":
-		switch runtime.GOARCH {
-		case "arm64":
-			return "darwin/arm64"
-		case "amd64":
-			return "darwin/x64"
-		}
-	case "linux":
-		switch runtime.GOARCH {
-		case "arm64":
-			return "linux/arm64"
-		case "amd64":
-			return "linux/x64"
-		}
-	}
-	return runtime.GOOS + "/" + runtime.GOARCH
-}
-
 // ResolveORTLibraryPath locates the ONNX Runtime shared library.
+// Search order: KNOWNS_ORT_LIB env, executable dir, sibling lib dirs, ~/.knowns/bin.
 func ResolveORTLibraryPath() string {
 	if p := os.Getenv("KNOWNS_ORT_LIB"); p != "" {
 		return p
@@ -320,40 +249,40 @@ func ResolveORTLibraryPath() string {
 		return ortIsFile(path) && ortMatchesArch(path)
 	}
 
-	// Try current working directory first (works when run from project root)
-	if cwd, err := os.Getwd(); err == nil {
-		for _, sidecar := range []string{"sidecar", ".sidecar"} {
-			candidate := filepath.Join(cwd, sidecar, "node_modules", "onnxruntime-node", "bin", "napi-v3", ortLibSubdir(), name)
-			if ortCandidate(candidate) {
-				return candidate
-			}
-		}
-	}
-
+	// Try executable directory first
 	if exe, err := os.Executable(); err == nil {
 		if real, err := filepath.EvalSymlinks(exe); err == nil {
 			exe = real
 		}
 		dir := filepath.Dir(exe)
+
+		// Next to executable
 		candidate := filepath.Join(dir, name)
 		if ortCandidate(candidate) {
 			return candidate
 		}
-		// Check sibling directories relative to the binary's parent.
-		// Homebrew uses ../libexec, other package managers may use ../lib.
+
+		// Sibling directories (Homebrew uses ../libexec, others may use ../lib)
 		for _, sibling := range []string{"libexec", "lib"} {
 			candidate = filepath.Join(dir, "..", sibling, name)
 			if ortCandidate(candidate) {
 				return candidate
 			}
 		}
-		// Check sidecar relative to binary (for installed binaries)
-		for _, sidecar := range []string{"sidecar", ".sidecar"} {
-			candidate = filepath.Join(dir, "..", "..", sidecar, "node_modules", "onnxruntime-node", "bin", "napi-v3", ortLibSubdir(), name)
-			if ortCandidate(candidate) {
-				return candidate
+
+		// System Homebrew path for macOS ARM64
+		if runtime.GOOS == "darwin" {
+			for _, homebrewPath := range []string{
+				"/opt/homebrew/lib/" + name,
+				"/usr/local/lib/" + name,
+			} {
+				if ortCandidate(homebrewPath) {
+					return homebrewPath
+				}
 			}
 		}
+
+		// Linux system paths
 		if runtime.GOOS == "linux" {
 			if matches, _ := filepath.Glob(filepath.Join(dir, "libonnxruntime.so*")); len(matches) > 0 {
 				for _, m := range matches {
@@ -362,21 +291,27 @@ func ResolveORTLibraryPath() string {
 					}
 				}
 			}
+			// Common Linux system paths
+			for _, sysPath := range []string{
+				"/usr/lib/" + name,
+				"/usr/local/lib/" + name,
+				"/usr/lib/x86_64-linux-gnu/" + name,
+				"/usr/lib/aarch64-linux-gnu/" + name,
+			} {
+				if ortCandidate(sysPath) {
+					return sysPath
+				}
+			}
 		}
 	}
 
+	// Try ~/.knowns/bin
 	if home, err := os.UserHomeDir(); err == nil {
 		candidate := filepath.Join(home, ".knowns", "bin", name)
 		if ortCandidate(candidate) {
 			return candidate
 		}
-		// Also check sidecar under ~/.knowns/
-		for _, sidecar := range []string{"sidecar", ".sidecar"} {
-			candidate = filepath.Join(home, ".knowns", sidecar, "node_modules", "onnxruntime-node", "bin", "napi-v3", ortLibSubdir(), name)
-			if ortCandidate(candidate) {
-				return candidate
-			}
-		}
+		// Linux glob in ~/.knowns/bin
 		if runtime.GOOS == "linux" {
 			if matches, _ := filepath.Glob(filepath.Join(home, ".knowns", "bin", "libonnxruntime.so*")); len(matches) > 0 {
 				for _, m := range matches {
@@ -408,10 +343,11 @@ func resolveModelArtifacts(baseDir, huggingFaceID string) (string, string, error
 		candidates = append(candidates, dir)
 	}
 
-	addCandidate(baseDir)
+	// Explicit base dir takes priority
 	if baseDir != "" {
-		addCandidate(filepath.Join(baseDir, filepath.FromSlash(huggingFaceID)))
+		addCandidate(baseDir)
 	}
+	// ~/.knowns/models/<huggingface-id>
 	if home, err := os.UserHomeDir(); err == nil {
 		root := filepath.Join(home, ".knowns", "models")
 		addCandidate(filepath.Join(root, filepath.FromSlash(huggingFaceID)))

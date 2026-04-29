@@ -176,9 +176,9 @@ func buildSearch(store *storage.Store) *SearchStatus {
 		ss.SemanticEnabled = sem.Enabled
 		ss.ModelConfigured = sem.Model != ""
 
-		// Check if sidecar (embedding binary) is available.
-		sidecarAvail, _ := search.IsSidecarAvailable()
-		ss.ModelInstalled = sidecarAvail && sem.Model != ""
+		// Check if ONNX Runtime library is available.
+		onnxAvail, _ := search.IsONNXAvailable()
+		ss.ModelInstalled = onnxAvail && sem.Model != ""
 	}
 
 	// Project index readiness.

@@ -310,7 +310,7 @@ func buildSemanticDownloadSteps(modelID string) ([]initStep, bool, error) {
 		return nil, false, fmt.Errorf("unknown model %q", modelID)
 	}
 
-	// Model files are downloaded lazily by the sidecar on first embed call,
+	// Model files are downloaded lazily on first embed call on first embed call,
 	// using transformers.js's own cache layout.
 	if isModelInstalled(selected) {
 		return nil, true, nil
@@ -344,7 +344,7 @@ func runSemanticSetup(modelID string, force ...bool) error {
 	// Build download steps
 	var steps []downloadStep
 
-	// Model files (sidecar will lazy-download via transformers.js cache;
+	// Model files (ONNX Runtime will lazy-download model files;
 	// pre-download is optional, intended for offline-prep).
 	if forceDownload || !isModelInstalled(selected) {
 		modelDir := getModelDir(selected.HuggingFace)
@@ -407,11 +407,11 @@ func runSemanticSetup(modelID string, force ...bool) error {
 	return nil
 }
 
-// ensureSidecar reports whether the knowns-embed sidecar binary is available.
+// ensureONNX reports whether the ONNX Runtime library is available.
 // Returns false if the binary cannot be found in any of the standard locations.
-// The sidecar is shipped alongside the knowns binary; users do not install it manually.
-func ensureSidecar() bool {
-	avail, _ := search.IsSidecarAvailable()
+// ONNX Runtime is required for semantic search. Install via Homebrew or set KNOWNS_ORT_LIB.
+func ensureONNX() bool {
+	avail, _ := search.IsONNXAvailable()
 	return avail
 }
 

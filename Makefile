@@ -25,6 +25,10 @@ build:
 dev:
 	CGO_ENABLED=1 go build -race -ldflags "$(LDFLAGS)" -o $(BUILD_DIR)/$(BINARY) ./cmd/knowns
 
+# Local build for development without flags
+lbuild:
+	CGO_ENABLED=1 go build -o $(BUILD_DIR)/$(BINARY) ./cmd/knowns
+
 # Run Go server with hot reload (requires air: go install github.com/air-verse/air@latest)
 dev-go:
 	@AIR_BIN="$$(command -v air || true)"; \
@@ -51,6 +55,10 @@ dev-all:
 # Install to GOPATH/bin
 install: build
 	CGO_ENABLED=1 go install -ldflags "$(LDFLAGS)" ./cmd/knowns
+
+# Install to GOPATH/bin for local dev without flags
+linstall: lbuild
+	CGO_ENABLED=1 go install ./cmd/knowns
 
 # Run tests
 test:

@@ -188,20 +188,11 @@ Confirm the file exists and is readable.
 ## Phase 6: Report Completion
 
 ```
-✓ Design saved: designs/<spec-name>.md
+✓ Design approved: designs/<spec-name>.md
 
-Summary:
-- Architecture Decisions: [N decisions]
-- Components: [N components]
-- Data Flow: [summary]
+Next step — generate tasks from design:
 
-Next step — choose one:
-
-1. Task by task (review each step):
-   /kn-plan --from @doc/specs/<name>
-
-2. Run all at once (auto pipeline, no review gates):
-   /kn-go specs/<name>
+Run: /kn-plan --from @doc/designs/<name>
 ```
 
 ---
@@ -248,8 +239,7 @@ When `kn-go` runs on a spec without an existing design:
 ## Related Skills
 
 - `/kn-spec <name>` — Create spec for complex features
-- `/kn-plan --from @doc/specs/<name>` — Generate tasks from spec
-- `/kn-go specs/<name>` — Execute full pipeline (includes design if needed)
+- `/kn-plan --from @doc/designs/<name>` — Generate tasks from design
 
 ---
 
@@ -260,7 +250,7 @@ When `kn-go` runs on a spec without an existing design:
 - [ ] Draft design produced (Architecture Decisions, Component Breakdown, Data Flow)
 - [ ] Interactive review completed (approved by user)
 - [ ] Design saved to designs/<spec-name>.md
-- [ ] **Next step suggested**
+- [ ] **Next step suggested** (/kn-plan --from @doc/designs/<name>)
 
 ## Red Flags
 

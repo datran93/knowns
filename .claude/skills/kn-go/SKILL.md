@@ -1,15 +1,15 @@
 ---
 name: kn-go
-description: Use when implementing all tasks from an approved spec in one continuous run without manual review gates
+description: Use when implementing all tasks from an approved design in one continuous run without manual review gates
 ---
 
 # Go Mode — Full Pipeline Execution
 
-Run the entire SDD pipeline from an approved spec: generate tasks → plan each → implement each → verify → commit. No manual review gates between steps.
+Run the entire SDD pipeline from an approved design: design → generate tasks → plan each → implement each → verify → commit. No manual review gates between steps.
 
 **Announce:** "Using kn-go for spec [name]."
 
-**Core principle:** SPEC APPROVED → GENERATE TASKS → PLAN → IMPLEMENT ALL → VERIFY → COMMIT.
+**Core principle:** SPEC APPROVED → DESIGN → GENERATE TASKS → PLAN → IMPLEMENT ALL → VERIFY → COMMIT.
 
 ## When to Use
 
@@ -22,7 +22,7 @@ Run the entire SDD pipeline from an approved spec: generate tasks → plan each 
 - Spec is still draft — redirect to `/kn-spec` first
 - User wants to review each task individually — use `/kn-plan <id>` + `/kn-implement <id>`
 - Spec has unresolved open questions — resolve them first
-- Spec lacks an approved design and user wants to review design before planning — use `/kn-design <spec-path>` first
+- Design doesn't exist — `/kn-go` will auto-invoke `/kn-design` but user may want to review design first
 
 ## Inputs
 
@@ -80,15 +80,15 @@ If validation errors → fix or report before continuing.
 
 ### Phase 2: Generate Tasks
 
-Parse spec for requirements and generate tasks. Same logic as `kn-plan --from @doc/specs/<name>` but **skip the approval gate**.
+Parse design for requirements and generate tasks. Same logic as `kn-plan --from @doc/designs/<name>` but **skip the approval gate**.
 
 ```json
-mcp_knowns_tasks({ "action": "create", "title": "<requirement title>",
-  "description": "<from spec>",
-  "spec": "specs/<name>",
+mcp_knowns_tasks({ "action": "create", "title": "<component title>",
+  "description": "<from design>",
+  "spec": "<spec-path>",
   "fulfills": ["AC-1", "AC-2"],
   "priority": "medium",
-  "labels": ["from-spec", "go-mode"]
+  "labels": ["from-design", "go-mode"]
 })
 ```
 
@@ -99,7 +99,7 @@ mcp_knowns_tasks({ "action": "update", "taskId": "<id>",
 })
 ```
 
-**Report:** "Created X tasks from spec. Starting implementation..."
+**Report:** "Created X tasks from design. Starting implementation..."
 
 ---
 
@@ -355,8 +355,8 @@ Show what would be created and ask user to confirm before running for real.
 
 ## Checklist
 
-- [ ] Spec is approved (HARD ABORT if not)
-- [ ] Spec validated (no broken refs)
+- [ ] Design exists (auto-invokes /kn-design if not)
+- [ ] Design is approved (HARD ABORT if not)
 - [ ] Tasks generated with fulfills mapping
 - [ ] Each task: planned → implemented → ACs checked → validated → done
 - [ ] SDD verification passed

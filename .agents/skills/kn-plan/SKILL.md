@@ -11,7 +11,7 @@ description: Use when creating an implementation plan for a task
 
 ## Inputs
 
-- Task ID, or `--from @doc/specs/<name>` for SDD task generation
+- Task ID, or `--from @doc/designs/<name>` for SDD task generation
 - Existing task refs, spec refs, template refs, and user constraints
 
 ## Preflight
@@ -24,7 +24,7 @@ description: Use when creating an implementation plan for a task
 ## Mode Detection
 
 Check if `$ARGUMENTS` contains `--from`:
-- **Yes** → Go to "Generate Tasks from Spec" section
+- **Yes** → Go to "Generate Tasks from Design" section
 - **No** → Continue with normal planning flow
 
 ---
@@ -50,9 +50,9 @@ mcp_knowns_docs({ "action": "get", "path": "<path>", "smart": true })
 mcp_knowns_tasks({ "action": "get", "taskId": "<id>" })
 ```
 
-If the task links to a spec, use structural resolve to find related tasks and dependencies:
+If the task links to a design, use structural resolve to find related tasks and dependencies:
 ```json
-mcp_knowns_search({ "action": "resolve", "ref": "@doc/specs/<name>{implements}", "direction": "inbound", "entityTypes": "task" })
+mcp_knowns_search({ "action": "resolve", "ref": "@doc/designs/<name>{implements}", "direction": "inbound", "entityTypes": "task" })
 ```
 
 Search related (unified search includes docs and memories):
@@ -243,42 +243,43 @@ Run: /kn-implement $ARGUMENTS
 
 ---
 
-# Generate Tasks from Spec
+# Generate Tasks from Design
 
-When `$ARGUMENTS` contains `--from @doc/specs/<name>`:
+When `$ARGUMENTS` contains `--from @doc/designs/<name>`:
 
-**Announce:** "Using kn-plan to generate tasks from spec [name]."
+**Announce:** "Using kn-plan to generate tasks from design [name]."
 
-## Step 1: Read Spec Document
+## Step 1: Read Design Document
 
-Extract spec path from arguments (e.g., `--from @doc/specs/user-auth` → `specs/user-auth`).
+Extract design path from arguments (e.g., `--from @doc/designs/user-auth` → `designs/user-auth`).
 
 ```json
-mcp_knowns_docs({ "action": "get", "path": "specs/<name>", "smart": true })
+mcp_knowns_docs({ "action": "get", "path": "designs/<name>", "smart": true })
 ```
 
-## Step 2: Spec Approval Check (HARD ABORT)
+## Step 2: Design Approval Check (HARD ABORT)
 
-**CRITICAL**: If the spec does not have the `approved` tag, STOP immediately:
+**CRITICAL**: If the design does not exist or is not approved, STOP:
 
 ```
-⛔ Spec `specs/<name>` is not approved yet (status: draft).
+⛔ Design `designs/<name>` is not available or not approved yet.
 
-Cannot generate tasks from a draft spec. Please:
-1. Run `/kn-spec <name>` to review and approve the spec
-2. Or use `/kn-review <spec-path>` to assess readiness
+Cannot generate tasks from a draft design. Please:
+1. Run `/kn-design specs/<name>` to create and approve the design
+2. Or check if the design exists at designs/<name>
 
-Aborted — not creating tasks from unapproved spec.
+Aborted — not creating tasks from unapproved design.
 ```
 
-Only proceed if spec has `approved` tag.
+Only proceed if design exists and has been reviewed/approved.
 
 ## Step 3: Parse Requirements
 
-Scan spec for:
-- **Functional Requirements** (FR-1, FR-2, etc.)
-- **Acceptance Criteria** (AC-1, AC-2, etc.)
-- **Scenarios** (for edge cases)
+Scan design for:
+- **Architecture Decisions** (AD-1, AD-2, etc.)
+- **Component Breakdown** (CLI, MCP, Storage, etc.)
+- **Data Flow** (inputs, processing, outputs)
+- **Acceptance Criteria** (AC-1, AC-2, etc.) - reference the underlying spec
 
 Group related items into logical tasks.
 
@@ -287,23 +288,24 @@ Group related items into logical tasks.
 For each requirement/group, create task structure:
 
 ```markdown
-## Generated Tasks from specs/<name> [Complexity: MEDIUM]
+## Generated Tasks from designs/<name> [Complexity: MEDIUM]
 Total: X tasks
 
-### Task 1: [Requirement Title] [LOW]
-- **Description:** [From spec]
+### Task 1: [Component/Feature Title] [LOW]
+- **Description:** [From design]
 - **ACs:**
-  - [ ] AC from spec
-  - [ ] AC from spec
-- **Spec:** specs/<name>
+  - [ ] AC from spec (referenced in design)
+- **Design:** designs/<name>
+- **Spec:** <linked-spec> (the spec this design derives from)
 - **Fulfills:** AC-1, AC-2 (maps to Spec ACs this task completes)
 - **Priority:** medium
 
-### Task 2: [Requirement Title] [HIGH]
-- **Description:** [From spec]
+### Task 2: [Component/Feature Title] [HIGH]
+- **Description:** [From design]
 - **ACs:**
   - [ ] AC from spec
-- **Spec:** specs/<name>
+- **Design:** designs/<name>
+- **Spec:** <linked-spec>
 - **Fulfills:** AC-3
 - **Priority:** medium
 ```
@@ -313,7 +315,7 @@ Total: X tasks
 
 ## Step 5: Ask for Approval
 
-> I've generated **X tasks** from the spec. Please review:
+> I've generated **X tasks** from the design. Please review:
 > - **Approve** to create all tasks
 > - **Edit** to modify before creating
 > - **Cancel** to abort
@@ -325,12 +327,12 @@ Total: X tasks
 When approved, create tasks with `fulfills` to link Task → Spec ACs:
 
 ```json
-mcp_knowns_tasks({ "action": "create", "title": "<requirement title>",
-  "description": "<from spec>",
-  "spec": "specs/<name>",
+mcp_knowns_tasks({ "action": "create", "title": "<component/feature title>",
+  "description": "<from design>",
+  "spec": "<linked-spec>",
   "fulfills": ["AC-1", "AC-2"],
   "priority": "medium",
-  "labels": ["from-spec"]
+  "labels": ["from-design"]
 })
 ```
 
@@ -360,11 +362,11 @@ Creation rules:
 ## Step 7: Summary
 
 ```markdown
-Goal/result: created X tasks linked to `specs/<name>`.
+Goal/result: created X tasks linked to `designs/<name>` (from spec <spec-name>).
 
 Key details:
-- task-xxx: Requirement 1 (3 ACs) [MEDIUM]
-- task-yyy: Requirement 2 (2 ACs) [LOW]
+- task-xxx: Component/Feature 1 (3 ACs) [MEDIUM]
+- task-yyy: Component/Feature 2 (2 ACs) [LOW]
 - validation/approval status, if relevant
 
 Next action:
@@ -373,9 +375,9 @@ Next action:
 
 ## Checklist (--from mode)
 
-- [ ] Spec document read
-- [ ] **Spec approved (hard abort if not)**
-- [ ] Requirements parsed
+- [ ] Design document read
+- [ ] **Design exists and is approved (hard abort if not)**
+- [ ] Requirements from design parsed
 - [ ] **Tasks include `fulfills` mapping to Spec ACs**
 - [ ] Tasks previewed with complexity ratings
 - [ ] User approved

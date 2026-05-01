@@ -349,32 +349,21 @@ After spec is approved:
 ```
 ✓ Spec approved: @doc/specs/<name>
 
-Next step — choose one:
+Next step — create design:
 
-1. Task by task (review each step):
-   /kn-plan --from @doc/specs/<name>
-
-2. Run all at once (auto pipeline, no review gates):
-   /kn-go specs/<name>
+Run: /kn-design specs/<name>
 ```
 
-**Option 1 (`kn-plan --from`):**
-- Parse requirements → preview tasks → user approve → create tasks
-- Then `/kn-plan <id>` + `/kn-implement <id>` for each task
-
-**Option 2 (`kn-go`):**
-- Generate tasks → plan → implement all → verify → commit
-- Only stops once at the end for commit confirmation
-- Auto-skips done tasks on re-run
+**Why design before plan?**
+- Design extracts architecture decisions, component breakdown, and data flow from the spec
+- Planning from design is more concrete and avoids guessing at implementation structure
 
 ---
 
 ## Related Skills
 
-- `/kn-plan --from @doc/specs/<name>` - Generate tasks from this spec (manual flow)
-- `/kn-go specs/<name>` - Execute entire spec in one run (auto pipeline)
-- `/kn-plan <id>` - Plan individual task
-- `/kn-verify` - Verify implementation against spec
+- `/kn-design specs/<name>` - Create design from approved spec
+- `/kn-spec <name>` - Create spec for complex features
 
 ## Checklist
 
@@ -389,7 +378,7 @@ Next step — choose one:
 - [ ] Includes: Overview, Locked Decisions, Requirements, ACs, Scenarios
 - [ ] User reviewed
 - [ ] Status updated (draft → approved)
-- [ ] **Next step suggested** (/kn-plan --from or /kn-go)
+- [ ] **Next step suggested** (/kn-design specs/<name>)
 
 ## Red Flags
 

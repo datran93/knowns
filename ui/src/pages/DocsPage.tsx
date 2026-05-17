@@ -21,11 +21,16 @@ import { navigateTo } from "../lib/navigation";
 import { DocsTOC } from "../components/molecules/DocsTOC";
 import { TaskPreviewDialog } from "../components/organisms/TaskDetail/TaskPreviewDialog";
 import { Sheet, SheetContent, SheetTitle } from "../components/ui/sheet";
+import { AnnotationProvider } from "../contexts/AnnotationContext";
 
 import { DocsDocHeader } from "./docs/DocsDocHeader";
 import { DocsCreateView } from "./docs/DocsCreateView";
 import { DocsEmptyState } from "./docs/DocsEmptyState";
 import { MDRenderWithHighlight } from "../components/editor/MDRenderWithHighlight";
+import { AnnotationHighlighter } from "../components/editor/annotations/AnnotationHighlighter";
+import { AnnotationBubble } from "../components/editor/annotations/AnnotationBubble";
+import { AnnotationSelectionToolbar } from "../components/editor/annotations/AnnotationSelectionToolbar";
+import { useAnnotationContext } from "../contexts/AnnotationContext";
 
 export default function DocsPage() {
 	const location = useRouterState({ select: (state) => state.location });
@@ -65,6 +70,66 @@ export default function DocsPage() {
 	const scrollPositions = useRef<Map<string, number>>(new Map());
 	const scrollAnimationRef = useRef<number | null>(null);
 	const lineHighlightRef = useRef<HTMLDivElement>(null);
+
+	// Annotation state
+	const annotationContext = useAnnotationContext();
+	const {
+		annotations,
+		addAnnotation,
+		updateAnnotation,
+		deleteAnnotation,
+		activeAnnotation,
+		setActiveAnnotation,
+		isEditing: isAnnotationEditing,
+		setIsEditing: setAnnotationEditing,
+	} = annotationContext;
+
+	const [annotationEditText, setAnnotationEditText] = useState("");
+
+	const handleCreateAnnotation = useCallback(
+		(quote: string, startOffset: number, endOffset: number) => {
+			const newAnn = addAnnotation(quote, "", startOffset, endOffset);
+			if (newAnn) {
+				setActiveAnnotation(newAnn);
+				setAnnotationEditing(true);
+				setAnnotationEditText("");
+			}
+		},
+		[addAnnotation, setActiveAnnotation, setAnnotationEditing]
+	);
+
+	const handleAnnotationClick = useCallback(
+		(annotation: typeof activeAnnotation) => {
+			if (activeAnnotation?.id === annotation.id) return;
+			setActiveAnnotation(annotation);
+			setAnnotationEditing(false);
+		},
+		[activeAnnotation, setActiveAnnotation]
+	);
+
+	const handleAnnotationTextChange = useCallback((text: string) => {
+		setAnnotationEditText(text);
+	}, []);
+
+	const handleAnnotationSave = useCallback(() => {
+		if (activeAnnotation) {
+			updateAnnotation(activeAnnotation.id, { text: annotationEditText });
+		}
+		setAnnotationEditing(false);
+	}, [activeAnnotation, annotationEditText, updateAnnotation, setAnnotationEditing]);
+
+	const handleAnnotationDelete = useCallback(() => {
+		if (activeAnnotation) {
+			deleteAnnotation(activeAnnotation.id);
+		}
+		setActiveAnnotation(null);
+		setAnnotationEditing(false);
+	}, [activeAnnotation, deleteAnnotation, setActiveAnnotation, setAnnotationEditing]);
+
+	const handleAnnotationClose = useCallback(() => {
+		setActiveAnnotation(null);
+		setAnnotationEditing(false);
+	}, [setActiveAnnotation, setAnnotationEditing]);
 
 	// --- Scroll helpers ---
 	const scrollToHeading = useCallback((headingId: string, behavior: ScrollBehavior = "smooth") => {
@@ -305,6 +370,7 @@ export default function DocsPage() {
 	);
 
 	return (
+		<AnnotationProvider docPath={selectedDoc?.path || null}>
 		<div className="h-full flex overflow-hidden bg-background">
 			<aside className="hidden lg:flex w-[300px] xl:w-[320px] shrink-0 bg-[#fafaf8] dark:bg-muted/10 border-r border-border/40">
 				<div className="h-full w-full px-3 py-5">{sidebarContent}</div>
@@ -414,5 +480,27 @@ export default function DocsPage() {
 			</div>
 			<TaskPreviewDialog taskId={previewTaskId} open={!!previewTaskId} onOpenChange={(open) => { if (!open) setPreviewTaskId(null); }} />
 		</div>
+		{/* Annotation overlays */}
+		<AnnotationHighlighter
+			containerRef={markdownPreviewRef}
+			annotations={annotations}
+			onAnnotationClick={handleAnnotationClick}
+		/>
+		<AnnotationSelectionToolbar
+			containerRef={markdownPreviewRef}
+			onCreateAnnotation={handleCreateAnnotation}
+		/>
+		{activeAnnotation && (
+			<AnnotationBubble
+				annotation={activeAnnotation}
+				isEditing={isAnnotationEditing}
+				onTextChange={handleAnnotationTextChange}
+				onClose={handleAnnotationClose}
+				onDelete={handleAnnotationDelete}
+				onEdit={() => { setAnnotationEditing(true); setAnnotationEditText(activeAnnotation.text); }}
+				onSave={handleAnnotationSave}
+			/>
+		)}
+		</AnnotationProvider>
 	);
 }

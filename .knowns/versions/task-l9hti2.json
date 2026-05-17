@@ -1,6 +1,6 @@
 {
   "taskId": "l9hti2",
-  "currentVersion": 1,
+  "currentVersion": 3,
   "versions": [
     {
       "id": "v1",
@@ -31,6 +31,63 @@
         ],
         "priority": "high",
         "status": "todo",
+        "title": "Implement doc inline annotation system (v0.21.0)"
+      }
+    },
+    {
+      "id": "v2",
+      "taskId": "l9hti2",
+      "version": 2,
+      "timestamp": "2026-05-11T13:49:08.362121Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "todo",
+          "newValue": "in-progress"
+        },
+        {
+          "field": "assignee",
+          "oldValue": "datran93",
+          "newValue": "@me"
+        }
+      ],
+      "snapshot": {
+        "assignee": "@me",
+        "description": "Add AnnotationBubble (draggable floating widget), AnnotationHighlighter (DOM TreeWalker-based), AnnotationSelectionToolbar, AnnotationContext + useAnnotations hook with LocalStorage persistence (500-item cap). Include inline editing with popover textarea + ⌘+Enter save, cross-tab sync via storage events, highlight confidence indicators for non-unique text.",
+        "labels": [
+          "changelog",
+          "v0.21.0",
+          "ui",
+          "annotations"
+        ],
+        "priority": "high",
+        "status": "in-progress",
+        "title": "Implement doc inline annotation system (v0.21.0)"
+      }
+    },
+    {
+      "id": "v3",
+      "taskId": "l9hti2",
+      "version": 3,
+      "timestamp": "2026-05-11T15:52:23.405982Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "in-progress",
+          "newValue": "done"
+        }
+      ],
+      "snapshot": {
+        "assignee": "@me",
+        "description": "Add AnnotationBubble (draggable floating widget), AnnotationHighlighter (DOM TreeWalker-based), AnnotationSelectionToolbar, AnnotationContext + useAnnotations hook with LocalStorage persistence (500-item cap). Include inline editing with popover textarea + ⌘+Enter save, cross-tab sync via storage events, highlight confidence indicators for non-unique text.",
+        "labels": [
+          "changelog",
+          "v0.21.0",
+          "ui",
+          "annotations"
+        ],
+        "priority": "high",
+        "status": "done",
         "title": "Implement doc inline annotation system (v0.21.0)"
       }
     }

@@ -1,7 +1,7 @@
 ---
 id: grs66m
 title: Add OpenAI-compatible embedding provider support (v0.21.0)
-status: todo
+status: done
 priority: medium
 labels:
   - changelog
@@ -9,9 +9,9 @@ labels:
   - embedding
   - providers
 createdAt: '2026-05-11T10:45:34.583Z'
-updatedAt: '2026-05-11T10:45:34.583Z'
-timeSpent: 0
-assignee: datran93
+updatedAt: '2026-05-11T17:36:30.069Z'
+timeSpent: 6145
+assignee: '@me'
 ---
 # Add OpenAI-compatible embedding provider support (v0.21.0)
 

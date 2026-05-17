@@ -119,13 +119,13 @@ type OpenCodeModelRef struct {
 type FeatureFlag struct {
 	Enabled bool `json:"enabled"`
 	// Sub-fields per feature (only set the ones that apply):
-	MaxMemories       int `json:"maxMemories,omitempty"`        // persistentContext: default 5
+	MaxMemories        int `json:"maxMemories,omitempty"`        // persistentContext: default 5
 	CheckpointTTLHours int `json:"checkpointTTLHours,omitempty"` // sessionResume: default 24
-	MaxTraceDepth      int `json:"maxTraceDepth,omitempty"`     // codeNavigation: default 10
+	MaxTraceDepth      int `json:"maxTraceDepth,omitempty"`      // codeNavigation: default 10
 	CacheTTLSeconds    int `json:"cacheTTLSeconds,omitempty"`    // autoValidation: default 300 (5min)
-	FTS5Threshold     int `json:"fts5Threshold,omitempty"`     // modelRouter: default 0 (use default routing)
-	DebounceSeconds    int `json:"debounceSeconds,omitempty"`   // backgroundIndexing: default 5
-	LockTTLSeconds     int `json:"lockTTLSeconds,omitempty"`    // multiAgent: default 300 (5min)
+	FTS5Threshold      int `json:"fts5Threshold,omitempty"`      // modelRouter: default 0 (use default routing)
+	DebounceSeconds    int `json:"debounceSeconds,omitempty"`    // backgroundIndexing: default 5
+	LockTTLSeconds     int `json:"lockTTLSeconds,omitempty"`     // multiAgent: default 300 (5min)
 }
 
 // AgentEfficiencySettings holds 8 agent efficiency feature flags (all ON by default).
@@ -172,7 +172,7 @@ func DefaultAgentEfficiencySettings() *AgentEfficiencySettings {
 		CodeNavigation:     &FeatureFlag{Enabled: true, MaxTraceDepth: 10},
 		AutoValidation:     &FeatureFlag{Enabled: true, CacheTTLSeconds: 300},
 		ModelRouter:        &FeatureFlag{Enabled: true, FTS5Threshold: 0},
-		SkillComposer:       &FeatureFlag{Enabled: true},
+		SkillComposer:      &FeatureFlag{Enabled: true},
 		BackgroundIndexing: &FeatureFlag{Enabled: true, DebounceSeconds: 5},
 		MultiAgent:         &FeatureFlag{Enabled: true, LockTTLSeconds: 300},
 	}
@@ -192,6 +192,16 @@ type SemanticSearchSettings struct {
 
 	// MaxTokens is the maximum token count accepted by the model.
 	MaxTokens int `json:"maxTokens,omitempty"`
+
+	// ModelDir is the local directory containing the ONNX model files.
+	ModelDir string `json:"modelDir,omitempty"`
+
+	// Provider selects the embedding backend: "onnx" (default) or "http".
+	Provider string `json:"provider,omitempty"`
+
+	// HTTPEndpoint is the URL for OpenAI-compatible HTTP embedding endpoints
+	// (e.g., "http://localhost:11434/api/embeddings" for Ollama).
+	HTTPEndpoint string `json:"httpEndpoint,omitempty"`
 }
 
 // DefaultProjectSettings returns a ProjectSettings value populated with the

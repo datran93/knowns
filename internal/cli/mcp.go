@@ -128,7 +128,7 @@ func ensureMCPServerEntry(configPath string, cmd string, args []string) error {
 
 	mcpServers["knowns"] = map[string]any{
 		"command": cmd,
-		"args":   args,
+		"args":    args,
 	}
 
 	out, err := json.MarshalIndent(config, "", "  ")
@@ -260,7 +260,7 @@ func setupTomlConfig(configPath, cmd string, args []string) error {
 
 	mcpServers["knowns"] = map[string]any{
 		"command": cmd,
-		"args":   args,
+		"args":    args,
 	}
 
 	out, err := json.MarshalIndent(config, "", "  ")
@@ -354,7 +354,7 @@ func init() {
 				if err := mcpPlatformRegistry[platformKey].Setup(projectRoot, execPath, argsList); err != nil {
 					return err
 				}
-				fmt.Println(RenderSuccess("MCP setup complete for "+mcpPlatformRegistry[platformKey].Name+"."))
+				fmt.Println(RenderSuccess("MCP setup complete for " + mcpPlatformRegistry[platformKey].Name + "."))
 				return nil
 			},
 		}

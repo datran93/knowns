@@ -1,7 +1,7 @@
 ---
 id: l9hti2
 title: Implement doc inline annotation system (v0.21.0)
-status: todo
+status: done
 priority: high
 labels:
   - changelog
@@ -9,9 +9,9 @@ labels:
   - ui
   - annotations
 createdAt: '2026-05-11T10:00:47.153Z'
-updatedAt: '2026-05-11T10:00:47.153Z'
-timeSpent: 0
-assignee: datran93
+updatedAt: '2026-05-11T15:52:23.424Z'
+timeSpent: 7395
+assignee: '@me'
 ---
 # Implement doc inline annotation system (v0.21.0)
 

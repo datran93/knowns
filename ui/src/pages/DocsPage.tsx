@@ -21,7 +21,7 @@ import { navigateTo } from "../lib/navigation";
 import { DocsTOC } from "../components/molecules/DocsTOC";
 import { TaskPreviewDialog } from "../components/organisms/TaskDetail/TaskPreviewDialog";
 import { Sheet, SheetContent, SheetTitle } from "../components/ui/sheet";
-import { AnnotationProvider } from "../contexts/AnnotationContext";
+import { AnnotationProvider, useAnnotationContextOptional } from "../contexts/AnnotationContext";
 
 import { DocsDocHeader } from "./docs/DocsDocHeader";
 import { DocsCreateView } from "./docs/DocsCreateView";
@@ -72,17 +72,15 @@ export default function DocsPage() {
 	const lineHighlightRef = useRef<HTMLDivElement>(null);
 
 	// Annotation state
-	const annotationContext = useAnnotationContext();
-	const {
-		annotations,
-		addAnnotation,
-		updateAnnotation,
-		deleteAnnotation,
-		activeAnnotation,
-		setActiveAnnotation,
-		isEditing: isAnnotationEditing,
-		setIsEditing: setAnnotationEditing,
-	} = annotationContext;
+	const annotationContext = useAnnotationContextOptional();
+	const annotations = annotationContext?.annotations ?? [];
+	const addAnnotation = annotationContext?.addAnnotation ?? (() => null);
+	const updateAnnotation = annotationContext?.updateAnnotation ?? (() => {});
+	const deleteAnnotation = annotationContext?.deleteAnnotation ?? (() => {});
+	const activeAnnotation = annotationContext?.activeAnnotation ?? null;
+	const setActiveAnnotation = annotationContext?.setActiveAnnotation ?? (() => {});
+	const isAnnotationEditing = annotationContext?.isEditing ?? false;
+	const setAnnotationEditing = annotationContext?.setIsEditing ?? (() => {});
 
 	const [annotationEditText, setAnnotationEditText] = useState("");
 

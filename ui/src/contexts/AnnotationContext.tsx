@@ -61,3 +61,8 @@ export function useAnnotationContext() {
 	}
 	return context;
 }
+
+/** Safe version that returns null when outside AnnotationProvider instead of throwing. */
+export function useAnnotationContextOptional() {
+	return useContext(AnnotationContext);
+}

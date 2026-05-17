@@ -31,6 +31,14 @@ type Chunk struct {
 	TokenCount int       `json:"tokenCount"`
 	Embedding  []float32 `json:"-"` // populated after embedding
 
+	// FileHash is the SHA-256 hex digest of the source file content.
+	// Used for delta re-indexing: skip parse when file hash unchanged.
+	FileHash string `json:"fileHash,omitempty"`
+
+	// ChunkHash is the SHA-256 hex digest of the chunk content.
+	// Used for delta embedding: skip embed when chunk content unchanged.
+	ChunkHash string `json:"chunkHash,omitempty"`
+
 	// Doc fields (populated when Type == ChunkTypeDoc).
 	DocPath      string `json:"docPath,omitempty"`
 	Section      string `json:"section,omitempty"`

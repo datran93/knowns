@@ -1,0 +1,38 @@
+{
+  "taskId": "grs66m",
+  "currentVersion": 1,
+  "versions": [
+    {
+      "id": "v1",
+      "taskId": "grs66m",
+      "version": 1,
+      "timestamp": "2026-05-11T10:45:34.58535Z",
+      "author": "datran93",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": null,
+          "newValue": "todo"
+        },
+        {
+          "field": "priority",
+          "oldValue": null,
+          "newValue": "medium"
+        }
+      ],
+      "snapshot": {
+        "assignee": "datran93",
+        "description": "Extend embedder config to support API-based providers (Ollama, Qwen3). Add auto-detection logic in onnx_runtime.go. Support OpenAI-compatible API endpoints for embedding generation.",
+        "labels": [
+          "changelog",
+          "v0.21.0",
+          "embedding",
+          "providers"
+        ],
+        "priority": "medium",
+        "status": "todo",
+        "title": "Add OpenAI-compatible embedding provider support (v0.21.0)"
+      }
+    }
+  ]
+}

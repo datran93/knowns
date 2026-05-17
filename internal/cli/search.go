@@ -36,6 +36,7 @@ var retrieveCmd = &cobra.Command{
 
 func runSearch(cmd *cobra.Command, args []string) error {
 	reindex, _ := cmd.Flags().GetBool("reindex")
+	fullReindex, _ := cmd.Flags().GetBool("full")
 	setup, _ := cmd.Flags().GetBool("setup")
 	statusCheck, _ := cmd.Flags().GetBool("status-check")
 
@@ -47,8 +48,8 @@ func runSearch(cmd *cobra.Command, args []string) error {
 		return runSetup()
 	}
 
-	if reindex {
-		return runReindex()
+	if reindex || fullReindex {
+		return runReindex(fullReindex)
 	}
 
 	if len(args) == 0 {
@@ -818,7 +819,7 @@ func runRuntimeReindexWithProgress(storeRoot, jobID string) error {
 	return nil
 }
 
-func runReindex() error {
+func runReindex(full bool) error {
 	store := getStore()
 
 	tasks, _ := store.Tasks.List()
@@ -894,7 +895,7 @@ func runReindex() error {
 		}
 	}
 
-	if err := reindexSemanticStores(store); err == nil {
+	if err := reindexSemanticStores(store, full); err == nil {
 		return nil
 	} else if err != search.ErrSemanticNotConfigured {
 		fmt.Println(searchWarnStyle.Render(fmt.Sprintf("Semantic search initialization failed: %s", err)))
@@ -915,20 +916,20 @@ func runReindex() error {
 	return nil
 }
 
-func reindexSemanticStores(store *storage.Store) error {
+func reindexSemanticStores(store *storage.Store, full bool) error {
 	if store == nil {
 		return search.ErrSemanticNotConfigured
 	}
-	if err := reindexSemanticStore(store, "project"); err != nil && err != search.ErrSemanticNotConfigured {
+	if err := reindexSemanticStore(store, "project", full); err != nil && err != search.ErrSemanticNotConfigured {
 		return err
 	}
-	if err := reindexSemanticStore(storage.NewGlobalSemanticStore(), "global"); err != nil && err != search.ErrSemanticNotConfigured {
+	if err := reindexSemanticStore(storage.NewGlobalSemanticStore(), "global", full); err != nil && err != search.ErrSemanticNotConfigured {
 		return err
 	}
 	return nil
 }
 
-func reindexSemanticStore(store *storage.Store, label string) error {
+func reindexSemanticStore(store *storage.Store, label string, full bool) error {
 	embedder, vecStore, err := search.InitSemantic(store)
 	if err != nil {
 		return err
@@ -939,6 +940,11 @@ func reindexSemanticStore(store *storage.Store, label string) error {
 	defer embedder.Close()
 	defer vecStore.Close()
 	engine := search.NewEngine(store, embedder, vecStore)
+	if full {
+		if err := vecStore.Clear(); err != nil {
+			return fmt.Errorf("clear vecstore: %w", err)
+		}
+	}
 	if err := engine.Reindex(nil); err != nil {
 		return err
 	}
@@ -1061,6 +1067,7 @@ func init() {
 	searchCmd.Flags().Bool("keyword", false, "Force keyword-only search")
 	searchCmd.Flags().Int("limit", 20, "Limit search results")
 	searchCmd.Flags().Bool("reindex", false, "Rebuild the search index")
+	searchCmd.Flags().Bool("full", false, "Force full rebuild of semantic index")
 	searchCmd.Flags().Bool("setup", false, "Set up semantic search")
 	searchCmd.Flags().Bool("status-check", false, "Show semantic search status")
 

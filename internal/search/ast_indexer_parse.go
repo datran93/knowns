@@ -5,11 +5,15 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 
 	sitter "github.com/tree-sitter/go-tree-sitter"
+	tree_sitter_c_sharp "github.com/tree-sitter/tree-sitter-c-sharp/bindings/go"
 	tree_sitter_go "github.com/tree-sitter/tree-sitter-go/bindings/go"
+	tree_sitter_java "github.com/tree-sitter/tree-sitter-java/bindings/go"
 	tree_sitter_javascript "github.com/tree-sitter/tree-sitter-javascript/bindings/go"
 	tree_sitter_python "github.com/tree-sitter/tree-sitter-python/bindings/go"
+	tree_sitter_rust "github.com/tree-sitter/tree-sitter-rust/bindings/go"
 	tree_sitter_typescript "github.com/tree-sitter/tree-sitter-typescript/bindings/go"
 )
 
@@ -91,11 +95,12 @@ func parseRawFile(docPath, absPath string) ([]CodeSymbol, []CodeEdge, error) {
 		return nil, nil, nil
 	}
 
-	parser := sitter.NewParser()
-	defer parser.Close()
-	if err := parser.SetLanguage(lang); err != nil {
-		return nil, nil, err
-	}
+	// Compute file hash for delta re-indexing.
+	fileHash := ComputeFileHash(data)
+
+	ext := detectLangExt(docPath)
+	parser := getParser(lang, ext)
+	defer releaseParser(lang, parser, ext)
 
 	tree := parser.Parse(data, nil)
 	if tree == nil {
@@ -108,8 +113,39 @@ func parseRawFile(docPath, absPath string) ([]CodeSymbol, []CodeEdge, error) {
 		return nil, nil, nil
 	}
 
-	syms, eds := extractSymbols(docPath, data, root)
+	syms, eds := extractSymbolsWithHash(docPath, data, root, fileHash)
 	return syms, eds, nil
+}
+
+// --- parser pooling ---
+
+// parserPool holds reusable parsers per language extension.
+var parserPool = make(map[string]*sitter.Parser)
+var parserPoolMu sync.Mutex
+
+// getParser returns a parser for the given language, reusing from pool if available.
+// The langExt parameter should be the file extension (e.g., ".go", ".java").
+func getParser(lang *sitter.Language, langExt string) *sitter.Parser {
+	parserPoolMu.Lock()
+	defer parserPoolMu.Unlock()
+
+	if p, ok := parserPool[langExt]; ok {
+		return p
+	}
+	p := sitter.NewParser()
+	_ = p.SetLanguage(lang)
+	parserPool[langExt] = p
+	return p
+}
+
+// releaseParser returns a parser to the pool (no-op, parsers are reused).
+func releaseParser(lang *sitter.Language, parser *sitter.Parser, langExt string) {
+	// Parsers are kept in the pool for reuse; no action needed.
+}
+
+// detectLangExt returns the file extension for language detection.
+func detectLangExt(path string) string {
+	return strings.ToLower(filepath.Ext(path))
 }
 
 func finalizeCodeParse(symbols []CodeSymbol, edges []CodeEdge) ([]CodeSymbol, []CodeEdge, error) {
@@ -138,6 +174,12 @@ func detectLang(path string) *sitter.Language {
 		return sitter.NewLanguage(tree_sitter_javascript.Language())
 	case ".py":
 		return sitter.NewLanguage(tree_sitter_python.Language())
+	case ".java":
+		return sitter.NewLanguage(tree_sitter_java.Language())
+	case ".rs":
+		return sitter.NewLanguage(tree_sitter_rust.Language())
+	case ".cs":
+		return sitter.NewLanguage(tree_sitter_c_sharp.Language())
 	default:
 		return nil
 	}

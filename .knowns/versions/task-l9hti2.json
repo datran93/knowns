@@ -1,0 +1,38 @@
+{
+  "taskId": "l9hti2",
+  "currentVersion": 1,
+  "versions": [
+    {
+      "id": "v1",
+      "taskId": "l9hti2",
+      "version": 1,
+      "timestamp": "2026-05-11T10:00:47.722401Z",
+      "author": "datran93",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": null,
+          "newValue": "todo"
+        },
+        {
+          "field": "priority",
+          "oldValue": null,
+          "newValue": "high"
+        }
+      ],
+      "snapshot": {
+        "assignee": "datran93",
+        "description": "Add AnnotationBubble (draggable floating widget), AnnotationHighlighter (DOM TreeWalker-based), AnnotationSelectionToolbar, AnnotationContext + useAnnotations hook with LocalStorage persistence (500-item cap). Include inline editing with popover textarea + ⌘+Enter save, cross-tab sync via storage events, highlight confidence indicators for non-unique text.",
+        "labels": [
+          "changelog",
+          "v0.21.0",
+          "ui",
+          "annotations"
+        ],
+        "priority": "high",
+        "status": "todo",
+        "title": "Implement doc inline annotation system (v0.21.0)"
+      }
+    }
+  ]
+}

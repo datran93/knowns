@@ -9,7 +9,7 @@ import (
 func isCodeFile(path string) bool {
 	ext := strings.ToLower(filepath.Ext(path))
 	switch ext {
-	case ".go", ".ts", ".tsx", ".js", ".jsx", ".py":
+	case ".go", ".ts", ".tsx", ".js", ".jsx", ".py", ".java", ".rs", ".cs":
 		return true
 	}
 	return false

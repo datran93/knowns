@@ -1,7 +1,9 @@
 package search
 
 import (
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -16,11 +18,15 @@ import (
 // CodeSymbol represents a parsed symbol from a code file.
 type CodeSymbol struct {
 	Name      string
-	Kind      string // "function", "method", "class", "interface", "file"
+	Kind      string // "function", "method", "class", "interface", "file", "constructor", "enum", "field", "trait"
 	DocPath   string // relative file path
 	Content   string // natural-language description
 	Signature string
 	Source    string
+
+	// FileHash is the SHA-256 hex digest of the source file content.
+	// Used for delta re-indexing: skip parse when file hash unchanged.
+	FileHash string `json:"fileHash,omitempty"`
 }
 
 // CodeChunkID returns the chunk ID for a code symbol.
@@ -42,6 +48,7 @@ func (s *CodeSymbol) ToChunk() Chunk {
 			content = fmt.Sprintf("%s %s — file: %s", s.Kind, s.Name, s.DocPath)
 		}
 	}
+	chunkHash := ComputeChunkHash(content)
 	return Chunk{
 		ID:        id,
 		Type:      ChunkTypeCode,
@@ -50,7 +57,21 @@ func (s *CodeSymbol) ToChunk() Chunk {
 		Field:     s.Kind,
 		Name:      s.Name,
 		Signature: s.Signature,
+		FileHash:  s.FileHash,
+		ChunkHash: chunkHash,
 	}
+}
+
+// ComputeChunkHash returns SHA-256 hex digest of content for delta embedding.
+func ComputeChunkHash(content string) string {
+	h := sha256.Sum256([]byte(content))
+	return hex.EncodeToString(h[:])
+}
+
+// ComputeFileHash returns SHA-256 hex digest of file content for delta parsing.
+func ComputeFileHash(data []byte) string {
+	h := sha256.Sum256(data)
+	return hex.EncodeToString(h[:])
 }
 
 // IndexAllFiles walks projectRoot, indexes all supported code files, returns symbols and edges.

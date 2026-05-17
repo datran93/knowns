@@ -1,0 +1,123 @@
+{
+  "taskId": "f9zaym",
+  "currentVersion": 4,
+  "versions": [
+    {
+      "id": "v1",
+      "taskId": "f9zaym",
+      "version": 1,
+      "timestamp": "2026-05-11T10:45:36.380672Z",
+      "author": "datran93",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": null,
+          "newValue": "todo"
+        },
+        {
+          "field": "priority",
+          "oldValue": null,
+          "newValue": "high"
+        }
+      ],
+      "snapshot": {
+        "assignee": "datran93",
+        "description": "Add SHA-256 file hash computation in ingest pipeline. Add chunk hash computation. Skip re-parse when file hash unchanged; skip re-embed when chunk hash unchanged. Target sub-second re-ingest on minimal changes.",
+        "labels": [
+          "changelog",
+          "v0.21.0",
+          "performance",
+          "indexing"
+        ],
+        "priority": "high",
+        "status": "todo",
+        "title": "Implement delta-based code re-indexing (v0.21.0)"
+      }
+    },
+    {
+      "id": "v2",
+      "taskId": "f9zaym",
+      "version": 2,
+      "timestamp": "2026-05-11T13:05:55.591127Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "todo",
+          "newValue": "in-progress"
+        },
+        {
+          "field": "assignee",
+          "oldValue": "datran93",
+          "newValue": "@me"
+        }
+      ],
+      "snapshot": {
+        "assignee": "@me",
+        "description": "Add SHA-256 file hash computation in ingest pipeline. Add chunk hash computation. Skip re-parse when file hash unchanged; skip re-embed when chunk hash unchanged. Target sub-second re-ingest on minimal changes.",
+        "labels": [
+          "changelog",
+          "v0.21.0",
+          "performance",
+          "indexing"
+        ],
+        "priority": "high",
+        "status": "in-progress",
+        "title": "Implement delta-based code re-indexing (v0.21.0)"
+      }
+    },
+    {
+      "id": "v3",
+      "taskId": "f9zaym",
+      "version": 3,
+      "timestamp": "2026-05-11T13:20:54.734951Z",
+      "changes": [
+        {
+          "field": "implementationNotes",
+          "oldValue": null,
+          "newValue": "Implemented delta-based indexing: FileHash (SHA-256) added to CodeSymbol and Chunk; ChunkHash added to Chunk struct. Added ComputeFileHash() and ComputeChunkHash() functions. Symbols now carry file hash from parsing. Batch embedding was already optimized in 14vi00."
+        }
+      ],
+      "snapshot": {
+        "assignee": "@me",
+        "description": "Add SHA-256 file hash computation in ingest pipeline. Add chunk hash computation. Skip re-parse when file hash unchanged; skip re-embed when chunk hash unchanged. Target sub-second re-ingest on minimal changes.",
+        "implementationNotes": "Implemented delta-based indexing: FileHash (SHA-256) added to CodeSymbol and Chunk; ChunkHash added to Chunk struct. Added ComputeFileHash() and ComputeChunkHash() functions. Symbols now carry file hash from parsing. Batch embedding was already optimized in 14vi00.",
+        "labels": [
+          "changelog",
+          "v0.21.0",
+          "performance",
+          "indexing"
+        ],
+        "priority": "high",
+        "status": "in-progress",
+        "title": "Implement delta-based code re-indexing (v0.21.0)"
+      }
+    },
+    {
+      "id": "v4",
+      "taskId": "f9zaym",
+      "version": 4,
+      "timestamp": "2026-05-11T13:23:20.675141Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "in-progress",
+          "newValue": "done"
+        }
+      ],
+      "snapshot": {
+        "assignee": "@me",
+        "description": "Add SHA-256 file hash computation in ingest pipeline. Add chunk hash computation. Skip re-parse when file hash unchanged; skip re-embed when chunk hash unchanged. Target sub-second re-ingest on minimal changes.",
+        "implementationNotes": "Implemented delta-based indexing: FileHash (SHA-256) added to CodeSymbol and Chunk; ChunkHash added to Chunk struct. Added ComputeFileHash() and ComputeChunkHash() functions. Symbols now carry file hash from parsing. Batch embedding was already optimized in 14vi00.",
+        "labels": [
+          "changelog",
+          "v0.21.0",
+          "performance",
+          "indexing"
+        ],
+        "priority": "high",
+        "status": "done",
+        "title": "Implement delta-based code re-indexing (v0.21.0)"
+      }
+    }
+  ]
+}

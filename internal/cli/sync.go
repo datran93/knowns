@@ -119,7 +119,7 @@ func runSync(cmd *cobra.Command, args []string) error {
 	// 6. Reindex
 	if syncIndex {
 		fmt.Println(StyleBold.Render("Rebuilding search index..."))
-		if err := runReindex(); err != nil {
+		if err := runReindex(false); err != nil {
 			fmt.Fprintf(os.Stderr, "Warning: reindex failed: %v\n", err)
 		}
 		fmt.Println()

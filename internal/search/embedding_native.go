@@ -92,16 +92,77 @@ func (e *Embedder) EmbedQuery(text string) ([]float32, error) {
 
 // EmbedBatch returns document embeddings for multiple texts.
 func (e *Embedder) EmbedBatch(texts []string) ([][]float32, error) {
-	return e.runtime.EmbedORT(texts, "doc")
+	return e.EmbedDocumentBatch(texts)
 }
 
-// EmbedDocumentBatch returns document embeddings for multiple texts.
+// EmbedDocumentBatch returns document embeddings for multiple texts using length-sorted adaptive batching.
 func (e *Embedder) EmbedDocumentBatch(texts []string) ([][]float32, error) {
-	return e.runtime.EmbedORT(texts, "doc")
+	if len(texts) == 0 {
+		return [][]float32{}, nil
+	}
+	if len(texts) == 1 {
+		vs, err := e.runtime.EmbedORT(texts, "doc")
+		if err != nil {
+			return nil, err
+		}
+		return vs, nil
+	}
+
+	// Group by approximate token length for padding efficiency.
+	// Adaptive batch sizes: 64 for short content, 32 for long content.
+	var short, long []indexedText
+	for i, text := range texts {
+		approxTokens := len(text) / 4 // rough estimate
+		it := indexedText{text: text, index: i, origLen: approxTokens}
+		if approxTokens < 256 {
+			short = append(short, it)
+		} else {
+			long = append(long, it)
+		}
+	}
+
+	// Pre-allocate results slice.
+	results := make([][]float32, len(texts))
+	for _, group := range []struct {
+		items     []indexedText
+		batchSize int
+	}{
+		{short, 64},
+		{long, 32},
+	} {
+		if len(group.items) == 0 {
+			continue
+		}
+		// Sort by original length descending for better GPU utilization.
+		sortByOrigLenDesc(group.items)
+		for batchStart := 0; batchStart < len(group.items); batchStart += group.batchSize {
+			batchEnd := batchStart + group.batchSize
+			if batchEnd > len(group.items) {
+				batchEnd = len(group.items)
+			}
+			batch := group.items[batchStart:batchEnd]
+			batchTexts := make([]string, len(batch))
+			for j, it := range batch {
+				batchTexts[j] = it.text
+			}
+			vs, err := e.runtime.EmbedORT(batchTexts, "doc")
+			if err != nil {
+				return nil, err
+			}
+			for j, it := range batch {
+				results[it.index] = vs[j]
+			}
+		}
+	}
+
+	return results, nil
 }
 
 // EmbedQueryBatch returns query embeddings for multiple texts.
 func (e *Embedder) EmbedQueryBatch(texts []string) ([][]float32, error) {
+	if len(texts) == 0 {
+		return [][]float32{}, nil
+	}
 	return e.runtime.EmbedORT(texts, "query")
 }
 
@@ -141,4 +202,24 @@ func IsONNXAvailable() (bool, string) {
 		return true, lib
 	}
 	return false, ""
+}
+
+// indexedText pairs text with its original index for result reordering.
+type indexedText struct {
+	text    string
+	index   int
+	origLen int
+}
+
+// sortByOrigLenDesc sorts by original length descending for batch efficiency.
+func sortByOrigLenDesc(items []indexedText) {
+	for i := 0; i < len(items)-1; i++ {
+		maxIdx := i
+		for j := i + 1; j < len(items); j++ {
+			if items[j].origLen > items[maxIdx].origLen {
+				maxIdx = j
+			}
+		}
+		items[i], items[maxIdx] = items[maxIdx], items[i]
+	}
 }

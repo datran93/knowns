@@ -508,7 +508,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 			label: "Building project and global semantic indices",
 			run: func() error {
 				store := storage.NewStore(root)
-				return reindexSemanticStores(store)
+				return reindexSemanticStores(store, false)
 			},
 		})
 	}

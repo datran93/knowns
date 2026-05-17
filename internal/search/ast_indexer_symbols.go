@@ -10,7 +10,12 @@ import (
 
 // extractSymbols walks the tree and extracts named symbols and edges.
 func extractSymbols(docPath string, data []byte, root *sitter.Node) ([]CodeSymbol, []CodeEdge) {
-	visitor := newSymbolVisitor(docPath, data)
+	return extractSymbolsWithHash(docPath, data, root, "")
+}
+
+// extractSymbolsWithHash walks the tree and extracts named symbols and edges, with file hash for delta indexing.
+func extractSymbolsWithHash(docPath string, data []byte, root *sitter.Node, fileHash string) ([]CodeSymbol, []CodeEdge) {
+	visitor := newSymbolVisitorWithHash(docPath, data, fileHash)
 	visitor.addFileSymbol()
 	walkTree(root, visitor)
 	visitor.addFileImportEdges()
@@ -21,6 +26,7 @@ func extractSymbols(docPath string, data []byte, root *sitter.Node) ([]CodeSymbo
 type symbolVisitor struct {
 	docPath    string
 	data       []byte
+	fileHash   string
 	symbols    []CodeSymbol
 	edges      []CodeEdge
 	imports    fileImportIndex
@@ -30,9 +36,14 @@ type symbolVisitor struct {
 }
 
 func newSymbolVisitor(docPath string, data []byte) *symbolVisitor {
+	return newSymbolVisitorWithHash(docPath, data, "")
+}
+
+func newSymbolVisitorWithHash(docPath string, data []byte, fileHash string) *symbolVisitor {
 	return &symbolVisitor{
 		docPath:  docPath,
 		data:     data,
+		fileHash: fileHash,
 		imports:  extractFileImports(docPath, data),
 		language: strings.TrimPrefix(strings.ToLower(filepath.Ext(docPath)), "."),
 	}
@@ -138,6 +149,7 @@ func (v *symbolVisitor) addSymbol(name, kind string, node sitter.Node) {
 		DocPath:   v.docPath,
 		Source:    content,
 		Signature: sig,
+		FileHash:  v.fileHash,
 	})
 	v.addContainsEdge(name)
 	v.addOwnerEdge(name, kind)
@@ -201,7 +213,7 @@ func walkTree(node *sitter.Node, v *symbolVisitor) {
 
 func (v *symbolVisitor) visit(node sitter.Node) {
 	switch node.Kind() {
-	case "function_declaration", "function_definition":
+	case "function_declaration", "function_definition", "function_item":
 		if name := v.functionName(node); name != "" {
 			v.addSymbol(name, "function", node)
 		}
@@ -209,7 +221,7 @@ func (v *symbolVisitor) visit(node sitter.Node) {
 		if name := v.methodName(node); name != "" {
 			v.addSymbol(name, "method", node)
 		}
-	case "class_declaration", "class_definition":
+	case "class_declaration", "class_definition", "struct_declaration", "class_body":
 		if name := v.className(node); name != "" {
 			v.addSymbol(name, "class", node)
 		}
@@ -251,9 +263,27 @@ func (v *symbolVisitor) visit(node sitter.Node) {
 				v.addEdge(v.funcStack[len(v.funcStack)-1], target, "instantiates")
 			}
 		}
-	case "import_specifier", "import_declaration", "import_clause", "import_statement":
+	case "import_specifier", "import_declaration", "import_clause", "import_statement", "using_directive":
 		if target := v.importTarget(node); target.TargetName != "" {
 			v.addImportEdge(v.importAnchor(), node)
+		}
+	// Java-specific nodes
+	case "constructor_declaration":
+		if name := v.constructorName(node); name != "" {
+			v.addSymbol(name, "constructor", node)
+		}
+	case "enum_declaration":
+		if name := v.enumName(node); name != "" {
+			v.addSymbol(name, "enum", node)
+		}
+	case "field_declaration":
+		for _, fnName := range v.fieldNames(node) {
+			v.addSymbol(fnName, "field", node)
+		}
+	// Rust-specific nodes
+	case "trait_item", "impl_item":
+		if name := v.traitOrImplName(node); name != "" {
+			v.addSymbol(name, "trait", node)
 		}
 	}
 }
@@ -421,7 +451,7 @@ func (v *symbolVisitor) extendsTarget(node sitter.Node) edgeTarget {
 
 func isSupportedCodeSymbolKind(kind string) bool {
 	switch kind {
-	case "file", "function", "method", "class", "interface":
+	case "file", "function", "method", "class", "interface", "constructor", "enum", "field", "trait":
 		return true
 	default:
 		return false
@@ -458,7 +488,7 @@ func extractSignature(node sitter.Node, data []byte) string {
 			continue
 		}
 		kind := child.Kind()
-		if kind == "identifier" || kind == "field_identifier" || kind == "type_identifier" {
+		if kind == "identifier" || kind == "field_identifier" || kind == "type_identifier" || kind == "property_identifier" || kind == "generic_type" {
 			if buf.Len() > 0 {
 				buf.WriteString(".")
 			}
@@ -468,7 +498,7 @@ func extractSignature(node sitter.Node, data []byte) string {
 				buf.Write(data[start:end])
 			}
 		}
-		if kind == "parameter_list" || kind == "typed_parameter_list" {
+		if kind == "parameter_list" || kind == "typed_parameter_list" || kind == "type_parameters" {
 			start := int(child.StartByte())
 			end := int(child.EndByte())
 			if start >= 0 && end <= len(data) {
@@ -477,4 +507,66 @@ func extractSignature(node sitter.Node, data []byte) string {
 		}
 	}
 	return strings.TrimSpace(buf.String())
+}
+
+// constructorName extracts constructor name from Java/C# constructors.
+func (v *symbolVisitor) constructorName(node sitter.Node) string {
+	for i := 0; i < int(node.ChildCount()); i++ {
+		child := node.Child(uint(i))
+		if child != nil && child.Kind() == "identifier" {
+			return v.extractNodeText(child)
+		}
+	}
+	return ""
+}
+
+// enumName extracts enum name.
+func (v *symbolVisitor) enumName(node sitter.Node) string {
+	for i := 0; i < int(node.ChildCount()); i++ {
+		child := node.Child(uint(i))
+		if child != nil && (child.Kind() == "type_identifier" || child.Kind() == "identifier") {
+			return v.extractNodeText(child)
+		}
+	}
+	return ""
+}
+
+// fieldNames extracts field names from field declarations (Java, C#).
+func (v *symbolVisitor) fieldNames(node sitter.Node) []string {
+	var names []string
+	for i := 0; i < int(node.ChildCount()); i++ {
+		child := node.Child(uint(i))
+		if child == nil {
+			continue
+		}
+		if child.Kind() == "variable_declarator" {
+			name := v.extractNodeText(child.ChildByFieldName("name"))
+			if name != "" {
+				names = append(names, name)
+			}
+		}
+	}
+	return names
+}
+
+// traitOrImplName extracts trait (Rust) or impl block name.
+func (v *symbolVisitor) traitOrImplName(node sitter.Node) string {
+	kind := node.Kind()
+	for i := 0; i < int(node.ChildCount()); i++ {
+		child := node.Child(uint(i))
+		if child == nil {
+			continue
+		}
+		switch kind {
+		case "trait_item":
+			if child.Kind() == "identifier" || child.Kind() == "type_identifier" {
+				return v.extractNodeText(child)
+			}
+		case "impl_item":
+			if child.Kind() == "type_identifier" || child.Kind() == "identifier" {
+				return v.extractNodeText(child)
+			}
+		}
+	}
+	return ""
 }

@@ -1,0 +1,123 @@
+{
+  "taskId": "14vi00",
+  "currentVersion": 4,
+  "versions": [
+    {
+      "id": "v1",
+      "taskId": "14vi00",
+      "version": 1,
+      "timestamp": "2026-05-11T10:45:33.065342Z",
+      "author": "datran93",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": null,
+          "newValue": "todo"
+        },
+        {
+          "field": "priority",
+          "oldValue": null,
+          "newValue": "high"
+        }
+      ],
+      "snapshot": {
+        "assignee": "datran93",
+        "description": "Implement length-sorted content batching in onnx_runtime.go. Add adaptive batch sizes (64 for short content, 32 for long). Implement parser instance pools by extension in ast_indexer_parse.go to eliminate alloc/dealloc overhead per file.",
+        "labels": [
+          "changelog",
+          "v0.20.5",
+          "performance",
+          "embedding"
+        ],
+        "priority": "high",
+        "status": "todo",
+        "title": "Implement batch embedding + parser pooling (v0.20.5)"
+      }
+    },
+    {
+      "id": "v2",
+      "taskId": "14vi00",
+      "version": 2,
+      "timestamp": "2026-05-11T12:30:52.402607Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "todo",
+          "newValue": "in-progress"
+        },
+        {
+          "field": "assignee",
+          "oldValue": "datran93",
+          "newValue": "@me"
+        }
+      ],
+      "snapshot": {
+        "assignee": "@me",
+        "description": "Implement length-sorted content batching in onnx_runtime.go. Add adaptive batch sizes (64 for short content, 32 for long). Implement parser instance pools by extension in ast_indexer_parse.go to eliminate alloc/dealloc overhead per file.",
+        "labels": [
+          "changelog",
+          "v0.20.5",
+          "performance",
+          "embedding"
+        ],
+        "priority": "high",
+        "status": "in-progress",
+        "title": "Implement batch embedding + parser pooling (v0.20.5)"
+      }
+    },
+    {
+      "id": "v3",
+      "taskId": "14vi00",
+      "version": 3,
+      "timestamp": "2026-05-11T13:01:56.819302Z",
+      "changes": [
+        {
+          "field": "implementationNotes",
+          "oldValue": null,
+          "newValue": "Implemented length-sorted adaptive batching (64 short / 32 long) in EmbedDocumentBatch. Implemented parser pooling per language extension in ast_indexer_parse.go to eliminate alloc/dealloc overhead."
+        }
+      ],
+      "snapshot": {
+        "assignee": "@me",
+        "description": "Implement length-sorted content batching in onnx_runtime.go. Add adaptive batch sizes (64 for short content, 32 for long). Implement parser instance pools by extension in ast_indexer_parse.go to eliminate alloc/dealloc overhead per file.",
+        "implementationNotes": "Implemented length-sorted adaptive batching (64 short / 32 long) in EmbedDocumentBatch. Implemented parser pooling per language extension in ast_indexer_parse.go to eliminate alloc/dealloc overhead.",
+        "labels": [
+          "changelog",
+          "v0.20.5",
+          "performance",
+          "embedding"
+        ],
+        "priority": "high",
+        "status": "in-progress",
+        "title": "Implement batch embedding + parser pooling (v0.20.5)"
+      }
+    },
+    {
+      "id": "v4",
+      "taskId": "14vi00",
+      "version": 4,
+      "timestamp": "2026-05-11T13:03:16.819038Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "in-progress",
+          "newValue": "done"
+        }
+      ],
+      "snapshot": {
+        "assignee": "@me",
+        "description": "Implement length-sorted content batching in onnx_runtime.go. Add adaptive batch sizes (64 for short content, 32 for long). Implement parser instance pools by extension in ast_indexer_parse.go to eliminate alloc/dealloc overhead per file.",
+        "implementationNotes": "Implemented length-sorted adaptive batching (64 short / 32 long) in EmbedDocumentBatch. Implemented parser pooling per language extension in ast_indexer_parse.go to eliminate alloc/dealloc overhead.",
+        "labels": [
+          "changelog",
+          "v0.20.5",
+          "performance",
+          "embedding"
+        ],
+        "priority": "high",
+        "status": "done",
+        "title": "Implement batch embedding + parser pooling (v0.20.5)"
+      }
+    }
+  ]
+}

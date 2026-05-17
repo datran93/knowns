@@ -1,0 +1,123 @@
+{
+  "taskId": "z4pjzt",
+  "currentVersion": 4,
+  "versions": [
+    {
+      "id": "v1",
+      "taskId": "z4pjzt",
+      "version": 1,
+      "timestamp": "2026-05-11T10:02:43.376209Z",
+      "author": "datran93",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": null,
+          "newValue": "todo"
+        },
+        {
+          "field": "priority",
+          "oldValue": null,
+          "newValue": "high"
+        }
+      ],
+      "snapshot": {
+        "assignee": "datran93",
+        "description": "Add tree-sitter-java, tree-sitter-rust, tree-sitter-c-sharp Go bindings. Extend ast_indexer.go to detect .java, .rs, .cs files and extract symbols (classes, structs, enums, traits, impl blocks, constructors) and edges (imports, method ownership).",
+        "labels": [
+          "changelog",
+          "v0.20.5",
+          "tree-sitter",
+          "code-intelligence"
+        ],
+        "priority": "high",
+        "status": "todo",
+        "title": "Add Java/Rust/C# tree-sitter support (v0.20.5)"
+      }
+    },
+    {
+      "id": "v2",
+      "taskId": "z4pjzt",
+      "version": 2,
+      "timestamp": "2026-05-11T10:48:39.609124Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "todo",
+          "newValue": "in-progress"
+        },
+        {
+          "field": "assignee",
+          "oldValue": "datran93",
+          "newValue": "@me"
+        }
+      ],
+      "snapshot": {
+        "assignee": "@me",
+        "description": "Add tree-sitter-java, tree-sitter-rust, tree-sitter-c-sharp Go bindings. Extend ast_indexer.go to detect .java, .rs, .cs files and extract symbols (classes, structs, enums, traits, impl blocks, constructors) and edges (imports, method ownership).",
+        "labels": [
+          "changelog",
+          "v0.20.5",
+          "tree-sitter",
+          "code-intelligence"
+        ],
+        "priority": "high",
+        "status": "in-progress",
+        "title": "Add Java/Rust/C# tree-sitter support (v0.20.5)"
+      }
+    },
+    {
+      "id": "v3",
+      "taskId": "z4pjzt",
+      "version": 3,
+      "timestamp": "2026-05-11T11:53:10.709699Z",
+      "changes": [
+        {
+          "field": "implementationNotes",
+          "oldValue": null,
+          "newValue": "Added Java/Rust/C# tree-sitter support: .java, .rs, .cs files now indexed. Extracted symbols: classes, structs, enums, traits, impl blocks, constructors, fields. Updated isSupportedCodeSymbolKind to include constructor, enum, field, trait."
+        }
+      ],
+      "snapshot": {
+        "assignee": "@me",
+        "description": "Add tree-sitter-java, tree-sitter-rust, tree-sitter-c-sharp Go bindings. Extend ast_indexer.go to detect .java, .rs, .cs files and extract symbols (classes, structs, enums, traits, impl blocks, constructors) and edges (imports, method ownership).",
+        "implementationNotes": "Added Java/Rust/C# tree-sitter support: .java, .rs, .cs files now indexed. Extracted symbols: classes, structs, enums, traits, impl blocks, constructors, fields. Updated isSupportedCodeSymbolKind to include constructor, enum, field, trait.",
+        "labels": [
+          "changelog",
+          "v0.20.5",
+          "tree-sitter",
+          "code-intelligence"
+        ],
+        "priority": "high",
+        "status": "in-progress",
+        "title": "Add Java/Rust/C# tree-sitter support (v0.20.5)"
+      }
+    },
+    {
+      "id": "v4",
+      "taskId": "z4pjzt",
+      "version": 4,
+      "timestamp": "2026-05-11T11:53:58.672296Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "in-progress",
+          "newValue": "done"
+        }
+      ],
+      "snapshot": {
+        "assignee": "@me",
+        "description": "Add tree-sitter-java, tree-sitter-rust, tree-sitter-c-sharp Go bindings. Extend ast_indexer.go to detect .java, .rs, .cs files and extract symbols (classes, structs, enums, traits, impl blocks, constructors) and edges (imports, method ownership).",
+        "implementationNotes": "Added Java/Rust/C# tree-sitter support: .java, .rs, .cs files now indexed. Extracted symbols: classes, structs, enums, traits, impl blocks, constructors, fields. Updated isSupportedCodeSymbolKind to include constructor, enum, field, trait.",
+        "labels": [
+          "changelog",
+          "v0.20.5",
+          "tree-sitter",
+          "code-intelligence"
+        ],
+        "priority": "high",
+        "status": "done",
+        "title": "Add Java/Rust/C# tree-sitter support (v0.20.5)"
+      }
+    }
+  ]
+}

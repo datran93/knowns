@@ -1,0 +1,95 @@
+{
+  "taskId": "352gaw",
+  "currentVersion": 3,
+  "versions": [
+    {
+      "id": "v1",
+      "taskId": "352gaw",
+      "version": 1,
+      "timestamp": "2026-05-11T10:45:35.666654Z",
+      "author": "datran93",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": null,
+          "newValue": "todo"
+        },
+        {
+          "field": "priority",
+          "oldValue": null,
+          "newValue": "medium"
+        }
+      ],
+      "snapshot": {
+        "assignee": "datran93",
+        "description": "Extend mcp setup with cline, continue, claude-desktop, gemini subcommands. Create unified mcpPlatform registry for all 10 platforms (Claude Code, Kiro, OpenCode, Cursor, Codex, Cline, Continue, Claude Desktop, Antigravity, Gemini CLI).",
+        "labels": [
+          "changelog",
+          "v0.20.5",
+          "mcp",
+          "cli"
+        ],
+        "priority": "medium",
+        "status": "todo",
+        "title": "Add MCP platform setup commands (v0.20.5)"
+      }
+    },
+    {
+      "id": "v2",
+      "taskId": "352gaw",
+      "version": 2,
+      "timestamp": "2026-05-11T13:26:58.48312Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "todo",
+          "newValue": "in-progress"
+        },
+        {
+          "field": "assignee",
+          "oldValue": "datran93",
+          "newValue": "@me"
+        }
+      ],
+      "snapshot": {
+        "assignee": "@me",
+        "description": "Extend mcp setup with cline, continue, claude-desktop, gemini subcommands. Create unified mcpPlatform registry for all 10 platforms (Claude Code, Kiro, OpenCode, Cursor, Codex, Cline, Continue, Claude Desktop, Antigravity, Gemini CLI).",
+        "labels": [
+          "changelog",
+          "v0.20.5",
+          "mcp",
+          "cli"
+        ],
+        "priority": "medium",
+        "status": "in-progress",
+        "title": "Add MCP platform setup commands (v0.20.5)"
+      }
+    },
+    {
+      "id": "v3",
+      "taskId": "352gaw",
+      "version": 3,
+      "timestamp": "2026-05-11T13:40:24.371458Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "in-progress",
+          "newValue": "done"
+        }
+      ],
+      "snapshot": {
+        "assignee": "@me",
+        "description": "Extend mcp setup with cline, continue, claude-desktop, gemini subcommands. Create unified mcpPlatform registry for all 10 platforms (Claude Code, Kiro, OpenCode, Cursor, Codex, Cline, Continue, Claude Desktop, Antigravity, Gemini CLI).",
+        "labels": [
+          "changelog",
+          "v0.20.5",
+          "mcp",
+          "cli"
+        ],
+        "priority": "medium",
+        "status": "done",
+        "title": "Add MCP platform setup commands (v0.20.5)"
+      }
+    }
+  ]
+}
